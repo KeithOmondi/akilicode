@@ -13,6 +13,7 @@ import {
 import type { AppDispatch, RootState } from "../../store/store";
 import { getAllCourses } from "../../store/slices/courseSlice";
 import type { Course } from "../../interfaces/course.interface";
+import { Link } from "react-router-dom";
 
 const ParentCourses = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -240,9 +241,11 @@ const ParentCourses = () => {
                   </div>
 
                   <div className="pt-4 flex flex-col sm:flex-row gap-4">
-                    <button className="flex-1 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-orange-500/20 active:scale-[0.98]">
-                      Enroll Child
-                    </button>
+                    <Link to="/parent/kids" className="flex-1 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-orange-500/20 active:scale-[0.98]">
+                      <h1 className="text-center">
+                        Enroll Child
+                      </h1>
+                    </Link>
                     <button className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98]">
                       Syllabus
                     </button>

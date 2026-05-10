@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { register, resetAuthState } from "../../store/slices/authSlice";
 import toast from "react-hot-toast";
-import { User, Mail, Phone, Lock, UserPlus, Loader2 } from "lucide-react";
+import { User, Mail, Phone, Lock, UserPlus, Loader2, Eye, EyeOff } from "lucide-react";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +12,7 @@ const Register = () => {
     phone: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -44,7 +45,6 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FDFCFE] px-4 py-12">
-      {/* Increased max-width to 2xl to accommodate side-by-side columns */}
       <div className="max-w-2xl w-full bg-white rounded-[0.5rem] shadow-xl shadow-purple-100/50 p-8 sm:p-12 border border-purple-50 transition-all">
         
         <div className="text-center mb-10">
@@ -56,7 +56,6 @@ const Register = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Side-by-Side Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Full Name */}
@@ -110,12 +109,19 @@ const Register = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-300" size={18} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
-                  className={inputCls}
+                  className={`${inputCls} pr-12`}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-300 hover:text-purple-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
           </div>

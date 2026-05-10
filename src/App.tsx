@@ -22,6 +22,10 @@ import RegisterPage from "./pages/auth/Register";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import ResetPassword from "./components/auth/ResetPassword";
 import VerifyEmail from "./components/auth/VerifyEmail";
+import AdminCourseDetail from "./pages/admin/Admincoursedetail";
+import AdminModuleDetail from "./pages/admin/Adminmoduledetail";
+import AdminLessonEditor from "./pages/admin/Adminlessoneditor";
+import HomePage from "./pages/HomePage";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -47,6 +51,7 @@ const App = () => {
       />
       <Routes>
         {/* ── Public routes — always render, never blocked by loading ── */}
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -74,9 +79,24 @@ const App = () => {
             <Route element={<ProtectedRoutes allowedRoles={["admin"]} />}>
               <Route element={<AdminLayout />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/enrollments" element={<AdminEnrollments />} />
+                <Route
+                  path="/admin/enrollments"
+                  element={<AdminEnrollments />}
+                />
                 <Route path="/admin/payments" element={<AdminPayments />} />
                 <Route path="/admin/courses" element={<AdminCourses />} />
+                <Route
+                  path="/admin/courses/:courseId"
+                  element={<AdminCourseDetail />}
+                />
+                <Route
+                  path="/admin/courses/:courseId/modules/:moduleId"
+                  element={<AdminModuleDetail />}
+                />
+                <Route
+                  path="/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId"
+                  element={<AdminLessonEditor />}
+                />
               </Route>
             </Route>
 
@@ -85,13 +105,19 @@ const App = () => {
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />
                 <Route path="/parent/kids" element={<MyKids />} />
                 <Route path="/parent/settings" element={<ParentSettings />} />
-                <Route path="/parent/programs" element={<ParentProgramsAndPayments />} />
+                <Route
+                  path="/parent/programs"
+                  element={<ParentProgramsAndPayments />}
+                />
                 <Route path="/parent/courses" element={<ParentCourses />} />
               </Route>
             </Route>
 
             <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<div className="p-10">404 - Not Found</div>} />
+            <Route
+              path="*"
+              element={<div className="p-10">404 - Not Found</div>}
+            />
           </>
         )}
       </Routes>

@@ -1,44 +1,52 @@
-// Matches the kids table columns returned by RETURNING *
-export interface Kid {
+export interface IKid {
   id: string;
   parent_id: string;
   name: string;
   age: number;
-  grade: string | null; // optional on register, nullable in DB
-  created_at: string;
-  updated_at?: string;
+  grade?: string;
+  avatar?: string;
+  username?: string;
+  has_pin?: boolean;
+  created_at: Date;
 }
 
 export interface KidState {
-  kids: Kid[];
-  currentKid: Kid | null;
+  kids: IKid[];
+  currentKid: IKid | null;
   loading: boolean;
   error: string | null;
   message: string | null;
 }
 
-// POST /kids/register — request body
 export interface RegisterKidPayload {
   name: string;
   age: number;
   grade?: string;
+  avatar?: string;
 }
 
-// Single kid response — registerKid
-// { status: 'success', data: { kid: Kid } }
+export interface SetKidLoginPayload {
+  username: string;
+  pin: string;
+}
+
+export interface UpdateKidLoginPayload {
+  username?: string;
+  pin?: string;
+}
+
+export interface KidLoginPayload {
+  username: string;
+  pin: string;
+}
+
 export interface KidResponse {
   status: string;
-  data: {
-    kid: Kid;
-  };
+  data: { kid: IKid };
 }
 
-// List kids response — getMyKids
-// { status: 'success', results: number, data: { kids: Kid[] } }
 export interface KidsListResponse {
   status: string;
   results: number;
-  data: {
-    kids: Kid[];
-  };
+  data: { kids: IKid[] };
 }

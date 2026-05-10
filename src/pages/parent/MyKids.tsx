@@ -9,18 +9,31 @@ import {
   X, 
   Baby, 
   ChevronRight,
-  MoreVertical 
+  MoreVertical,
+  BookOpen,
+  Lock,
+  KeyRound
 } from "lucide-react"; 
-import { getMyKids, registerKid } from "../../store/slices/kidSlice";
+import { getMyKids, registerKid, setKidLogin } from "../../store/slices/kidSlice";
 import type { AppDispatch, RootState } from "../../store/store";
+import type { IKid } from "../../interfaces/kid.interface";
 
 const MyKids = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { kids, loading } = useSelector((s: RootState) => s.kid);
+  
+  // Form States
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [grade, setGrade] = useState("");
+
+  // Login Setup States
+  const [setupKid, setSetupKid] = useState<IKid | null>(null);
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
+
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(getMyKids());
@@ -38,6 +51,38 @@ const MyKids = () => {
       .catch((err: string) => toast.error(err));
   };
 
+  const handleSetLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!setupKid) return;
+
+    dispatch(setKidLogin({ 
+      kidId: setupKid.id, 
+      data: { username, pin } 
+    }))
+      .unwrap()
+      .then(() => {
+        toast.success(`Login credentials set for ${setupKid.name}!`);
+        setSetupKid(null);
+        setUsername("");
+        setPin("");
+      })
+      .catch((err: string) => toast.error(err));
+  };
+
+  const toggleDropdown = (kidId: string) => {
+    setOpenDropdownId(openDropdownId === kidId ? null : kidId);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId && !(event.target as Element).closest('.dropdown-container')) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdownId]);
+
   return (
     <div className="min-h-screen bg-[#FDFCFE] p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
@@ -48,7 +93,7 @@ const MyKids = () => {
             <h1 className="text-3xl font-extrabold font-serif text-purple-900 tracking-tight">
               My <span className="text-orange-500">Kids</span>
             </h1>
-            <p className="text-gray-500 font-medium mt-1 font-serif font-italic">
+            <p className="text-gray-500 font-medium mt-1 font-serif italic">
               {kids.length === 0
                 ? "Ready to start the coding journey?"
                 : `Manage your ${kids.length} young creator${kids.length !== 1 ? "s" : ""}`}
@@ -66,9 +111,9 @@ const MyKids = () => {
           )}
         </div>
 
-        {/* Brand Inspired Form */}
+        {/* Registration Form */}
         {showForm && (
-          <div className="bg-white border-2 border-purple-100 rounded-3xl p-6 md:p-8 mb-10 shadow-xl relative overflow-hidden">
+          <div className="bg-white border-2 border-purple-100 rounded-3xl p-6 md:p-8 mb-10 shadow-xl relative overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="absolute top-0 left-0 w-2 h-full bg-orange-500"></div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-purple-900">New Student Registration</h2>
@@ -134,6 +179,62 @@ const MyKids = () => {
           </div>
         )}
 
+        {/* Setup Login Modal */}
+        {setupKid && (
+          <div className="fixed inset-0 bg-purple-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-purple-100 animate-in zoom-in duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                    <Lock size={20} />
+                  </div>
+                  <h2 className="text-xl font-bold text-purple-900">Setup Login</h2>
+                </div>
+                <button onClick={() => setSetupKid(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <p className="text-gray-500 mb-6 text-sm">
+                Create credentials for <span className="font-bold text-purple-700">{setupKid.name}</span> to log in independently.
+              </p>
+
+              <form onSubmit={handleSetLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-purple-900/50 ml-1">Username</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 text-purple-300" size={18} />
+                    <input
+                      type="text" required placeholder="e.g. cool_explorer"
+                      value={username} onChange={(e) => setUsername(e.target.value)}
+                      className="w-full bg-purple-50 border-none rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-purple-900/50 ml-1">4-Digit PIN</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-3 text-purple-300" size={18} />
+                    <input
+                      type="password" required maxLength={4} placeholder="1234"
+                      value={pin} onChange={(e) => setPin(e.target.value)}
+                      className="w-full bg-purple-50 border-none rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none tracking-widest"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-bold py-4 rounded-xl shadow-lg transition-all mt-4"
+                >
+                  {loading ? "Saving..." : "Enable Kid Login"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
         {!loading && kids.length === 0 && !showForm && (
           <div className="bg-white rounded-3xl p-16 text-center border-2 border-dashed border-purple-100">
@@ -149,14 +250,14 @@ const MyKids = () => {
 
         {/* Kids Table */}
         {kids.length > 0 && (
-          <div className="bg-white rounded-[0.5rem] border border-purple-50 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-[1rem] border border-purple-50 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-purple-50/50">
                     <th className="px-6 py-5 text-xs font-black uppercase tracking-widest text-purple-900/50">Explorer</th>
                     <th className="px-6 py-5 text-xs font-black uppercase tracking-widest text-purple-900/50">Age</th>
-                    <th className="px-6 py-5 text-xs font-black uppercase tracking-widest text-purple-900/50">Grade</th>
+                    <th className="px-6 py-5 text-xs font-black uppercase tracking-widest text-purple-900/50">Access</th>
                     <th className="px-6 py-5 text-xs font-black uppercase tracking-widest text-purple-900/50 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -173,31 +274,61 @@ const MyKids = () => {
                           </div>
                           <span className="font-bold text-purple-900 text-base">{kid.name}</span>
                         </div>
-                      </td>
+                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2 text-gray-600 font-medium">
                           <Calendar size={16} className="text-orange-400" />
-                          {kid.age} Years old
+                          {kid.age} Years
                         </div>
-                      </td>
+                       </td>
                       <td className="px-6 py-5">
-                        {kid.grade ? (
-                          <div className="flex items-center gap-2 text-purple-600 font-bold bg-purple-50 w-fit px-3 py-1 rounded-lg">
-                            <GraduationCap size={16} />
-                            {kid.grade}
+                        {kid.username ? (
+                          <div className="flex items-center gap-2 text-green-600 font-bold bg-green-50 w-fit px-3 py-1 rounded-lg text-sm">
+                            <Lock size={14} />
+                            Login Active
                           </div>
                         ) : (
-                          <span className="text-gray-300 italic text-sm">Not specified</span>
+                          <div className="flex items-center gap-2 text-gray-400 font-medium text-sm italic">
+                            No credentials set
+                          </div>
                         )}
-                      </td>
+                       </td>
                       <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button className="p-2 hover:bg-white rounded-lg text-gray-400 hover:text-purple-600 transition-all shadow-none hover:shadow-sm">
-                            <MoreVertical size={18} />
-                          </button>
+                        <div className="flex items-center justify-end gap-2 relative dropdown-container">
+                          <div className="relative">
+                            <button 
+                              onClick={() => toggleDropdown(kid.id)}
+                              className="p-2 hover:bg-white rounded-lg text-gray-400 hover:text-purple-600 transition-all shadow-none hover:shadow-sm"
+                            >
+                              <MoreVertical size={18} />
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {openDropdownId === kid.id && (
+                              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-purple-100 py-2 z-50 overflow-hidden">
+                                <a
+                                  href="/parent/programs"
+                                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                                >
+                                  <BookOpen size={16} className="text-purple-400" />
+                                  View Programs
+                                </a>
+                                <button
+                                  onClick={() => {
+                                    setSetupKid(kid);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors"
+                                >
+                                  <KeyRound size={16} className="text-orange-400" />
+                                  {kid.username ? "Update Login" : "Setup Login"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           <ChevronRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
                         </div>
-                      </td>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -205,7 +336,6 @@ const MyKids = () => {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
