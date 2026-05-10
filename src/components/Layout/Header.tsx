@@ -83,7 +83,7 @@ const Header = () => {
             </a>
           </div>
 
-          {/* Mobile Burger (Ensured z-index is higher than drawer) */}
+          {/* Mobile Burger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden relative z-50 p-2 text-purple-900"
@@ -92,45 +92,63 @@ const Header = () => {
             {menuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
+      </header>
 
-        {/* ── Mobile Drawer (Slide from Left) ── */}
-        <div 
-          className={`fixed inset-0 bg-purple-900/20 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${
-            menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-          onClick={() => setMenuOpen(false)}
-        />
+      {/* ── Mobile Drawer (Moved OUTSIDE header for proper z-index) ── */}
+      {/* Backdrop Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/50 z-[100] md:hidden transition-opacity duration-300 ${
+          menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setMenuOpen(false)}
+      />
 
-        <div
-          className={`fixed top-0 left-0 bottom-0 w-[280px] bg-white z-50 md:hidden shadow-2xl transform transition-transform duration-300 ease-in-out ${
-            menuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <div className="flex flex-col h-full p-6 pt-24">
-            <div className="space-y-4">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="block text-lg font-bold text-gray-800 hover:text-purple-700 transition-colors"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </div>
+      {/* Drawer Panel */}
+      <div
+        className={`fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[101] md:hidden shadow-2xl transform transition-transform duration-300 ease-in-out ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex flex-col h-full p-6 pt-24">
+          {/* Close button inside drawer */}
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="absolute top-5 right-5 p-2 text-gray-600 hover:text-purple-700"
+          >
+            <X size={24} />
+          </button>
 
-            <div className="mt-auto space-y-3 pb-8">
-              <a href="/login" className="block w-full text-center py-3 font-bold text-purple-800 border-2 border-purple-100 rounded-xl">
-                Log in
+          <div className="space-y-4 mt-4">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="block text-lg font-bold text-gray-800 hover:text-purple-700 transition-colors py-2"
+              >
+                {link.label}
               </a>
-              <a href="/register" className="block w-full text-center py-3 font-bold text-white bg-orange-500 rounded-xl shadow-lg">
-                Get Started
-              </a>
-            </div>
+            ))}
+          </div>
+
+          <div className="mt-auto space-y-3 pb-8">
+            <a 
+              href="/login" 
+              onClick={() => setMenuOpen(false)}
+              className="block w-full text-center py-3 font-bold text-purple-800 border-2 border-purple-200 rounded-xl hover:bg-purple-50 transition-colors"
+            >
+              Log in
+            </a>
+            <a 
+              href="/register" 
+              onClick={() => setMenuOpen(false)}
+              className="block w-full text-center py-3 font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-lg transition-all"
+            >
+              Get Started
+            </a>
           </div>
         </div>
-      </header>
+      </div>
     </>
   );
 };
