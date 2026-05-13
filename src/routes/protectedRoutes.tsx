@@ -1,47 +1,49 @@
 import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAppSelector } from "../store/hooks";
+import { Loader2 } from "lucide-react";
 
-interface ProtectedRouteProps {
-  allowedRoles?: ("admin" | "parent")[];
+type Role = "admin" | "parent";
+
+interface ParentProtectedRouteProps {
+  allowedRoles?: Role[];
 }
 
-const ProtectedRoutes: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { isAuthenticated, user, loading } = useAppSelector(
-    (state) => state.auth,
-  );
+// Inside ProtectedRoute.tsx (The Parent/Admin one)
+const ProtectedRoute: React.FC<ParentProtectedRouteProps> = ({ allowedRoles }) => {
   const location = useLocation();
+  // Get both states to check who is actually here
+  const { user, loading: authLoading } = useAppSelector((state) => state.auth);
+  const { currentKid } = useAppSelector((state) => state.kid);
 
-  // ── 1. Wait for session check ──────────────────────────────────────────
-  // App.tsx already gates on loading, but this is a safety net for any
-  // secondary thunks (e.g. token refresh) that set loading:true mid-session.
-  // Also catches the race: isAuthenticated:true but user not yet hydrated.
-  if (loading || (isAuthenticated && !user)) {
+  const isKidPath = location.pathname.startsWith("/kid");
+
+  if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600" />
-          <span className="text-gray-500 text-sm font-medium">
-            Verifying session...
-          </span>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-purple-600" size={40} />
       </div>
     );
   }
 
-  // ── 2. Not authenticated → redirect to login ───────────────────────────
-  // Pass current location so Login can redirect back after sign-in.
-  if (!isAuthenticated || !user) {
+  // logic: If there's no parent user...
+  if (!user) {
+    // ...BUT there is a kid logged in OR we are on a kid route, 
+    // do NOT redirect to /login. Just let the route render.
+    if (isKidPath || currentKid) {
+      return <Outlet />;
+    }
+    
+    // Otherwise, it's a stranger trying to access parent/admin pages
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // ── 3. Role-based authorization ────────────────────────────────────────
-  if (allowedRoles && !allowedRoles.includes(user.role as "admin" | "parent")) {
+  // Authorization for Admin/Parent
+  if (allowedRoles && !allowedRoles.includes(user.role as Role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // ── 4. Authorized ──────────────────────────────────────────────────────
   return <Outlet />;
 };
 
-export default ProtectedRoutes;
+export default ProtectedRoute;

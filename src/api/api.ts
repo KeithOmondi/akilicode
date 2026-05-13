@@ -37,14 +37,30 @@ api.interceptors.request.use(
 );
 
 // RESPONSE INTERCEPTOR — on 401, refresh once then retry
+// api.ts
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequest;
     const isRefreshCall = originalRequest.url?.includes("/auth/refresh");
+    
+    // Check if the user is currently in the kid section
+    const isKidPath = window.location.pathname.startsWith("/kid");
 
     if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
       originalRequest._retry = true;
+
+      // 1. If it's a kid path, we don't call /auth/refresh. 
+      // Instead, we let the KidProtectedRoute handle the "not logged in" state.
+      if (isKidPath) {
+        setAccessToken(null);
+        localStorage.removeItem("accessToken");
+        // Redirect to Kid Login specifically
+        window.location.href = "/kid/login"; 
+        return Promise.reject(error);
+      }
+
+      // 2. Parent/Admin Refresh Logic
       try {
         const res = await api.get("/auth/refresh");
         const newToken = res.data.accessToken;
@@ -53,13 +69,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch {
         setAccessToken(null);
-        window.location.href = "/login";
+        window.location.href = "/login"; // Parent login
         return Promise.reject(error);
       }
-    }
-
-    if (error.response?.status === 500) {
-      console.error("Server Error: Please try again later.");
     }
 
     return Promise.reject(error);

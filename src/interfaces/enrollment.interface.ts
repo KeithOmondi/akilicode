@@ -52,5 +52,6 @@ export interface EnrollmentsListResponse {
   results: number;
   data: {
     enrollments: Enrollment[];
+    courses?: Enrollment[];
   };
 }

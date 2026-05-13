@@ -13,7 +13,7 @@ const Unauthorized = () => {
   } else if (user?.role === "parent") { // ← was "user"
     navigate("/parent/dashboard");
   } else {
-    navigate("/login");
+    navigate("/");
   }
 };
 

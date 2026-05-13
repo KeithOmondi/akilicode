@@ -1,3 +1,16 @@
+export interface IKid {
+  id: string;
+  parent_id: string;
+  name: string;
+  age: number;
+  grade?: string;
+  avatar?: string;
+  username?: string;
+  has_pin?: boolean;
+  role: 'kid'; // 👈 Add this explicitly
+  created_at: Date;
+}
+
 export interface User {
   id: string;        // ← backend uses 'id' (PostgreSQL), not '_id' (MongoDB)
   name: string;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { X, Wallet } from "lucide-react";
+import { X, Wallet, CreditCard, BookOpen } from "lucide-react";
 import {
   getMyPayments,
   getReceipt,
@@ -13,6 +13,7 @@ import {
 import { getMyEnrollments } from "../../store/slices/enrollmentSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import type { StkPushPayload } from "../../interfaces/payment.interface";
+import { Link, useLocation } from "react-router-dom";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type StatusFilter = "All" | "pending" | "completed" | "failed";
@@ -54,7 +55,7 @@ const ModalOverlay = ({
   children: React.ReactNode;
 }) => (
   <div
-    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm"
+    className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm"
     onClick={(e) => e.target === e.currentTarget && onClose()}
   >
     <div className="bg-white rounded-t-[28px] sm:rounded-[28px] shadow-2xl w-full max-w-md border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 sm:zoom-in duration-200">
@@ -193,6 +194,130 @@ const ReceiptModal = ({ onClose, receipt }: ReceiptModalProps) => (
   </ModalOverlay>
 );
 
+// ─── Sub Navigation Component ────────────────────────────────────────────────
+const SubNavigation = () => {
+  const location = useLocation();
+  const [isSticky, setIsSticky] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSticky(!entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  const navLinks = [
+    { path: "/parent/enrollments", label: "Enrollments", icon: <BookOpen size={16} /> },
+    { path: "/parent/payments", label: "Payments", icon: <CreditCard size={16} /> },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <>
+      {/* Sentinel for detecting scroll position */}
+      <div ref={sentinelRef} className="h-0" />
+
+      <div
+        ref={navRef}
+        className={`
+          bg-white border-b border-purple-100 transition-all duration-300 z-45
+          ${isSticky 
+            ? "fixed top-0 left-0 right-0 shadow-md animate-in slide-in-from-top duration-300" 
+            : "relative"
+          }
+        `}
+        style={{ top: isSticky ? "0px" : "auto" }}
+      >
+        <div className="max-w-6xl mx-auto px-4">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`
+                  flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all relative group
+                  ${isActive(link.path)
+                    ? "text-purple-700"
+                    : "text-gray-500 hover:text-purple-600"
+                  }
+                `}
+              >
+                {link.icon}
+                <span>{link.label}</span>
+                {isActive(link.path) && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-orange-500 rounded-full" />
+                )}
+                {!isActive(link.path) && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-orange-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </Link>
+            ))}
+          </div>
+
+          {/* Mobile Navigation - Dropdown */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="w-full flex items-center justify-between py-3 px-2 text-sm font-bold text-gray-700"
+            >
+              <div className="flex items-center gap-2">
+                {isActive("/parent/enrollments") ? <BookOpen size={16} className="text-purple-600" /> : <CreditCard size={16} className="text-purple-600" />}
+                <span>{isActive("/parent/enrollments") ? "Enrollments" : "Payments"}</span>
+              </div>
+              <svg
+                className={`w-4 h-4 transition-transform ${isMobileMenuOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isMobileMenuOpen && (
+              <div className="pb-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`
+                      flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all
+                      ${isActive(link.path)
+                        ? "bg-purple-50 text-purple-700"
+                        : "text-gray-600 hover:bg-gray-50"
+                      }
+                    `}
+                  >
+                    {link.icon}
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer to prevent content jump when sticky */}
+      {isSticky && <div className="h-14 md:h-16" />}
+    </>
+  );
+};
+
 // ─── Main Page Component ─────────────────────────────────────────────────────
 const ParentPayments = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -208,10 +333,10 @@ const ParentPayments = () => {
   useEffect(() => {
     dispatch(getMyPayments());
     dispatch(getMyEnrollments());
-    dispatch(clearCheckoutRequest()); // clear any stale STK state on mount
+    dispatch(clearCheckoutRequest());
     return () => {
       dispatch(resetPaymentState());
-      dispatch(clearCheckoutRequest()); // clear on unmount too
+      dispatch(clearCheckoutRequest());
     };
   }, [dispatch]);
 
@@ -258,8 +383,10 @@ const ParentPayments = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFCFE] pb-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
+      {/* Sub Navigation */}
+      <SubNavigation />
 
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -310,7 +437,6 @@ const ParentPayments = () => {
 
         {/* Payments Table/Cards */}
         <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-
           {/* Mobile Cards */}
           <div className="sm:hidden divide-y divide-slate-100">
             {payLoading && payments.length === 0 ? (

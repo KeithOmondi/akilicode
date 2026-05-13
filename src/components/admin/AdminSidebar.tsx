@@ -15,6 +15,7 @@ import {
 import { useAppDispatch } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
 import akiliLogo from "../../assets/akili.jpeg";
+import { FcRatings } from "react-icons/fc";
 
 interface AdminSidebarProps {
   open: boolean;
@@ -58,6 +59,16 @@ const AdminSidebar = ({ open, onClose }: AdminSidebarProps) => {
       icon: <ShieldCheck size={20} /> 
     },
     { 
+      name: "Blogs",  
+      path: "/admin/blog", 
+      icon: <ShieldCheck size={20} /> 
+    },
+    { 
+      name: "Testimonials",  
+      path: "/admin/testimonials", 
+      icon: <FcRatings size={20} /> 
+    },
+    { 
       name: "Analytics",
       path: "/admin/reports",        
       icon: <BarChart3 size={20} /> 
@@ -73,7 +84,7 @@ const AdminSidebar = ({ open, onClose }: AdminSidebarProps) => {
 
   const handleLogout = async () => {
     await dispatch(logout());
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
   };
 
   return (

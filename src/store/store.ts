@@ -4,6 +4,9 @@ import enrollmentReducer from "./slices/enrollmentSlice"
 import  kidReducer from "./slices/kidSlice"
 import paymentReducer from "./slices/paymentSlice"
 import courseReducer from "./slices/courseSlice"
+import trialsReducer from "./slices/trialSlice"
+import kidLearningReducer from "./slices/kidLearningSlice"
+import codePlaygroundReducer from './slices/codePlaygroundSlice';
 
 export const store = configureStore({
   reducer: {
@@ -11,7 +14,10 @@ export const store = configureStore({
     enrollment: enrollmentReducer,
     kid: kidReducer,
     payment: paymentReducer,
-    course: courseReducer
+    course: courseReducer,
+    trials: trialsReducer,
+    kidLearning: kidLearningReducer,
+    codePlayground: codePlaygroundReducer,
     // other reducers go here
   },
 });

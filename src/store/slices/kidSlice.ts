@@ -10,7 +10,7 @@ import type {
   UpdateKidLoginPayload,
   KidLoginPayload,
 } from "../../interfaces/kid.interface";
-import api from "../../api/api";
+import api, { setAccessToken } from "../../api/api";
 
 const initialState: KidState = {
   kids: [],
@@ -21,6 +21,22 @@ const initialState: KidState = {
 };
 
 // ─── ASYNC THUNKS ─────────────────────────────────────────────────────────────
+
+// GET /kids/me — restores kid session on page refresh
+export const getKidMe = createAsyncThunk<IKid, void>(
+  "kid/getKidMe",
+  async (_, thunkAPI) => {
+    try {
+      const res = await api.get<KidResponse>("/kids/me");
+      return res.data.data.kid;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Session expired"
+      );
+    }
+  }
+);
 
 // POST /kids/register — parent only
 export const registerKid = createAsyncThunk<IKid, RegisterKidPayload>(
@@ -135,8 +151,22 @@ export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
   "kid/kidLogin",
   async (data, thunkAPI) => {
     try {
-      const res = await api.post<KidResponse>("/kids/login", data);
-      return res.data.data.kid;
+      const res = await api.post<{ accessToken: string } & KidResponse>(
+        "/kids/login",
+        data
+      );
+
+      const { accessToken } = res.data;
+      const { kid } = res.data.data;
+
+      if (accessToken) {
+        // 1. Persist for page refreshes
+        localStorage.setItem("accessToken", accessToken);
+        // 2. Set in memory for immediate API calls
+        setAccessToken(accessToken);
+      }
+
+      return kid;
     } catch (err) {
       const error = err as AxiosError<{ message: string }>;
       return thunkAPI.rejectWithValue(
@@ -145,6 +175,13 @@ export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
     }
   }
 );
+
+// ─── HELPER ───────────────────────────────────────────────────────────────────
+
+/**
+ * Always stamp role: 'kid' onto any kid object coming from the backend.
+ */
+const withKidRole = (kid: IKid): IKid => ({ ...kid, role: "kid" });
 
 // ─── SLICE ────────────────────────────────────────────────────────────────────
 
@@ -156,38 +193,48 @@ const kidSlice = createSlice({
       state.error = null;
       state.message = null;
     },
-    clearCurrentKid: (state) => {
+    logoutKid: (state) => {
       state.currentKid = null;
+      state.kids = [];
+      localStorage.removeItem("accessToken");
+      setAccessToken(null); // Clear in-memory token on logout
     },
   },
   extraReducers: (builder) => {
     builder
+      // ── Get Kid Me ────────────────────────────────────────────────────────
+      .addCase(getKidMe.fulfilled, (state, action: PayloadAction<IKid>) => {
+        state.loading = false;
+        state.currentKid = withKidRole(action.payload);
+      })
+
       // ── Register Kid ──────────────────────────────────────────────────────
       .addCase(registerKid.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
-        state.kids.unshift(action.payload);
+        state.kids.unshift(withKidRole(action.payload));
         state.message = "Kid registered successfully";
       })
 
       // ── Get My Kids ───────────────────────────────────────────────────────
       .addCase(getMyKids.fulfilled, (state, action: PayloadAction<IKid[]>) => {
         state.loading = false;
-        state.kids = action.payload;
+        state.kids = action.payload.map(withKidRole);
       })
 
       // ── Get Kid By ID ─────────────────────────────────────────────────────
       .addCase(getKidById.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
-        state.currentKid = action.payload;
+        state.currentKid = withKidRole(action.payload);
       })
 
       // ── Update Kid ────────────────────────────────────────────────────────
       .addCase(updateKid.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
-        const idx = state.kids.findIndex((k) => k.id === action.payload.id);
-        if (idx !== -1) state.kids[idx] = action.payload;
-        if (state.currentKid?.id === action.payload.id) {
-          state.currentKid = action.payload;
+        const updated = withKidRole(action.payload);
+        const idx = state.kids.findIndex((k) => k.id === updated.id);
+        if (idx !== -1) state.kids[idx] = updated;
+        if (state.currentKid?.id === updated.id) {
+          state.currentKid = updated;
         }
         state.message = "Kid updated successfully";
       })
@@ -195,23 +242,25 @@ const kidSlice = createSlice({
       // ── Set Kid Login ─────────────────────────────────────────────────────
       .addCase(setKidLogin.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
-        const idx = state.kids.findIndex((k) => k.id === action.payload.id);
-        if (idx !== -1) state.kids[idx] = { ...state.kids[idx], ...action.payload };
+        const updated = withKidRole(action.payload);
+        const idx = state.kids.findIndex((k) => k.id === updated.id);
+        if (idx !== -1) state.kids[idx] = { ...state.kids[idx], ...updated };
         state.message = "Login credentials set successfully";
       })
 
       // ── Update Kid Login ──────────────────────────────────────────────────
       .addCase(updateKidLogin.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
-        const idx = state.kids.findIndex((k) => k.id === action.payload.id);
-        if (idx !== -1) state.kids[idx] = { ...state.kids[idx], ...action.payload };
+        const updated = withKidRole(action.payload);
+        const idx = state.kids.findIndex((k) => k.id === updated.id);
+        if (idx !== -1) state.kids[idx] = { ...state.kids[idx], ...updated };
         state.message = "Login credentials updated";
       })
 
       // ── Kid Login ─────────────────────────────────────────────────────────
       .addCase(kidLogin.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
-        state.currentKid = action.payload;
+        state.currentKid = withKidRole(action.payload);
         state.message = `Welcome back, ${action.payload.name}!`;
       })
 
@@ -233,10 +282,16 @@ const kidSlice = createSlice({
         (state, action: PayloadAction<string>) => {
           state.loading = false;
           state.error = action.payload;
+          if (action.type.includes("getKidMe")) {
+            state.currentKid = null;
+            // Clear tokens if session restore fails
+            localStorage.removeItem("accessToken");
+            setAccessToken(null);
+          }
         }
       );
   },
 });
 
-export const { resetKidState, clearCurrentKid } = kidSlice.actions;
+export const { resetKidState, logoutKid } = kidSlice.actions;
 export default kidSlice.reducer;

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { 
   Heart, 
   Shield, 
@@ -13,8 +14,13 @@ import {
   Zap,
   CheckCircle
 } from "lucide-react";
+import type { Testimonial } from "../../interfaces/testimonial.interface";
+import { testimonialService } from "../service/testimonialService";
 
 const WhyAkiliCode = () => {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const reasons = [
     {
       icon: <Heart size={32} />,
@@ -69,29 +75,21 @@ const WhyAkiliCode = () => {
     { icon: <Sparkles size={20} />, text: "Creative projects" }
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      childName: "Emily, age 9",
-      text: "My daughter used to think coding was boring. Now she asks to do AkiliCode every day!",
-      rating: 5,
-      role: "Mother of 2"
-    },
-    {
-      name: "Michael Chen",
-      childName: "Leo, age 11",
-      text: "The progress I've seen in my son's problem-solving skills is amazing. Best decision we made!",
-      rating: 5,
-      role: "Father & Software Engineer"
-    },
-    {
-      name: "David Williams",
-      childName: "Sophia, age 8",
-      text: "Finally, a coding platform that's actually fun and educational. Sophia loves her coding adventures!",
-      rating: 5,
-      role: "Parent"
-    }
-  ];
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      try {
+        // Fetch only approved testimonials, limit to 3
+        const data = await testimonialService.getTestimonials({ limit: 3 });
+        setTestimonials(data);
+      } catch (error) {
+        console.error("Error loading testimonials:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTestimonials();
+  }, []);
 
   const getColorClasses = (color: string) => {
     const colors = {
@@ -145,6 +143,20 @@ const WhyAkiliCode = () => {
       }
     };
     return colors[color as keyof typeof colors] || colors.purple;
+  };
+
+  // Helper function to get rating stars
+  const getRatingStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-1 mb-3">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={star <= rating ? "fill-yellow-500 text-yellow-500" : "text-gray-300"}
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -258,23 +270,33 @@ const WhyAkiliCode = () => {
               Happy Parents Say
             </h3>
             <div className="space-y-4">
-              {testimonials.map((testimonial, idx) => (
-                <div key={idx} className="bg-white rounded-2xl p-5 shadow-md border border-purple-100 hover:shadow-lg transition">
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="fill-yellow-500 text-yellow-500" />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 text-sm italic mb-3">"{testimonial.text}"</p>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-gray-800 text-sm">{testimonial.name}</div>
-                      <div className="text-xs text-gray-500">{testimonial.childName}</div>
-                    </div>
-                    <div className="text-xs text-purple-600 font-semibold">{testimonial.role}</div>
-                  </div>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
                 </div>
-              ))}
+              ) : testimonials.length === 0 ? (
+                <div className="bg-white rounded-2xl p-5 text-center border border-purple-100">
+                  <p className="text-gray-500 text-sm">No testimonials yet. Be the first to share!</p>
+                </div>
+              ) : (
+                testimonials.map((testimonial) => (
+                  <div key={testimonial.id} className="bg-white rounded-2xl p-5 shadow-md border border-purple-100 hover:shadow-lg transition">
+                    {getRatingStars(testimonial.rating)}
+                    <p className="text-gray-700 text-sm italic mb-3">"{testimonial.content}"</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-gray-800 text-sm">{testimonial.parent_name}</div>
+                        <div className="text-xs text-gray-500">
+                          Parent of {testimonial.child_name || testimonial.kid_name}
+                        </div>
+                      </div>
+                      {testimonial.is_verified && (
+                        <div className="text-xs text-green-600 font-semibold">Verified ✓</div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

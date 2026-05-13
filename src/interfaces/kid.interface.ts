@@ -2,6 +2,7 @@ export interface IKid {
   id: string;
   parent_id: string;
   name: string;
+  role: 'kid'; // 👈 CRITICAL: Add this line
   age: number;
   grade?: string;
   avatar?: string;

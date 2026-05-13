@@ -8,7 +8,15 @@ import {
   X,
   CheckCircle2,
   Filter,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Rocket,
+  Trophy,
+  Users,
+  Award,
+  PlayCircle,
+  Heart,
+  TrendingUp
 } from "lucide-react";
 import type { AppDispatch, RootState } from "../../store/store";
 import { getAllCourses } from "../../store/slices/courseSlice";
@@ -22,10 +30,20 @@ const ParentCourses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [hoveredCourse, setHoveredCourse] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(getAllCourses());
   }, [dispatch]);
+
+  // Prevent scrolling when modal is open
+  useEffect(() => {
+    if (selectedCourse) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [selectedCourse]);
 
   const categories = ["All", ...new Set(courses.map((c) => c.category))];
 
@@ -35,227 +53,350 @@ const ParentCourses = () => {
     return matchesSearch && matchesCategory && c.is_active;
   });
 
-  return (
-    <div className="min-h-screen bg-transparent text-slate-900 p-6 lg:p-12 relative">
-      {/* --- Hero Header --- */}
-      <header className="relative mb-12 py-12 border-b border-slate-100">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-orange-600 text-xs font-bold uppercase tracking-widest">Course Catalog</span>
-          </div>
-          <h1 className="text-3xl lg:text-4xl font-serif font-black text-slate-900 tracking-tight leading-tight mb-6">
-            Compare & Choose the <br />
-            <span className="text-orange-500">Perfect Path.</span>
-          </h1>
-        </div>
-      </header>
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      "Programming": "bg-purple-100 text-purple-700 border-purple-200",
+      "Game Development": "bg-orange-100 text-orange-700 border-orange-200",
+      "Web Design": "bg-blue-100 text-blue-700 border-blue-200",
+      "Robotics": "bg-green-100 text-green-700 border-green-200",
+      "AI & Machine Learning": "bg-pink-100 text-pink-700 border-pink-200"
+    };
+    return colors[category] || "bg-gray-100 text-gray-700 border-gray-200";
+  };
 
-      {/* --- Controls: Search & Category Tabs --- */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by course title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all font-serif"
-          />
-        </div>
-        
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2 md:pb-0">
-          <Filter size={16} className="text-slate-400 mr-2 shrink-0" />
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                activeCategory === cat
-                  ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
-                  : "bg-white text-slate-500 border-slate-100 hover:border-slate-300"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+  const stats = [
+    { icon: <Users size={16} />, value: "10,000+", label: "Active Students" },
+    { icon: <Trophy size={16} />, value: "94%", label: "Success Rate" },
+    { icon: <Award size={16} />, value: "500+", label: "Certificates" },
+    { icon: <Heart size={16} />, value: "98%", label: "Parent Satisfaction" }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-orange-50 py-8 px-4 lg:px-8">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" />
+        <div className="absolute bottom-20 left-10 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-pulse animation-delay-4000" />
       </div>
 
-      {/* --- Course Table --- */}
-      <div className="bg-white border border-slate-100 rounded-[0.5rem] overflow-hidden shadow-sm">
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Hero Section */}
+        <div className="mb-12 text-center lg:text-left lg:flex lg:justify-between lg:items-end">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-200 to-orange-200 text-purple-800 text-xs font-bold mb-4 animate-pulse">
+              <Sparkles size={12} />
+              <span>COURSE CATALOG</span>
+              <Sparkles size={12} />
+            </div>
+            <h1 className="text-4xl font-serif lg:text-5xl font-black mb-4">
+              <span className="bg-gradient-to-r from-purple-900 to-purple-600 bg-clip-text text-transparent">
+                Find the Perfect
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-orange-500 to-purple-600 bg-clip-text text-transparent">
+                Coding Adventure
+              </span>
+            </h1>
+            <p className="text-gray-600 font-serif text-lg max-w-2xl">
+              Discover exciting courses that will spark your child's creativity and build future-ready skills
+            </p>
+          </div>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 lg:mt-0">
+            {stats.map((stat, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-3 text-center shadow-md border border-purple-100">
+                <div className="text-purple-600 flex justify-center mb-1">{stat.icon}</div>
+                <div className="text-lg font-black text-gray-800">{stat.value}</div>
+                <div className="text-[10px] text-gray-500">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Search & Filter */}
+        <div className="bg-white rounded-2xl shadow-lg border border-purple-100 p-4 mb-8">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search for courses..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+              <Filter size={16} className="text-gray-400 ml-2 lg:ml-0 shrink-0" />
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                    activeCategory === cat
+                      ? "bg-gradient-to-r from-purple-600 to-orange-500 text-white shadow-lg"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Course Grid - Card Layout */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-slate-400">
-            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="font-bold text-[10px] uppercase tracking-[0.2em]">Syncing Catalog</p>
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-purple-200 border-t-orange-500 rounded-full animate-spin" />
+              <Rocket className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-orange-500 animate-bounce" size={24} />
+            </div>
+            <p className="mt-4 text-gray-500 font-semibold">Loading amazing courses...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-50">
-                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Course Information</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Category</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Duration</th>
-                  <th className="px-6 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Price</th>
-                  <th className="px-8 py-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {filteredCourses.map((course) => (
-                  <tr 
-                    key={course.id} 
-                    className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
-                    onClick={() => setSelectedCourse(course)}
-                  >
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-slate-100 bg-slate-50">
-                          {course.image_url ? (
-                            <img src={course.image_url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-300">
-                              <BookOpen size={20} />
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-serif font-black text-slate-900 group-hover:text-orange-600 transition-colors">
-                            {course.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                             <div className="flex items-center gap-0.5">
-                               <Star size={10} className="text-yellow-400 fill-yellow-400" />
-                               <span className="text-[10px] font-bold text-slate-500">4.9</span>
-                             </div>
-                             <span className="text-[10px] text-slate-300">•</span>
-                             <span className="text-[10px] font-medium text-slate-400 line-clamp-1 max-w-[200px]">
-                                {course.description}
-                             </span>
-                          </div>
-                        </div>
+          <>
+            {/* Results Count */}
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-sm text-gray-500">
+                Found <span className="font-bold text-purple-600">{filteredCourses.length}</span> courses
+              </p>
+              <div className="flex items-center gap-2">
+                <TrendingUp size={14} className="text-green-500" />
+                <span className="text-xs text-gray-500">Updated weekly</span>
+              </div>
+            </div>
+
+            {/* Course Cards Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-purple-100 cursor-pointer"
+                  onClick={() => setSelectedCourse(course)}
+                  onMouseEnter={() => setHoveredCourse(course.id)}
+                  onMouseLeave={() => setHoveredCourse(null)}
+                >
+                  {/* Image Section */}
+                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-purple-100 to-orange-100">
+                    {course.image_url ? (
+                      <img 
+                        src={course.image_url} 
+                        alt={course.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen size={48} className="text-purple-300" />
                       </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tighter rounded-lg">
+                    )}
+                    {/* Category Badge */}
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getCategoryColor(course.category)}`}>
                         {course.category}
                       </span>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Clock size={14} />
-                        <span className="text-sm font-bold">{course.duration}</span>
+                    </div>
+                    {/* Duration Badge */}
+                    <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
+                      <Clock size={12} className="text-white" />
+                      <span className="text-white text-xs font-semibold">{course.duration}</span>
+                    </div>
+                    {/* Hover Overlay */}
+                    {hoveredCourse === course.id && (
+                      <div className="absolute inset-0 bg-purple-600/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button className="px-6 py-2 bg-white text-purple-600 rounded-full font-bold text-sm hover:scale-105 transition-transform">
+                          Quick View
+                        </button>
                       </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <p className="font-serif italic font-bold text-slate-900">
-                        Ksh. {Number(course.price).toLocaleString()}
-                      </p>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <button className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-900 group-hover:bg-orange-500 group-hover:border-orange-500 group-hover:text-white transition-all shadow-sm">
-                        <ChevronRight size={18} />
+                    )}
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-5">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-purple-600 transition-colors line-clamp-1">
+                      {course.title}
+                    </h3>
+                    
+                    {/* Rating */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-0.5">
+                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-600">4.9</span>
+                      <span className="text-xs text-gray-400">(2,345 reviews)</span>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {course.description}
+                    </p>
+
+                    {/* Price and Action */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div>
+                        <span className="text-xs text-gray-400">Monthly</span>
+                        <p className="text-2xl font-black text-purple-700">
+                          KES {Number(course.price).toLocaleString()}
+                        </p>
+                      </div>
+                      <button className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all flex items-center justify-center">
+                        <ChevronRight size={20} />
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             {filteredCourses.length === 0 && (
-              <div className="py-20 text-center">
-                <p className="font-serif italic text-slate-400">No courses match your search criteria.</p>
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
+                  <Search size={32} className="text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">No courses found matching your criteria</p>
+                <button 
+                  onClick={() => setSearchTerm("")}
+                  className="mt-4 text-purple-600 font-semibold hover:underline"
+                >
+                  Clear search
+                </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
-      {/* --- Course Detail Modal (Logic remains the same, styling matches table) --- */}
+      {/* Course Detail Modal - HIGHEST Z-INDEX */}
       {selectedCourse && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300"
           onClick={() => setSelectedCourse(null)}
         >
           <div 
-            className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[40px] shadow-2xl relative animate-in zoom-in-95 duration-300"
+            className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl relative animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
               onClick={() => setSelectedCourse(null)}
-              className="absolute top-6 right-6 z-10 p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
+              className="absolute top-6 right-6 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm hover:bg-gray-100 rounded-full transition-all flex items-center justify-center shadow-md"
             >
-              <X size={20} className="text-slate-600" />
+              <X size={20} className="text-gray-600" />
             </button>
 
             <div className="flex flex-col lg:flex-row">
-              <div className="lg:w-2/5 h-64 lg:h-auto relative bg-slate-100">
-                {selectedCourse.image_url ? (
-                  <img src={selectedCourse.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-200">
-                    <BookOpen size={80} />
+              {/* Image Side */}
+              <div className="lg:w-2/5 relative bg-gradient-to-br from-purple-600 to-orange-500 p-8 flex flex-col items-center justify-center">
+                <div className="text-center">
+                  <div className="w-24 h-24 bg-white/20 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                    {selectedCourse.image_url ? (
+                      <img src={selectedCourse.image_url} alt="" className="w-full h-full object-cover rounded-2xl" />
+                    ) : (
+                      <BookOpen size={40} className="text-white" />
+                    )}
                   </div>
-                )}
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full mb-3">
+                    <PlayCircle size={14} className="text-white" />
+                    <span className="text-white text-xs font-semibold">Interactive Course</span>
+                  </div>
+                  <h3 className="text-white text-2xl font-bold mb-2">{selectedCourse.title}</h3>
+                  <div className="flex items-center justify-center gap-2 text-white/80 text-sm">
+                    <Clock size={14} />
+                    <span>{selectedCourse.duration}</span>
+                    <span>•</span>
+                    <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                    <span>4.9 rating</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="lg:w-3/5 p-8 lg:p-12">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="px-3 py-1 bg-orange-100 text-orange-600 text-[10px] font-black uppercase tracking-widest rounded-full">
+              {/* Content Side */}
+              <div className="lg:w-3/5 p-8">
+                <div className="mb-6">
+                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold mb-3 ${getCategoryColor(selectedCourse.category)}`}>
                     {selectedCourse.category}
                   </span>
-                  <span className="flex items-center gap-1 text-slate-400 text-xs font-bold">
-                    <Clock size={14} /> {selectedCourse.duration}
-                  </span>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                    Course Details
+                  </h2>
+                  <p className="text-gray-600 leading-relaxed">
+                    {selectedCourse.description}
+                  </p>
                 </div>
 
-                <h2 className="text-3xl font-serif font-black text-slate-900 mb-4 leading-tight">
-                  {selectedCourse.title}
-                </h2>
-
-                <div className="flex items-center gap-6 mb-8">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-600">
-                    <Star size={18} className="text-yellow-400 fill-yellow-400" />
-                    <span>4.9</span>
-                  </div>
-                  <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                  <div className="font-serif italic text-2xl text-slate-900 font-bold">
-                    Ksh. {Number(selectedCourse.price).toLocaleString()}
-                  </div>
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {["Expert Instructors", "Lifetime Access", "Certificate", "Hands-on Projects", "24/7 Support", "Parent Dashboard"].map((perk, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm text-gray-600">
+                      <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />
+                      <span>{perk}</span>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Course Syllabus & Details</h4>
-                    <p className="text-slate-600 leading-relaxed font-medium font-serif">
-                      {selectedCourse.description}
-                    </p>
+                <div className="bg-gradient-to-r from-purple-50 to-orange-50 rounded-2xl p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <span className="text-xs text-gray-500">Course Fee</span>
+                      <p className="text-3xl font-black text-purple-700">
+                        KES {Number(selectedCourse.price).toLocaleString()}
+                      </p>
+                      <span className="text-xs text-gray-400">per month</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-gray-500">First lesson</span>
+                      <p className="text-xl font-bold text-green-600">FREE</p>
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4 py-6 border-y border-slate-50">
-                    {["Expert Instructors", "Lifetime Access", "Certification", "Weekly Projects"].map((perk) => (
-                      <div key={perk} className="flex items-center gap-2 text-slate-600">
-                        <CheckCircle2 size={16} className="text-orange-500" />
-                        <span className="text-xs font-bold">{perk}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-4 flex flex-col sm:flex-row gap-4">
-                    <Link to="/parent/kids" className="flex-1 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-orange-500/20 active:scale-[0.98]">
-                      <h1 className="text-center">
-                        Enroll Child
-                      </h1>
+                  
+                  <div className="flex gap-3">
+                    <Link 
+                      to="/parent/kids" 
+                      onClick={() => setSelectedCourse(null)}
+                      className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white rounded-xl font-bold text-sm transition-all text-center"
+                    >
+                      Enroll Your Child
                     </Link>
-                    <button className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98]">
-                      Syllabus
+                    <button className="px-6 py-3 border-2 border-purple-200 text-purple-600 rounded-xl font-bold text-sm hover:bg-purple-50 transition-all">
+                      View Syllabus
                     </button>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+                  <span>✓ 30-day money-back guarantee</span>
+                  <span>✓ Cancel anytime</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes animation-delay-2000 {
+          0%, 100% { animation-delay: 0s; }
+          50% { animation-delay: 2s; }
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

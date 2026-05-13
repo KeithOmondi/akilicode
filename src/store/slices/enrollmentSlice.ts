@@ -120,6 +120,27 @@ export const getEnrollmentById = createAsyncThunk<Enrollment, string>(
   }
 );
 
+
+
+export const getMyEnrolledCourses = createAsyncThunk<Enrollment[], void>(
+  "enrollment/getMyEnrolledCourses",
+  async (_, thunkAPI) => {
+    try {
+      const res = await api.get<EnrollmentsListResponse>("/enrollments/my-courses");
+      
+      // Use ?? [] to ensure we always return an array, 
+      // satisfying the Enrollment[] return type.
+      return res.data.data.courses ?? []; 
+      
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch your courses"
+      );
+    }
+  }
+);
+
 // ============ SLICE ============
 
 const enrollmentSlice = createSlice({
@@ -136,6 +157,16 @@ const enrollmentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ── Get Enrolled Courses (Kid View) ─────────────────────────────────────
+      .addCase(
+        getMyEnrolledCourses.fulfilled,
+        (state, action: PayloadAction<Enrollment[]>) => {
+          state.loading = false;
+          state.error = null;
+          state.enrollments = action.payload;
+        }
+      )
+
       // ── Get All Enrollments (admin) ─────────────────────────────────────────
       .addCase(
         getAllEnrollments.fulfilled,
@@ -147,27 +178,24 @@ const enrollmentSlice = createSlice({
       )
 
       // ── Enroll Kid ──────────────────────────────────────────────────────────
-      // Inside extraReducers for enrollKid.fulfilled
-.addCase(enrollKid.fulfilled, (state, action: PayloadAction<Enrollment>) => {
-  state.loading = false;
-  state.error = null;
-  state.currentEnrollment = action.payload;
-  state.enrollments.unshift(action.payload);
-  
-  // Update the message to prompt for payment
-  state.message = "Enrollment created! Please complete payment to activate.";
-})
+      .addCase(enrollKid.fulfilled, (state, action: PayloadAction<Enrollment>) => {
+        state.loading = false;
+        state.error = null;
+        state.currentEnrollment = action.payload;
+        state.enrollments.unshift(action.payload);
+        state.message = "Enrollment created! Please complete payment to activate.";
+      })
 
-// ── Get Enrollment By Id ────────────────────────────────────────────────────
-.addCase(getEnrollmentById.fulfilled, (state, action: PayloadAction<Enrollment>) => {
-  state.loading = false;
-  // Update the matching enrollment in the list in-place
-  state.enrollments = state.enrollments.map((e) =>
-    e.id === action.payload.id ? action.payload : e
-  );
-})
+      // ── Get Enrollment By Id ────────────────────────────────────────────────────
+      .addCase(getEnrollmentById.fulfilled, (state, action: PayloadAction<Enrollment>) => {
+        state.loading = false;
+        state.currentEnrollment = action.payload; // Set this as current for detail views
+        state.enrollments = state.enrollments.map((e) =>
+          e.id === action.payload.id ? action.payload : e
+        );
+      })
 
-      // ── Get My Enrollments ──────────────────────────────────────────────────
+      // ── Get My Enrollments (Parent) ─────────────────────────────────────────
       .addCase(
         getMyEnrollments.fulfilled,
         (state, action: PayloadAction<Enrollment[]>) => {

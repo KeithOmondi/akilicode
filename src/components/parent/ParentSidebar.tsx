@@ -11,6 +11,7 @@ import {
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
 import akili from "../../assets/akili.jpeg";
+import { BiComment } from "react-icons/bi";
 
 interface ParentSidebarProps {
   open: boolean;
@@ -47,6 +48,11 @@ const ParentSidebar = ({ open, onClose }: ParentSidebarProps) => {
       icon: <LayoutList size={20} />,
     },
     {
+      name: "Testimonials",
+      path: "/parent/testimonials",
+      icon: <BiComment size={20} />,
+    },
+    {
       name: "Settings",
       path: "/parent/settings",
       icon: <Settings size={20} />,
@@ -63,12 +69,12 @@ const ParentSidebar = ({ open, onClose }: ParentSidebarProps) => {
   const handleLogout = async () => {
     try {
       await dispatch(logout()).unwrap();
-      navigate("/login", { replace: true });
+      navigate("/", { replace: true });
     } catch (error) {
       // Even if the server-side logout fails, we usually want to 
       // clear the local session and redirect the user.
       console.error("Logout failed:", error);
-      navigate("/login", { replace: true });
+      navigate("/", { replace: true });
     }
   };
 
