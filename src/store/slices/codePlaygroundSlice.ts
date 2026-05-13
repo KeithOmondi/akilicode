@@ -12,6 +12,7 @@ import type {
   ExecuteCodePayload,
   SaveSessionPayload,
   PlaygroundLanguage,
+  DockerHealthStatus,
 } from "../../interfaces/codePlayground.interface";
 import { codePlaygroundService } from "../../components/service/codePlaygroundService";
 
@@ -36,6 +37,8 @@ interface CodePlaygroundState {
   shareLink: string | null;
   shareLoading: boolean;
   sharedSnippet: CodeSnippet | null;
+  dockerHealth: DockerHealthStatus | null;
+  dockerHealthLoading: boolean;
   loading: boolean;
   error: string | null;
   message: string | null;
@@ -60,6 +63,8 @@ const initialState: CodePlaygroundState = {
   shareLink: null,
   shareLoading: false,
   sharedSnippet: null,
+  dockerHealth: null,
+  dockerHealthLoading: false,
   loading: false,
   error: null,
   message: null,
@@ -67,16 +72,10 @@ const initialState: CodePlaygroundState = {
 
 // ── Thunk Configuration ───────────────────────────────────────────────────────
 
-/**
- * Common configuration for ThunkAPI to avoid repeating types.
- * Specifying 'rejectValue' as string allows thunkAPI.rejectWithValue() 
- * to return a type that matches the Thunk's signature.
- */
 interface AsyncThunkConfig {
   rejectValue: string;
 }
 
-// Helper to extract axios error messages
 const getErrorMessage = (err: unknown, fallback: string): string => {
   const error = err as AxiosError<{ message: string }>;
   return error.response?.data?.message ?? fallback;
@@ -155,7 +154,15 @@ export const executeCode = createAsyncThunk<CodeExecutionResult, ExecuteCodePayl
   "playground/executeCode",
   async (payload, { rejectWithValue }) => {
     try {
-      return await codePlaygroundService.executeCode(payload);
+      const result = await codePlaygroundService.executeCode(payload);
+      
+      // Handle HTML/CSS special output
+      if (payload.language === 'html' || payload.language === 'css') {
+        // For HTML/CSS, we want to render it in an iframe
+        result.type = payload.language;
+      }
+      
+      return result;
     } catch (err) {
       return rejectWithValue(getErrorMessage(err, "Execution failed"));
     }
@@ -240,6 +247,41 @@ export const getSharedSnippet = createAsyncThunk<CodeSnippet, string, AsyncThunk
   }
 );
 
+// Docker health check thunk
+export const getDockerHealth = createAsyncThunk<DockerHealthStatus, void, AsyncThunkConfig>(
+  "playground/getDockerHealth",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await codePlaygroundService.getDockerHealth();
+    } catch (err) {
+      return rejectWithValue(getErrorMessage(err, "Failed to check Docker health"));
+    }
+  }
+);
+
+// Admin thunks
+export const killAllExecutions = createAsyncThunk<void, void, AsyncThunkConfig>(
+  "playground/killAllExecutions",
+  async (_, { rejectWithValue }) => {
+    try {
+      await codePlaygroundService.killAllExecutions();
+    } catch (err) {
+      return rejectWithValue(getErrorMessage(err, "Failed to kill executions"));
+    }
+  }
+);
+
+export const getSystemStatus = createAsyncThunk<{ dockerEnabled: boolean; nodeVersion: string; environment: string }, void, AsyncThunkConfig>(
+  "playground/getSystemStatus",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await codePlaygroundService.getSystemStatus();
+    } catch (err) {
+      return rejectWithValue(getErrorMessage(err, "Failed to get system status"));
+    }
+  }
+);
+
 // ── Slice ─────────────────────────────────────────────────────────────────────
 
 const EXCLUDED_PENDING = [
@@ -249,6 +291,7 @@ const EXCLUDED_PENDING = [
   "playground/getSession",
   "playground/searchSnippets",
   "playground/generateShareLink",
+  "playground/getDockerHealth",
 ];
 
 const codePlaygroundSlice = createSlice({
@@ -416,7 +459,20 @@ const codePlaygroundSlice = createSlice({
         state.sharedSnippet = action.payload;
       })
 
-      // ── Global pending (excludes thunks with dedicated loading flags) ────────
+      // Docker health cases
+      .addCase(getDockerHealth.pending, (state) => {
+        state.dockerHealthLoading = true;
+      })
+      .addCase(getDockerHealth.fulfilled, (state, action: PayloadAction<DockerHealthStatus>) => {
+        state.dockerHealthLoading = false;
+        state.dockerHealth = action.payload;
+      })
+      .addCase(getDockerHealth.rejected, (state) => {
+        state.dockerHealthLoading = false;
+        state.dockerHealth = { status: 'unavailable', dockerEnabled: false };
+      })
+
+      // ── Global pending ─────────────────────────────────────────────────────
       .addMatcher(
         (action) =>
           action.type.startsWith("playground/") &&
@@ -429,12 +485,11 @@ const codePlaygroundSlice = createSlice({
         }
       )
 
-      // ── Global rejected ──────────────────────────────────────────────────────
+      // ── Global rejected ────────────────────────────────────────────────────
       .addMatcher(
         (action) => action.type.startsWith("playground/") && action.type.endsWith("/rejected"),
         (state, action: PayloadAction<string | undefined>) => {
           state.loading = false;
-          // Use the typed action.payload provided by rejectWithValue
           state.error = action.payload ?? "Something went wrong";
         }
       );

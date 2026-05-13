@@ -11,6 +11,8 @@ import type {
   ExecuteCodePayload,
   SaveSessionPayload,
   ShareLinkResponse,
+  DockerHealthStatus,
+  SystemStatus,
 } from "../../interfaces/codePlayground.interface";
 
 // ── Snippets ──────────────────────────────────────────────────────────────────
@@ -102,19 +104,64 @@ const getSharedSnippet = async (token: string): Promise<CodeSnippet> => {
   return res.data.data;
 };
 
+// ── Docker & System Health ────────────────────────────────────────────────────
+
+const getDockerHealth = async (): Promise<DockerHealthStatus> => {
+  const res = await api.get<{ success: boolean; data: DockerHealthStatus }>("/playground/docker/health");
+  return res.data.data;
+};
+
+const getSystemStatus = async (): Promise<SystemStatus> => {
+  const res = await api.get<{ success: boolean; data: SystemStatus }>("/playground/status");
+  return res.data.data;
+};
+
+// ── Admin Routes ──────────────────────────────────────────────────────────────
+
+const killAllExecutions = async (): Promise<void> => {
+  await api.delete("/playground/admin/executions/kill-all");
+};
+
+const getDockerStats = async (): Promise<{ activeExecutions: number; dockerEnabled: boolean }> => {
+  const res = await api.get("/playground/admin/docker/stats");
+  return res.data.data;
+};
+
+const cleanupDockerContainers = async (): Promise<void> => {
+  await api.post("/playground/admin/docker/cleanup");
+};
+
 export const codePlaygroundService = {
+  // Snippets
   createSnippet,
   getSnippets,
   getSnippetById,
   updateSnippet,
   deleteSnippet,
   toggleFavorite,
+  
+  // Execution
   executeCode,
   getExecutionHistory,
+  
+  // Session
   saveSession,
   getSession,
+  
+  // Search & Stats
   searchSnippets,
   getStats,
+  
+  // Share
   generateShareLink,
   getSharedSnippet,
+  
+  // Docker & System
+  getDockerHealth,
+  getSystemStatus,
+  
+  // Admin
+  killAllExecutions,
+  getDockerStats,
+  cleanupDockerContainers,
 };

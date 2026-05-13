@@ -148,7 +148,7 @@ const WhatWeOffer = () => {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-200 to-orange-200 text-purple-800 text-sm font-bold mb-4">
             <Sparkles size={16} className="fill-purple-600" />
-            <span>🌈 What Makes Learning Fun!</span>
+            <span> What Makes Learning Fun!</span>
             <Sparkles size={16} className="fill-purple-600" />
           </div>
           

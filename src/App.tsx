@@ -55,6 +55,7 @@ import BlogPost from "./pages/BlogPost";
 import LegalPage from "./pages/LegalPage";
 import KidCourseView from "./pages/kids/KidCourseView";
 import KidCodePlayground from "./pages/kids/KidCodePlayground";
+import KidInteractivePlayground from "./pages/kids/KidInteractivePlayground";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -169,6 +170,7 @@ const App = () => {
             <Route path="/kid/dashboard" element={<KidDashboard />} />
             <Route path="/kid/my-courses" element={<KidCourseView />} />
             <Route path="/kid/playground" element={<KidCodePlayground />} />
+            <Route path="/kid/games" element={<KidInteractivePlayground />} />
           </Route>
         </Route>
 

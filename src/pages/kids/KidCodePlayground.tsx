@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Play, Save, RefreshCw, Code2, Settings, Copy, Check,
   Terminal, Sparkles, Trash2, Moon, Sun, Maximize2, Minimize2,
-  Download, Upload, Star, Share2, Search, X,
+  Download, Upload, Star, Share2, Search, X, Activity,
+  Server, Cpu, HardDrive,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,7 +13,7 @@ import {
   clearExecutionResult, clearCurrentSnippet, loadSnippetIntoEditor,
   resetPlaygroundState, createSnippet, updateSnippet, deleteSnippet,
   toggleFavorite, executeCode, saveSession, getSession, getSnippets,
-  getStats, generateShareLink, searchSnippets,
+  getStats, generateShareLink, searchSnippets, getDockerHealth, getSystemStatus,
 } from "../../store/slices/codePlaygroundSlice";
 import type { CodeSnippet, PlaygroundLanguage } from "../../interfaces/codePlayground.interface";
 
@@ -27,10 +28,189 @@ interface LanguageConfig {
 }
 
 const DEFAULT_CODE: Record<PlaygroundLanguage, string> = {
-  javascript: `// Welcome to the JavaScript Playground!\nconsole.log("Hello, young coder! 🎉");\n\nfunction greet(name) {\n  return "Hello, " + name + "!";\n}\nconsole.log(greet("Coder"));\n\nfor (let i = 1; i <= 5; i++) {\n  console.log("Count: " + i);\n}`,
-  python: `# Welcome to the Python Playground!\nprint("Hello, young coder! 🎉")\n\ndef greet(name):\n    return f"Hello, {name}!"\n\nprint(greet("Coder"))\n\nfor i in range(1, 6):\n    print(f"Count: {i}")`,
-  html: `<!DOCTYPE html>\n<html>\n<head>\n  <title>My Playground</title>\n  <style>\n    body { font-family: Arial, sans-serif; background: #667eea; color: white; text-align: center; padding: 50px; }\n    button { background: #ff6b6b; border: none; padding: 10px 20px; border-radius: 10px; color: white; cursor: pointer; font-size: 16px; }\n  </style>\n</head>\n<body>\n  <h1>✨ Welcome to HTML Playground! ✨</h1>\n  <button onclick="alert('Hello!')">Click Me!</button>\n</body>\n</html>`,
-  css: `/* Welcome to the CSS Playground! */\n.fancy-button {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  border: none;\n  color: white;\n  padding: 15px 30px;\n  border-radius: 50px;\n  cursor: pointer;\n  transition: all 0.3s ease;\n}\n\n.fancy-button:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 6px 20px rgba(0,0,0,0.3);\n}`,
+  javascript: `// Welcome to the JavaScript Playground!
+console.log("Hello, young coder! 🎉");
+
+function greet(name) {
+  return "Hello, " + name + "!";
+}
+console.log(greet("Coder"));
+
+for (let i = 1; i <= 5; i++) {
+  console.log("Count: " + i);
+}
+
+// Try using console.table for arrays
+const fruits = ["Apple", "Banana", "Orange"];
+console.table(fruits);`,
+  
+  python: `# Welcome to the Python Playground!
+print("Hello, young coder! 🎉")
+
+def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("Coder"))
+
+for i in range(1, 6):
+    print(f"Count: {i}")
+
+# Try creating a list
+fruits = ["Apple", "Banana", "Orange"]
+print(fruits)`,
+  
+  html: `<!DOCTYPE html>
+<html>
+<head>
+  <title>My Playground</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      text-align: center; 
+      padding: 50px; 
+      margin: 0;
+    }
+    button { 
+      background: #ff6b6b; 
+      border: none; 
+      padding: 12px 24px; 
+      border-radius: 50px; 
+      color: white; 
+      cursor: pointer; 
+      font-size: 16px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+  <h1>✨ Welcome to HTML Playground! ✨</h1>
+  <div class="card">
+    <p>Click the button below:</p>
+    <button onclick="alert('Hello from JavaScript! 🎉')">Click Me!</button>
+  </div>
+  <p>Created with 💖 by AkiliCode</p>
+</body>
+</html>`,
+  
+  css: `/* Welcome to the CSS Playground! */
+.fancy-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: 15px 30px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s ease;
+  margin: 20px;
+}
+
+.fancy-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.fancy-button:active {
+  transform: translateY(0);
+}
+
+/* Style a container */
+.container {
+  text-align: center;
+  padding: 40px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 20px;
+  margin: 20px;
+}
+
+/* Add some animations */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animated {
+  animation: pulse 2s infinite;
+}`,
+  
+  cpp: `// Welcome to C++ Playground!
+#include <iostream>
+#include <vector>
+#include <string>
+
+int main() {
+    std::cout << "Hello, young coder! 🎉" << std::endl;
+    
+    // Create a vector
+    std::vector<std::string> fruits = {"Apple", "Banana", "Orange"};
+    
+    for (const auto& fruit : fruits) {
+        std::cout << "Fruit: " << fruit << std::endl;
+    }
+    
+    return 0;
+}`,
+  
+  c: `// Welcome to C Playground!
+#include <stdio.h>
+
+int main() {
+    printf("Hello, young coder! 🎉\\n");
+    
+    // Simple loop
+    for (int i = 1; i <= 5; i++) {
+        printf("Count: %d\\n", i);
+    }
+    
+    return 0;
+}`,
+  
+  java: `// Welcome to Java Playground!
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, young coder! 🎉");
+        
+        // Simple loop
+        for (int i = 1; i <= 5; i++) {
+            System.out.println("Count: " + i);
+        }
+    }
+}`,
+  
+  typescript: `// Welcome to TypeScript Playground!
+interface Greeting {
+    message: string;
+    name: string;
+}
+
+function greet(person: Greeting): string {
+    return \`\${person.message}, \${person.name}! 🎉\`;
+}
+
+const greeting: Greeting = {
+    message: "Hello",
+    name: "Coder"
+};
+
+console.log(greet(greeting));
+
+// TypeScript features
+const numbers: number[] = [1, 2, 3, 4, 5];
+const sum = numbers.reduce((a, b) => a + b, 0);
+console.log(\`Sum: \${sum}\`);`,
 };
 
 const languages: Record<PlaygroundLanguage, LanguageConfig> = {
@@ -38,6 +218,10 @@ const languages: Record<PlaygroundLanguage, LanguageConfig> = {
   python:     { name: "Python",        extension: "py",   defaultCode: DEFAULT_CODE.python,     color: "bg-blue-500",   icon: "🐍" },
   html:       { name: "HTML/CSS",      extension: "html", defaultCode: DEFAULT_CODE.html,       color: "bg-orange-500", icon: "🌐" },
   css:        { name: "CSS Playground",extension: "css",  defaultCode: DEFAULT_CODE.css,        color: "bg-purple-500", icon: "🎨" },
+  cpp:        { name: "C++",           extension: "cpp",  defaultCode: DEFAULT_CODE.cpp,        color: "bg-blue-600",   icon: "⚙️" },
+  c:          { name: "C",             extension: "c",    defaultCode: DEFAULT_CODE.c,          color: "bg-gray-500",   icon: "🔧" },
+  java:       { name: "Java",          extension: "java", defaultCode: DEFAULT_CODE.java,       color: "bg-red-500",    icon: "☕" },
+  typescript: { name: "TypeScript",    extension: "ts",   defaultCode: DEFAULT_CODE.typescript, color: "bg-blue-700",   icon: "📘" },
 };
 
 const KidCodePlayground = () => {
@@ -45,19 +229,20 @@ const KidCodePlayground = () => {
 
   // ── Selectors ───────────────────────────────────────────────────────────────
   const code            = useSelector((s: RootState) => s.codePlayground.code);
-const language        = useSelector((s: RootState) => s.codePlayground.language);
-const fontSize        = useSelector((s: RootState) => s.codePlayground.fontSize);
-const isDarkMode      = useSelector((s: RootState) => s.codePlayground.isDarkMode);
-const executing       = useSelector((s: RootState) => s.codePlayground.executing);
-const executionResult = useSelector((s: RootState) => s.codePlayground.executionResult);
-const snippets        = useSelector((s: RootState) => s.codePlayground.snippets);
-const snippetsLoading = useSelector((s: RootState) => s.codePlayground.snippetsLoading);
-const currentSnippet  = useSelector((s: RootState) => s.codePlayground.currentSnippet);
-const stats           = useSelector((s: RootState) => s.codePlayground.stats);
-const shareLink       = useSelector((s: RootState) => s.codePlayground.shareLink);
-const searchResults   = useSelector((s: RootState) => s.codePlayground.searchResults);
-const searchLoading   = useSelector((s: RootState) => s.codePlayground.searchLoading);
-const error           = useSelector((s: RootState) => s.codePlayground.error);
+  const language        = useSelector((s: RootState) => s.codePlayground.language);
+  const fontSize        = useSelector((s: RootState) => s.codePlayground.fontSize);
+  const isDarkMode      = useSelector((s: RootState) => s.codePlayground.isDarkMode);
+  const executing       = useSelector((s: RootState) => s.codePlayground.executing);
+  const executionResult = useSelector((s: RootState) => s.codePlayground.executionResult);
+  const snippets        = useSelector((s: RootState) => s.codePlayground.snippets);
+  const snippetsLoading = useSelector((s: RootState) => s.codePlayground.snippetsLoading);
+  const currentSnippet  = useSelector((s: RootState) => s.codePlayground.currentSnippet);
+  const stats           = useSelector((s: RootState) => s.codePlayground.stats);
+  const shareLink       = useSelector((s: RootState) => s.codePlayground.shareLink);
+  const searchResults   = useSelector((s: RootState) => s.codePlayground.searchResults);
+  const searchLoading   = useSelector((s: RootState) => s.codePlayground.searchLoading);
+  const error           = useSelector((s: RootState) => s.codePlayground.error);
+  const dockerHealth    = useSelector((s: RootState) => s.codePlayground.dockerHealth);
 
   // ── Local state ──────────────────────────────────────────────────────────────
   const [isFullscreen,    setIsFullscreen]    = useState(false);
@@ -70,15 +255,19 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
   const [searchQuery,     setSearchQuery]     = useState("");
   const [activeTab,       setActiveTab]       = useState<"all" | "favorites" | "search">("all");
   const [isSaving,        setIsSaving]        = useState(false);
+  const [showDockerStatus, setShowDockerStatus] = useState(false);
 
   const autoSaveTimer  = useRef<Timeout | null>(null);
   const isInitialMount = useRef(true);
+  const iframeRef      = useRef<HTMLIFrameElement>(null);
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
     dispatch(getSession());
     dispatch(getSnippets({ limit: 50 }));
     dispatch(getStats());
+    dispatch(getDockerHealth());
+    dispatch(getSystemStatus());
   }, [dispatch]);
 
   // ── Auto-save session ────────────────────────────────────────────────────────
@@ -104,6 +293,19 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
     }
   }, [error, dispatch]);
 
+  // ── HTML/CSS output handler ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (executionResult && (language === 'html' || language === 'css') && iframeRef.current) {
+      const iframe = iframeRef.current;
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(executionResult.output || '<html><body><p>No output</p></body></html>');
+        doc.close();
+      }
+    }
+  }, [executionResult, language]);
+
   // ── Derived ──────────────────────────────────────────────────────────────────
   const displayedSnippets =
     activeTab === "search"    ? searchResults :
@@ -115,25 +317,27 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
     dispatch(setLanguage(lang));
     setShowSettings(false);
     toast.success(`Switched to ${languages[lang].name}`);
+    // Clear output when switching languages
+    dispatch(clearExecutionResult());
   }, [dispatch]);
 
   const handleRunCode = useCallback(async () => {
-  try {
-    const result = await dispatch(executeCode({
-      code,
-      language,
-      snippetId: currentSnippet?.id ?? null,
-    })).unwrap();
+    try {
+      const result = await dispatch(executeCode({
+        code,
+        language,
+        snippetId: currentSnippet?.id ?? null,
+      })).unwrap();
 
-    if (result.success) {
-      toast.success("Code executed successfully!");
-    } else {
-      toast.error("Execution failed");
+      if (result.success) {
+        toast.success("Code executed successfully!");
+      } else {
+        toast.error(result.error || "Execution failed");
+      }
+    } catch {
+      toast.error("Failed to execute code");
     }
-  } catch {
-    toast.error("Failed to execute code");
-  }
-}, [dispatch, code, language, currentSnippet]);
+  }, [dispatch, code, language, currentSnippet]);
 
   const handleClearCode = useCallback(() => {
     if (!window.confirm("Clear all your code?")) return;
@@ -267,6 +471,87 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
 
   const dk = (dark: string, light: string) => isDarkMode ? dark : light;
 
+  // Render output based on language and result type
+  const renderOutput = () => {
+    if (!executionResult) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+          <Sparkles size={48} className="mb-4 opacity-50" />
+          <p>Click "Run Code" to see your output!</p>
+          <p className="text-sm mt-2">Write code and experiment freely ✨</p>
+        </div>
+      );
+    }
+
+    if (!executionResult.success) {
+      return (
+        <div>
+          <h3 className="text-red-500 font-medium mb-2">❌ Error:</h3>
+          <pre className="whitespace-pre-wrap break-words text-red-400">{executionResult.error}</pre>
+        </div>
+      );
+    }
+
+    // Handle HTML output
+    if (language === 'html' && executionResult.output) {
+      return (
+        <iframe
+          ref={iframeRef}
+          title="HTML Preview"
+          sandbox="allow-same-origin allow-scripts"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '8px',
+            background: 'white',
+          }}
+        />
+      );
+    }
+
+    // Handle CSS output
+    if (language === 'css' && executionResult.output) {
+      return (
+        <iframe
+          ref={iframeRef}
+          title="CSS Preview"
+          sandbox="allow-same-origin"
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '8px',
+            background: 'white',
+          }}
+        />
+      );
+    }
+
+    // Handle normal text output
+    return (
+      <div>
+        <pre className="whitespace-pre-wrap break-words">{executionResult.output || '✅ Code ran successfully (no output)'}</pre>
+        {executionResult.warning && (
+          <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <strong className="text-yellow-500">⚠️ Warning:</strong>
+            <pre className="text-sm mt-1">{executionResult.warning}</pre>
+          </div>
+        )}
+        {(executionResult.executionTimeMs !== undefined || executionResult.memoryUsed !== undefined) && (
+          <div className="mt-4 pt-3 border-t border-gray-700 flex gap-4 text-xs text-gray-500">
+            {executionResult.executionTimeMs !== undefined && (
+              <span>⏱ Execution time: {executionResult.executionTimeMs}ms</span>
+            )}
+            {executionResult.memoryUsed !== undefined && (
+              <span>💾 Memory used: {executionResult.memoryUsed}MB</span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className={`min-h-screen ${dk("bg-gray-900", "bg-gray-50")} transition-colors duration-300`}>
@@ -277,28 +562,75 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Code2 size={24} className="text-purple-500" />
-              <span className={`font-bold ${dk("text-white", "text-gray-800")}`}>Code Playground</span>
+              <span className={`font-bold ${dk("text-white", "text-gray-800")} font-serif`}>AkiliCode Playground</span>
             </div>
             <div className="h-6 w-px bg-gray-600 hidden sm:block" />
-            <div className="hidden sm:flex items-center gap-2">
-              {(Object.entries(languages) as [PlaygroundLanguage, LanguageConfig][]).map(([key, lang]) => (
-                <button
-                  key={key}
-                  onClick={() => handleLanguageChange(key)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1
-                    ${language === key
-                      ? `${lang.color} text-white shadow-md`
-                      : dk("bg-gray-700 text-gray-300 hover:bg-gray-600", "bg-gray-100 text-gray-600 hover:bg-gray-200")
-                    }`}
-                >
-                  <span>{lang.icon}</span>
-                  <span className="hidden md:inline">{lang.name}</span>
-                </button>
+            
+            {/* Language selector dropdown for mobile */}
+            <select
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value as PlaygroundLanguage)}
+              className={`sm:hidden px-3 py-1.5 rounded-lg text-sm ${dk("bg-gray-700 text-white", "bg-gray-100 text-gray-800")}`}
+            >
+              {Object.entries(languages).map(([key, lang]) => (
+                <option key={key} value={key}>{lang.icon} {lang.name}</option>
               ))}
-            </div>
+            </select>
+
+            {/* Language buttons for desktop */}
+<div className="flex items-center gap-3">
+  
+  <div className="h-6 w-px bg-gray-600 hidden sm:block" />
+  
+  {/* Language selector dropdown for mobile */}
+  <select
+    value={language}
+    onChange={(e) => handleLanguageChange(e.target.value as PlaygroundLanguage)}
+    className={`sm:hidden px-3 py-1.5 rounded-lg text-sm ${dk("bg-gray-700 text-white", "bg-gray-100 text-gray-800")}`}
+  >
+    {Object.entries(languages).map(([langKey, langConfig]) => (
+      <option key={langKey} value={langKey}>
+        {langConfig.icon} {langConfig.name}
+      </option>
+    ))}
+  </select>
+
+  {/* Language buttons for desktop */}
+  <div className="hidden sm:flex items-center gap-2 flex-wrap">
+    {Object.entries(languages).slice(0, 4).map(([langKey, langConfig]) => (
+      <button
+        key={langKey}
+        onClick={() => handleLanguageChange(langKey as PlaygroundLanguage)}
+        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1
+          ${language === langKey
+            ? `${langConfig.color} text-white shadow-md`
+            : dk("bg-gray-700 text-gray-300 hover:bg-gray-600", "bg-gray-100 text-gray-600 hover:bg-gray-200")
+          }`}
+      >
+        <span>{langConfig.icon}</span>
+        <span className="hidden xl:inline">{langConfig.name}</span>
+      </button>
+    ))}
+    {/* Show more indicator */}
+    {Object.keys(languages).length > 4 && (
+      <span className={`text-xs ${dk("text-gray-500", "text-gray-400")}`}>
+        +{Object.keys(languages).length - 4} more
+      </span>
+    )}
+  </div>
+</div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Docker status indicator */}
+            <button
+              onClick={() => setShowDockerStatus(!showDockerStatus)}
+              className={`p-2 rounded-lg transition ${dk("hover:bg-gray-700", "hover:bg-gray-100")}`}
+              title="Docker Status"
+            >
+              <Server size={18} className={dockerHealth?.status === 'healthy' ? "text-green-500" : "text-yellow-500"} />
+            </button>
+
             {stats && (
               <div className={`hidden lg:flex items-center gap-2 px-2 py-1 rounded-lg text-xs ${dk("bg-gray-700", "bg-gray-100")}`}>
                 <span>📊 {stats.total} snippets</span>
@@ -317,6 +649,7 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
           </div>
         </div>
 
+        {/* Settings panel */}
         {showSettings && (
           <div className={`px-4 py-3 border-t ${dk("border-gray-700 bg-gray-800", "border-gray-200 bg-gray-50")}`}>
             <div className="flex items-center gap-4">
@@ -327,6 +660,28 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
                 className="w-32"
               />
               <span className={`text-sm ${dk("text-gray-300", "text-gray-600")}`}>{fontSize}px</span>
+            </div>
+          </div>
+        )}
+
+        {/* Docker status panel */}
+        {showDockerStatus && dockerHealth && (
+          <div className={`px-4 py-3 border-t ${dk("border-gray-700 bg-gray-800", "border-gray-200 bg-gray-50")}`}>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Activity size={14} className={dockerHealth.status === 'healthy' ? "text-green-500" : "text-yellow-500"} />
+                <span>Docker: {dockerHealth.status}</span>
+              </div>
+              {dockerHealth.activeExecutions !== undefined && (
+                <div className="flex items-center gap-2">
+                  <Cpu size={14} />
+                  <span>Active: {dockerHealth.activeExecutions}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <HardDrive size={14} />
+                <span>Enabled: {dockerHealth.dockerEnabled ? "Yes" : "No"}</span>
+              </div>
             </div>
           </div>
         )}
@@ -421,24 +776,7 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
           </div>
 
           <div className={`flex-1 p-4 overflow-y-auto font-mono text-sm ${dk("bg-gray-900 text-gray-300", "bg-gray-50 text-gray-700")}`}>
-            {executionResult ? (
-              <div>
-                {executionResult.error ? (
-                  <pre className="whitespace-pre-wrap break-words text-red-400">{executionResult.error}</pre>
-                ) : (
-                  <pre className="whitespace-pre-wrap break-words">{executionResult.output}</pre>
-                )}
-                {executionResult.executionTimeMs !== undefined && (
-                  <p className="text-xs text-gray-500 mt-4">⏱ {executionResult.executionTimeMs}ms</p>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                <Sparkles size={48} className="mb-4 opacity-50" />
-                <p>Click "Run Code" to see your output!</p>
-                <p className="text-sm mt-2">Write code and experiment freely ✨</p>
-              </div>
-            )}
+            {renderOutput()}
           </div>
         </div>
       </div>
@@ -515,7 +853,7 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
                   >
                     <div className="flex-1 cursor-pointer" onClick={() => handleLoadCode(snippet)}>
                       <div className="flex items-center gap-2">
-                        <span>{languages[snippet.language].icon}</span>
+                        <span>{languages[snippet.language]?.icon || "💻"}</span>
                         <p className={`font-medium ${dk("text-white", "text-gray-800")}`}>{snippet.name}</p>
                         {snippet.is_favorite && <Star size={14} className="text-yellow-500 fill-yellow-500" />}
                       </div>
@@ -550,7 +888,7 @@ const error           = useSelector((s: RootState) => s.codePlayground.error);
 
       {/* ── Share link toast ── */}
       {shareLink && (
-        <div className="fixed bottom-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed bottom-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-bounce">
           Share link copied! ✓
         </div>
       )}

@@ -1,4 +1,6 @@
-export type PlaygroundLanguage = 'javascript' | 'python' | 'html' | 'css';
+// interfaces/codePlayground.interface.ts
+
+export type PlaygroundLanguage = 'javascript' | 'python' | 'html' | 'css' | 'cpp' | 'c' | 'java' | 'typescript';
 
 export interface CodeSnippet {
   id: string;
@@ -47,6 +49,9 @@ export interface CodeExecutionResult {
   output?: string;
   error?: string;
   executionTimeMs?: number;
+  memoryUsed?: number;
+  type?: 'html' | 'css';  // For special rendering
+  warning?: string;
 }
 
 export interface SnippetStats {
@@ -99,4 +104,17 @@ export interface SaveSessionPayload {
 export interface ShareLinkResponse {
   shareUrl: string;
   shareToken: string;
+}
+
+export interface DockerHealthStatus {
+  status: 'healthy' | 'unhealthy' | 'unavailable' | 'disabled';
+  activeExecutions?: number;
+  dockerEnabled: boolean;
+  timestamp?: string;
+}
+
+export interface SystemStatus {
+  dockerEnabled: boolean;
+  nodeVersion: string;
+  environment: string;
 }
