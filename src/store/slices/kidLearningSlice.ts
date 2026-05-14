@@ -58,7 +58,7 @@ export const getMyCourses = createAsyncThunk(
   'kidLearning/getMyCourses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/kid/courses');
+      const response = await api.get('/learning/courses');
       return response.data.data.courses;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -67,11 +67,12 @@ export const getMyCourses = createAsyncThunk(
 );
 
 // Get course content with modules and lessons
+// Get course content — now takes enrollmentId, not courseId
 export const getCourseContent = createAsyncThunk(
   'kidLearning/getCourseContent',
-  async (courseId: string, { rejectWithValue }) => {
+  async (enrollmentId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kid/courses/${courseId}/content`);
+      const response = await api.get(`/learning/enrollments/${enrollmentId}/content`);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -82,9 +83,9 @@ export const getCourseContent = createAsyncThunk(
 // Get single lesson
 export const getLesson = createAsyncThunk(
   'kidLearning/getLesson',
-  async (lessonId: string, { rejectWithValue }) => {
+  async ({ enrollmentId, lessonId }: { enrollmentId: string; lessonId: string }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kid/lessons/${lessonId}`);
+      const response = await api.get(`/learning/enrollments/${enrollmentId}/lessons/${lessonId}`);
       return response.data.data.lesson;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -92,12 +93,18 @@ export const getLesson = createAsyncThunk(
   }
 );
 
-// Submit lesson solution
+// Submit lesson — now requires enrollmentId too
 export const submitLesson = createAsyncThunk(
   'kidLearning/submitLesson',
-  async ({ lessonId, code_submitted }: { lessonId: string; code_submitted?: string }, { rejectWithValue }) => {
+  async (
+    { enrollmentId, lessonId, code_submitted }: { enrollmentId: string; lessonId: string; code_submitted?: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await api.post<SubmitLessonResponse>(`/kid/lessons/${lessonId}/submit`, { code_submitted });
+      const response = await api.post<SubmitLessonResponse>(
+        `/learning/enrollments/${enrollmentId}/lessons/${lessonId}/submit`,
+        { code_submitted }
+      );
       return response.data.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -110,7 +117,7 @@ export const getDashboardStats = createAsyncThunk(
   'kidLearning/getDashboardStats',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/kid/dashboard');
+      const response = await api.get('/learning/dashboard');
       return response.data.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -123,7 +130,7 @@ export const getLeaderboard = createAsyncThunk(
   'kidLearning/getLeaderboard',
   async (limit: number = 10, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/kid/leaderboard?limit=${limit}`);
+      const response = await api.get(`/learning/leaderboard?limit=${limit}`);
       return response.data.data.leaderboard;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -136,7 +143,7 @@ export const getAchievements = createAsyncThunk(
   'kidLearning/getAchievements',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/kid/achievements');
+      const response = await api.get('/learning/achievements');
       return response.data.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));

@@ -7,6 +7,8 @@ import courseReducer from "./slices/courseSlice"
 import trialsReducer from "./slices/trialSlice"
 import kidLearningReducer from "./slices/kidLearningSlice"
 import codePlaygroundReducer from './slices/codePlaygroundSlice';
+import pricingReducer from "./slices/pricingSlice"
+import userReducer from "./slices/userSlice"
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +20,8 @@ export const store = configureStore({
     trials: trialsReducer,
     kidLearning: kidLearningReducer,
     codePlayground: codePlaygroundReducer,
+    pricing: pricingReducer,
+    user: userReducer,
     // other reducers go here
   },
 });

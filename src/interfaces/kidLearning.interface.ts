@@ -1,16 +1,13 @@
 export interface KidCourse {
-  id: string;
   enrollment_id: string;
-  title: string;
-  description: string;
-  duration: string;
-  image: string;
-  category: string;
+  course_id: string;
+  name: string;             // was 'title' — controller now returns 'name'
   enrolled_at: string;
   status: string;
   progress: number;
   completed_lessons: number;
   total_lessons: number;
+  // removed: id, title, description, duration, image, category (no longer from courses table)
 }
 
 export interface Lesson {
@@ -22,13 +19,11 @@ export interface Lesson {
   starter_code: string;
   solution_code: string;
   order_index: number;
-  module_title: string;
-  course_id: string;
-  course_title: string;
   completed: boolean;
   points_earned: number;
-  code_submitted: string;
-  completed_at: string;
+  code_submitted: string | null;
+  completed_at: string | null;
+  // removed: module_title, course_id, course_title (not returned by controller)
 }
 
 export interface ModuleWithLessons {
@@ -38,20 +33,13 @@ export interface ModuleWithLessons {
   description: string;
   order_index: number;
   lessons: Lesson[];
-  lesson_count: number;
 }
 
 export interface CourseContent {
-  course: {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    duration: string;
-    category: string;
-    image_url: string;
-  };
+  enrollment_id: string;
+  course_name: string;      // replaces nested course object
   modules: ModuleWithLessons[];
+  // removed: course object (no longer querying courses table)
 }
 
 export interface KidDashboardStats {
@@ -65,19 +53,19 @@ export interface KidDashboardStats {
   };
   stats: {
     total_courses: number;
-    completed_courses: number;
     completed_lessons: number;
     total_lessons: number;
     total_points: number;
     level: number;
     points_to_next_level: number;
     streak_days: number;
+    // removed: completed_courses (dropped from controller)
   };
   recent_achievements: Array<{
-    type: string;
     name: string;
     earned_at: string;
     points_earned: number;
+    // removed: type (dropped from controller)
   }>;
 }
 
@@ -100,7 +88,6 @@ export interface Achievement {
 
 export interface SubmitLessonResponse {
   status: string;
-  message: string;
   data: {
     progress: {
       id: string;

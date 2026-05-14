@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
+  getMyCourses,
   getCourseContent,
   getLesson,
   submitLesson,
@@ -21,25 +22,29 @@ import {
   Loader2,
   Menu,
   X,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Lesson, ModuleWithLessons } from "../../interfaces/kidLearning.interface";
 
-interface KidUser {
-  total_points: number;
-}
-
 const DEFAULT_CODE = "# Write your code here\nprint('Hello, World!')";
 
 const KidCourseView = () => {
-  const { courseId } = useParams<{ courseId: string }>();
+  const { enrollmentId } = useParams<{ enrollmentId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { currentCourse, currentLesson, loading, submitting } = useAppSelector(
-    (state) => state.kidLearning
-  );
-  const { currentKid } = useAppSelector((state) => state.kid) as { currentKid: KidUser | null };
+  const { currentKid } = useAppSelector((state) => state.kid);
+
+  const {
+    courses,
+    currentCourse,
+    currentLesson,
+    dashboardStats,
+    loading,
+    submitting,
+    error,
+  } = useAppSelector((state) => state.kidLearning);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [code, setCode] = useState(DEFAULT_CODE);
@@ -47,35 +52,39 @@ const KidCourseView = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
-  // 1. Initial load — redirect if no kid session, fetch course, cleanup on unmount
+  // 1. Auth guard
   useEffect(() => {
     if (!currentKid) {
       navigate("/kid/login");
-      return;
     }
-    if (courseId) {
-      dispatch(getCourseContent(courseId));
-    }
+  }, [currentKid, navigate]);
+
+  // 2. Fetch all enrolled courses so the sidebar / course list stays up-to-date.
+  //    This mirrors what KidDashboard does and ensures `courses` in the store
+  //    is always populated when a child lands on this view.
+  useEffect(() => {
+    dispatch(getMyCourses());
+  }, [dispatch]);
+
+  // 3. Fetch the specific course content for this enrollment
+  useEffect(() => {
+    if (!enrollmentId) return;
+    dispatch(getCourseContent(enrollmentId));
     return () => {
       dispatch(clearCurrentCourse());
     };
-  }, [courseId, dispatch, currentKid, navigate]);
+  }, [enrollmentId, dispatch]);
 
-  // 2. Fetch lesson content when a lesson is selected
+  // 4. Fetch full lesson detail when a lesson is selected from the sidebar
   useEffect(() => {
-    if (selectedLesson) {
-      dispatch(getLesson(selectedLesson.id));
+    if (selectedLesson && enrollmentId) {
+      dispatch(getLesson({ enrollmentId, lessonId: selectedLesson.id }));
     }
-  }, [selectedLesson, dispatch]);
-
-  // 3. REMOVED the third useEffect that called setCode/setOutput synchronously.
-  //    Instead, code and output are reset inside handleSelectLesson (the only
-  //    place that triggers a lesson change), so no effect is needed at all.
+  }, [selectedLesson, enrollmentId, dispatch]);
 
   const handleSelectLesson = useCallback((lesson: Lesson) => {
     setSelectedLesson(lesson);
     setSidebarOpen(false);
-    // Reset editor state here — co-located with the action that causes the change
     setCode(lesson.starter_code || DEFAULT_CODE);
     setOutput("");
   }, []);
@@ -83,7 +92,6 @@ const KidCourseView = () => {
   const handleRunCode = useCallback(() => {
     setIsRunning(true);
     setOutput("");
-
     setTimeout(() => {
       try {
         setOutput("> Code executed successfully!\n> Output will appear here.\n\n> Great job! Keep learning!");
@@ -98,43 +106,44 @@ const KidCourseView = () => {
   }, []);
 
   const handleSubmitCode = useCallback(async () => {
-    if (!currentLesson) return;
-
+    if (!currentLesson || !enrollmentId) return;
     try {
       const result = await dispatch(
-        submitLesson({ lessonId: currentLesson.id, code_submitted: code })
+        submitLesson({ enrollmentId, lessonId: currentLesson.id, code_submitted: code })
       ).unwrap();
-
       toast.success(result.message || `Great job! You earned ${result.points_earned} points! 🎉`);
       setOutput(`✅ Lesson Completed!\n\nPoints Earned: ${result.points_earned}\n\nKeep up the great work! 🚀`);
     } catch {
       toast.error("Failed to submit lesson. Please try again.");
     }
-  }, [currentLesson, code, dispatch]);
+  }, [currentLesson, enrollmentId, code, dispatch]);
 
   const allLessons = useMemo(
-    () => currentCourse?.modules?.flatMap((m: ModuleWithLessons) => m.lessons) || [],
+    () => currentCourse?.modules?.flatMap((m: ModuleWithLessons) => m.lessons) ?? [],
     [currentCourse]
   );
 
-  const getNextLesson = useCallback(() => {
+  const nextLesson = useMemo(() => {
     const idx = allLessons.findIndex((l: Lesson) => l.id === currentLesson?.id);
     return idx !== -1 && idx < allLessons.length - 1 ? allLessons[idx + 1] : null;
   }, [allLessons, currentLesson?.id]);
 
-  const getPrevLesson = useCallback(() => {
+  const prevLesson = useMemo(() => {
     const idx = allLessons.findIndex((l: Lesson) => l.id === currentLesson?.id);
     return idx > 0 ? allLessons[idx - 1] : null;
   }, [allLessons, currentLesson?.id]);
 
-  const nextLesson = getNextLesson();
-  const prevLesson = getPrevLesson();
-
-  const completedCount = allLessons.filter((l: Lesson) => l.completed).length;
+  const completedCount = useMemo(
+    () => allLessons.filter((l: Lesson) => l.completed).length,
+    [allLessons]
+  );
   const progressPercent = allLessons.length > 0 ? (completedCount / allLessons.length) * 100 : 0;
-  const kidPoints = currentKid?.total_points || 0;
-  const kidLevel = Math.floor(kidPoints / 100) + 1;
 
+  const kidPoints = dashboardStats?.stats.total_points ?? 0;
+  const kidLevel  = dashboardStats?.stats.level ?? 1;
+  const courseName = currentCourse?.course_name ?? "";
+
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading && !currentCourse) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-orange-50">
@@ -146,13 +155,14 @@ const KidCourseView = () => {
     );
   }
 
-  if (!currentCourse) {
+  // ── API error ────────────────────────────────────────────────────────────────
+  if (error && !currentCourse) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-orange-50">
-        <div className="text-center">
-          <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Course not found</h2>
-          <p className="text-gray-500 mb-4">You may not be enrolled in this course.</p>
+        <div className="text-center max-w-sm">
+          <AlertCircle size={48} className="mx-auto text-orange-300 mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Course unavailable</h2>
+          <p className="text-gray-500 mb-4">{error}</p>
           <Link to="/kid/dashboard" className="text-purple-600 hover:underline">
             ← Back to Dashboard
           </Link>
@@ -161,8 +171,26 @@ const KidCourseView = () => {
     );
   }
 
+  // ── Content missing after a successful fetch ─────────────────────────────────
+  if (!currentCourse) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-orange-50">
+        <div className="text-center">
+          <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Course not found</h2>
+          <p className="text-gray-500 mb-4">The course content could not be loaded.</p>
+          <Link to="/kid/dashboard" className="text-purple-600 hover:underline">
+            ← Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main view ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white border-b border-purple-100 sticky top-0 z-20 shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
@@ -177,16 +205,21 @@ const KidCourseView = () => {
               <span className="font-bold text-purple-900 hidden sm:inline">AkiliCode</span>
             </Link>
             <div className="hidden md:block h-6 w-px bg-gray-200" />
-            <h1 className="text-sm font-semibold text-gray-700 line-clamp-1">
-              {currentCourse.course?.title}
-            </h1>
+            <h1 className="text-sm font-semibold text-gray-700 line-clamp-1">{courseName}</h1>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Enrolled course count badge — powered by getMyCourses */}
+            {courses.length > 0 && (
+              <div className="hidden md:flex items-center gap-1 text-xs text-gray-500 bg-purple-50 px-2 py-1 rounded-full">
+                <BookOpen size={12} className="text-purple-400" />
+                <span>{courses.length} course{courses.length !== 1 ? "s" : ""} enrolled</span>
+              </div>
+            )}
             <div className="hidden md:flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Trophy size={14} className="text-yellow-500" />
-                <span className="text-sm font-semibold text-gray-600">{kidPoints} pts</span>
+                <span className="text-sm font-semibold text-gray-600">{kidPoints.toLocaleString()} pts</span>
               </div>
               <div className="flex items-center gap-1">
                 <Star size={14} className="text-purple-500" />
@@ -204,6 +237,7 @@ const KidCourseView = () => {
       </header>
 
       <div className="flex h-[calc(100vh-57px)]">
+        {/* Sidebar */}
         <aside
           className={`
             fixed lg:relative inset-y-0 left-0 z-30 w-80 bg-white border-r border-purple-100
@@ -256,15 +290,39 @@ const KidCourseView = () => {
               </div>
             ))}
           </div>
+
+          {/* Other enrolled courses — powered by getMyCourses */}
+          {courses.length > 1 && (
+            <div className="p-3 border-t border-purple-50 mt-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-2 mb-2">
+                My Other Courses
+              </p>
+              <div className="space-y-1">
+                {courses
+                  .filter((c) => c.enrollment_id !== enrollmentId)
+                  .map((c) => (
+                    <Link
+                      key={c.enrollment_id}
+                      to={`/kid/courses/${c.enrollment_id}`}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-500 text-sm transition"
+                    >
+                      <BookOpen size={14} className="text-purple-300 flex-shrink-0" />
+                      <span className="flex-1 line-clamp-1">{c.name}</span>
+                    </Link>
+                  ))}
+              </div>
+            </div>
+          )}
         </aside>
 
+        {/* Main content */}
         <main className="flex-1 overflow-y-auto">
           {!currentLesson ? (
             <div className="flex flex-col items-center justify-center h-full p-8">
               <div className="text-center max-w-md">
                 <BookOpen size={64} className="mx-auto text-purple-200 mb-4" />
                 <h2 className="text-xl font-bold text-gray-800 mb-2">
-                  Welcome to {currentCourse.course?.title}!
+                  Welcome to {courseName}!
                 </h2>
                 <p className="text-gray-500 mb-4">
                   Select a lesson from the sidebar to start learning.
@@ -281,9 +339,10 @@ const KidCourseView = () => {
             </div>
           ) : (
             <div className="p-6 max-w-5xl mx-auto">
+              {/* Breadcrumb */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                  <span>{currentCourse.course?.title}</span>
+                  <span>{courseName}</span>
                   <ChevronRight size={14} />
                   <span>{currentLesson.title}</span>
                 </div>
@@ -296,6 +355,7 @@ const KidCourseView = () => {
                 )}
               </div>
 
+              {/* Lesson notes */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                 <div
                   className="prose max-w-none"
@@ -305,6 +365,7 @@ const KidCourseView = () => {
                 />
               </div>
 
+              {/* Code editor */}
               <div className="bg-gray-900 rounded-xl overflow-hidden mb-6">
                 <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
                   <div className="flex items-center gap-2">
@@ -351,6 +412,7 @@ const KidCourseView = () => {
                 />
               </div>
 
+              {/* Output */}
               {output && (
                 <div className="bg-gray-800 rounded-xl overflow-hidden mb-6">
                   <div className="px-4 py-2 bg-gray-700 border-b border-gray-600">
@@ -365,6 +427,7 @@ const KidCourseView = () => {
                 </div>
               )}
 
+              {/* Navigation */}
               <div className="flex justify-between gap-4">
                 <button
                   onClick={() => prevLesson && handleSelectLesson(prevLesson)}
