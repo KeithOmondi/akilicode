@@ -56,6 +56,7 @@ import LegalPage from "./pages/LegalPage";
 import KidCourseView from "./pages/kids/KidCourseView";
 import KidCodePlayground from "./pages/kids/KidCodePlayground";
 import KidInteractivePlayground from "./pages/kids/KidInteractivePlayground";
+import KidMyCourses from "./pages/kids/KidMyCourses";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -66,37 +67,35 @@ const App = () => {
     // Only run this logic once on mount
     if (sessionChecked.current) return;
 
-    const initializeAuth = async () => {
-      const token = localStorage.getItem("accessToken");
-      const path = window.location.pathname;
+const initializeAuth = async () => {
+  const path = window.location.pathname;
+  const isKidPath = path.startsWith("/kid");
+  const isLoginPage = path === "/login" || path === "/kid/login";
+  const tokenKey = isKidPath ? "kid_accessToken" : "accessToken";
+  const token = localStorage.getItem(tokenKey);
 
-      if (token) {
-        setAccessToken(token);
+  console.log("🚀 [App] initializeAuth", { path, isKidPath, tokenKey, token: token ? "EXISTS" : "NULL" });
+
+  if (token) setAccessToken(token);
+
+  try {
+    if (token && !isLoginPage) {
+      if (isKidPath) {
+        console.log("🚀 [App] dispatching getKidMe...");
+        const result = await dispatch(getKidMe()).unwrap();
+        console.log("✅ [App] getKidMe success:", result);
+      } else {
+        await dispatch(refreshSession()).unwrap();
       }
-
-      const isKidPath = path.startsWith("/kid");
-      const isLoginPage = path === "/login" || path === "/kid/login";
-
-      try {
-        // Only attempt to restore session if we have a token and aren't already on login
-        if (token && !isLoginPage) {
-          // We dispatch directly to avoid TypeScript union-type inference issues
-          if (isKidPath) {
-            await dispatch(getKidMe()).unwrap();
-          } else {
-            await dispatch(refreshSession()).unwrap();
-          }
-        }
-      } catch (err) {
-        console.error("Session restoration failed:", err);
-        // We don't necessarily need to do anything here; 
-        // ProtectedRoutes will handle redirecting if user is null
-      } finally {
-        sessionChecked.current = true;
-        // Use a slight delay or wrap in a check to avoid cascading render warnings
-        setIsInitializing(false);
-      }
-    };
+    }
+  } catch (err) {
+    console.error("❌ [App] session restore failed:", err);
+  } finally {
+    sessionChecked.current = true;
+    setIsInitializing(false);
+    console.log("🏁 [App] isInitializing = false");
+  }
+};
 
     initializeAuth();
   }, [dispatch]);
@@ -168,7 +167,9 @@ const App = () => {
         <Route element={<KidProtectedRoute />}>
           <Route element={<KidsLayout />}>
             <Route path="/kid/dashboard" element={<KidDashboard />} />
-            <Route path="/kid/my-courses" element={<KidCourseView />} />
+            // With these two:
+<Route path="/kid/my-courses" element={<KidMyCourses />} />
+<Route path="/kid/course/:enrollmentId" element={<KidCourseView />} />
             <Route path="/kid/playground" element={<KidCodePlayground />} />
             <Route path="/kid/games" element={<KidInteractivePlayground />} />
           </Route>

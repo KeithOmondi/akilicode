@@ -12,15 +12,19 @@ import { getMyKids } from "../../store/slices/kidSlice";
 import { getAllCourses } from "../../store/slices/courseSlice";
 import { initiateStkPush } from "../../store/slices/paymentSlice";
 import type { AppDispatch, RootState } from "../../store/store";
-import type { EnrollKidPayload } from "../../interfaces/enrollment.interface";
 import api from "../../api/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type BillingCycle = "monthly" | "termly" | "once-off";
 
-interface EnrollWithPaymentPayload extends EnrollKidPayload {
-  payNow?: boolean;
-  phone?: string;
+interface EnrollWithPaymentPayload {
+  kid_id:        string;
+  course_id:     string;
+  fee_amount:    number;
+  billing_cycle: BillingCycle; // ← fixed: was `string`
+  start_date?:   string;
+  payNow?:       boolean;
+  phone?:        string;
 }
 
 interface BackendError {
@@ -30,24 +34,18 @@ interface BackendError {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("en-KE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: "numeric", month: "short", day: "numeric",
   });
 
 const getDaysUntil = (dateStr: string): number => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr);
-  due.setHours(0, 0, 0, 0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due   = new Date(dateStr); due.setHours(0, 0, 0, 0);
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 };
 
 // ─── Payment Status Banner ────────────────────────────────────────────────────
 const PaymentStatusBanner = ({
-  payment_status,
-  next_payment_date,
-  billing_cycle,
+  payment_status, next_payment_date, billing_cycle,
 }: {
   payment_status?: string;
   next_payment_date?: string | null;
@@ -55,28 +53,20 @@ const PaymentStatusBanner = ({
 }) => {
   if (!payment_status || payment_status === "unpaid" || payment_status === "cancelled") return null;
 
-  if (payment_status === "once-off") {
-    return (
-      <div className="mt-3 p-3 bg-green-50 rounded-xl flex items-center gap-2 text-[10px] font-bold text-green-700 uppercase tracking-tighter border border-green-100">
-        <InfinityIcon size={13} /> Fully Paid — No Further Payments Due
-      </div>
-    );
-  }
+  if (payment_status === "once-off") return (
+    <div className="mt-3 p-3 bg-green-50 rounded-xl flex items-center gap-2 text-[10px] font-bold text-green-700 uppercase tracking-tighter border border-green-100">
+      <InfinityIcon size={13} /> Fully Paid — No Further Payments Due
+    </div>
+  );
 
-  if (payment_status === "overdue") {
-    return (
-      <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
-        <div className="flex items-center gap-2 text-[10px] font-bold text-red-700 uppercase tracking-tighter mb-1">
-          <AlertTriangle size={13} /> Payment Overdue
-        </div>
-        {next_payment_date && (
-          <p className="text-[10px] text-red-500">
-            Was due {formatDate(next_payment_date)}
-          </p>
-        )}
+  if (payment_status === "overdue") return (
+    <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
+      <div className="flex items-center gap-2 text-[10px] font-bold text-red-700 uppercase tracking-tighter mb-1">
+        <AlertTriangle size={13} /> Payment Overdue
       </div>
-    );
-  }
+      {next_payment_date && <p className="text-[10px] text-red-500">Was due {formatDate(next_payment_date)}</p>}
+    </div>
+  );
 
   if (payment_status === "due_soon") {
     const days = next_payment_date ? getDaysUntil(next_payment_date) : null;
@@ -86,27 +76,19 @@ const PaymentStatusBanner = ({
           <CalendarClock size={13} />
           {days === 0 ? "Payment Due Today!" : `Payment Due in ${days} Day${days === 1 ? "" : "s"}`}
         </div>
-        {next_payment_date && (
-          <p className="text-[10px] text-amber-600">
-            {formatDate(next_payment_date)} · KES
-          </p>
-        )}
+        {next_payment_date && <p className="text-[10px] text-amber-600">{formatDate(next_payment_date)} · KES</p>}
       </div>
     );
   }
 
-  if (payment_status === "paid" && next_payment_date) {
-    return (
-      <div className="mt-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
-        <div className="flex items-center gap-2 text-[10px] font-bold text-purple-700 uppercase tracking-tighter mb-1">
-          <BadgeCheck size={13} /> Next Payment
-        </div>
-        <p className="text-[10px] text-purple-500">
-          {formatDate(next_payment_date)} · {billing_cycle}
-        </p>
+  if (payment_status === "paid" && next_payment_date) return (
+    <div className="mt-3 p-3 bg-purple-50 rounded-xl border border-purple-100">
+      <div className="flex items-center gap-2 text-[10px] font-bold text-purple-700 uppercase tracking-tighter mb-1">
+        <BadgeCheck size={13} /> Next Payment
       </div>
-    );
-  }
+      <p className="text-[10px] text-purple-500">{formatDate(next_payment_date)} · {billing_cycle}</p>
+    </div>
+  );
 
   return null;
 };
@@ -140,41 +122,43 @@ const ModalOverlay = ({ onClose, children }: { onClose: () => void; children: Re
 
 // ─── Enroll Modal ─────────────────────────────────────────────────────────────
 interface EnrollModalProps {
-  onClose: () => void;
-  kids: RootState["kid"]["kids"];
-  courses: RootState["course"]["courses"];
-  loading: boolean;
+  onClose:  () => void;
+  kids:     RootState["kid"]["kids"];
+  courses:  RootState["course"]["courses"];
+  loading:  boolean;
   onSubmit: (payload: EnrollWithPaymentPayload) => Promise<void>;
 }
 
 const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalProps) => {
-  const [kidId, setKidId] = useState("");
-  const [courseName, setCourseName] = useState("");
-  const [feeAmount, setFeeAmount] = useState("");
+  const [kidId,        setKidId]        = useState("");
+  const [courseId,     setCourseId]     = useState("");
+  const [feeAmount,    setFeeAmount]    = useState("");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [phone, setPhone] = useState("");
+  const [phone,        setPhone]        = useState("");
 
   const inputCls = "w-full bg-purple-50/50 border-2 border-transparent rounded-xl pl-11 pr-4 py-3 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none appearance-none transition-all text-sm font-medium text-gray-800 placeholder:text-gray-400";
   const labelCls = "block text-[11px] font-black text-purple-900 uppercase tracking-wider mb-1.5";
 
-  const handleCourseChange = (selectedTitle: string) => {
-    setCourseName(selectedTitle);
-    const found = courses.find((c) => c.title === selectedTitle);
+  const handleCourseChange = (selectedId: string) => {
+    setCourseId(selectedId);
+    const found = courses.find((c) => c.id === selectedId);
     setFeeAmount(found ? String(found.price) : "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!kidId) { toast.error("Please select a student"); return; }
+    if (!courseId) { toast.error("Please select a course"); return; }
     if (!phone || !/^254\d{9}$/.test(phone)) {
       toast.error("Enter a valid M-Pesa number (254...)");
       return;
     }
     await onSubmit({
-      kid_id: kidId,
-      course_name: courseName,
-      fee_amount: Number(feeAmount),
-      billing_cycle: billingCycle,
-      payNow: true,
+      kid_id:        kidId,
+      course_id:     courseId,
+      fee_amount:    Number(feeAmount),
+      billing_cycle: billingCycle, // already BillingCycle — no cast needed
+      payNow:        true,
       phone,
     });
   };
@@ -193,6 +177,8 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
 
       <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
         <div className="grid grid-cols-1 gap-4">
+
+          {/* Student */}
           <div>
             <label className={labelCls}>Student</label>
             <div className="relative">
@@ -204,19 +190,21 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
             </div>
           </div>
 
+          {/* Course */}
           <div>
             <label className={labelCls}>Course</label>
             <div className="relative">
               <BookOpen className="absolute left-3 top-3 text-purple-300" size={16} />
-              <select required value={courseName} onChange={(e) => handleCourseChange(e.target.value)} className={inputCls}>
+              <select required value={courseId} onChange={(e) => handleCourseChange(e.target.value)} className={inputCls}>
                 <option value="">Select a course</option>
                 {courses.filter((c) => c.is_active).map((c) => (
-                  <option key={c.id} value={c.title}>{c.title}</option>
+                  <option key={c.id} value={c.id}>{c.title}</option>
                 ))}
               </select>
             </div>
           </div>
 
+          {/* Fee & Cycle */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Fee (KES)</label>
@@ -227,7 +215,11 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
             </div>
             <div>
               <label className={labelCls}>Cycle</label>
-              <select value={billingCycle} onChange={(e) => setBillingCycle(e.target.value as BillingCycle)} className={inputCls}>
+              <select
+                value={billingCycle}
+                onChange={(e) => setBillingCycle(e.target.value as BillingCycle)}
+                className={inputCls}
+              >
                 <option value="monthly">Monthly</option>
                 <option value="termly">Termly</option>
                 <option value="once-off">Once-off</option>
@@ -235,6 +227,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
             </div>
           </div>
 
+          {/* M-Pesa */}
           <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
             <div className="flex items-center gap-3 mb-3">
               <Wallet className="text-orange-500" size={20} />
@@ -270,8 +263,8 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
 const ParentEnrollments = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { enrollments, loading: enrollLoading } = useSelector((s: RootState) => s.enrollment);
-  const { kids } = useSelector((s: RootState) => s.kid);
-  const { courses, loading: courseLoading } = useSelector((s: RootState) => s.course);
+  const { kids }                                = useSelector((s: RootState) => s.kid);
+  const { courses, loading: courseLoading }     = useSelector((s: RootState) => s.course);
   const { loading: payLoading, checkoutRequestId } = useSelector((s: RootState) => s.payment);
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -292,9 +285,7 @@ const ParentEnrollments = () => {
   }, [checkoutRequestId]);
 
   useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
   const startPolling = (enrollmentId: string) => {
@@ -325,8 +316,7 @@ const ParentEnrollments = () => {
           pollRef.current = null;
           toast.dismiss("stk-push");
           toast("Payment not confirmed yet. It will update automatically once M-Pesa confirms.", {
-            icon: "⏳",
-            duration: 6000,
+            icon: "⏳", duration: 6000,
           });
         }
       } catch {
@@ -339,11 +329,11 @@ const ParentEnrollments = () => {
   const handleEnroll = async (payload: EnrollWithPaymentPayload) => {
     try {
       const enrollment = await dispatch(enrollKid({
-        kid_id: payload.kid_id,
-        course_name: payload.course_name,
-        fee_amount: payload.fee_amount,
-        billing_cycle: payload.billing_cycle,
-        start_date: payload.start_date,
+        kid_id:        payload.kid_id,
+        course_id:     payload.course_id,
+        fee_amount:    payload.fee_amount,
+        billing_cycle: payload.billing_cycle, // ← now BillingCycle, not string
+        start_date:    payload.start_date,
       })).unwrap();
 
       dispatch(getMyEnrollments());
@@ -352,27 +342,27 @@ const ParentEnrollments = () => {
         try {
           await dispatch(initiateStkPush({
             enrollment_id: enrollment.id,
-            phone: payload.phone,
-            amount: payload.fee_amount,
+            phone:         payload.phone,
+            amount:        payload.fee_amount,
           })).unwrap();
 
           toast.success("M-Pesa prompt sent! Complete payment on your phone.");
           setShowEnrollModal(false);
           startPolling(enrollment.id);
         } catch (payErr: unknown) {
-          let errorMessage = "Payment failed to initialize";
-          if (typeof payErr === "string") errorMessage = payErr;
+          let msg = "Payment failed to initialize";
+          if (typeof payErr === "string") msg = payErr;
           else if (payErr && typeof payErr === "object" && "message" in payErr)
-            errorMessage = (payErr as BackendError).message || errorMessage;
-          toast.error(`Enrollment saved, but: ${errorMessage}`);
+            msg = (payErr as BackendError).message || msg;
+          toast.error(`Enrollment saved, but: ${msg}`);
         }
       }
     } catch (err: unknown) {
-      let errorMessage = "Failed to create enrollment";
-      if (typeof err === "string") errorMessage = err;
+      let msg = "Failed to create enrollment";
+      if (typeof err === "string") msg = err;
       else if (err && typeof err === "object" && "message" in err)
-        errorMessage = (err as BackendError).message || errorMessage;
-      toast.error(errorMessage);
+        msg = (err as BackendError).message || msg;
+      toast.error(msg);
     }
   };
 
@@ -381,6 +371,8 @@ const ParentEnrollments = () => {
   return (
     <div className="min-h-screen bg-[#FDFCFE] pb-20">
       <div className="max-w-6xl mx-auto px-4 pt-10">
+
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
           <div>
             <h1 className="text-4xl font-extrabold font-serif text-purple-900 tracking-tight">
@@ -398,27 +390,23 @@ const ParentEnrollments = () => {
           </button>
         </div>
 
+        {/* Empty state */}
         {enrollments.length === 0 && !isLoading ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-purple-200">
             <GraduationCap size={48} className="mx-auto text-purple-100 mb-4" />
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">
-              No programs found
-            </p>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No programs found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrollments.map((e) => (
               <div
                 key={e.id}
-                className={`bg-white p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group ${
-                  e.payment_status === "overdue"
-                    ? "border-red-200"
-                    : e.payment_status === "due_soon"
-                    ? "border-amber-200"
-                    : "border-purple-50"
-                }`}
+                className={`bg-white p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all group
+                  ${e.payment_status === "overdue"  ? "border-red-200"   : ""}
+                  ${e.payment_status === "due_soon" ? "border-amber-200" : ""}
+                  ${e.payment_status !== "overdue" && e.payment_status !== "due_soon" ? "border-purple-50" : ""}
+                `}
               >
-                {/* Card header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 font-black text-lg">
                     {(e.kid_name ?? "U")[0]}
@@ -426,13 +414,11 @@ const ParentEnrollments = () => {
                   <StatusBadge status={e.status} />
                 </div>
 
-                {/* Course & student */}
                 <h3 className="text-lg font-black text-purple-900 mb-1">{e.course_name}</h3>
                 <p className="text-sm text-gray-500 mb-4 flex items-center gap-1">
                   <User size={14} className="text-purple-300" /> {e.kid_name}
                 </p>
 
-                {/* Billing info */}
                 <div className="space-y-2 border-t border-purple-50 pt-4">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400 flex items-center gap-1">
@@ -443,7 +429,6 @@ const ParentEnrollments = () => {
                     </span>
                   </div>
 
-                  {/* Last payment date */}
                   {e.last_payment_date && (
                     <div className="flex justify-between text-xs text-gray-400">
                       <span>Last paid</span>
@@ -451,14 +436,12 @@ const ParentEnrollments = () => {
                     </div>
                   )}
 
-                  {/* Pending M-Pesa confirmation */}
                   {e.status === "pending" && (
                     <div className="mt-3 p-3 bg-amber-50 rounded-xl flex items-center gap-2 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
                       <CheckCircle2 size={14} /> Waiting for M-Pesa Confirmation
                     </div>
                   )}
 
-                  {/* Payment status banner */}
                   {e.status !== "pending" && e.status !== "cancelled" && (
                     <PaymentStatusBanner
                       payment_status={e.payment_status}

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { getMyKids } from "../../store/slices/kidSlice";
 import { getMyEnrollments } from "../../store/slices/enrollmentSlice";
-import { Star, Plus, Edit, CheckCircle, XCircle, Clock, Sparkles, Heart, MessageCircle, AlertCircle, X } from "lucide-react";
+import { Star, Plus, Edit, CheckCircle, XCircle, Clock, Sparkles, MessageCircle, AlertCircle, X } from "lucide-react";
 import { testimonialService } from "../../components/service/testimonialService";
 import toast from "react-hot-toast";
 import type { Testimonial } from "../../interfaces/testimonial.interface";
@@ -197,8 +197,8 @@ const ParentTestimonials = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-black text-purple-900">My Testimonials</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-3xl font-black font-serif text-purple-900">My Testimonials</h1>
+            <p className="text-gray-500 font-serif mt-1">
               Share your experience and help other parents make informed decisions
             </p>
           </div>
@@ -209,38 +209,6 @@ const ParentTestimonials = () => {
             <Plus size={18} />
             Write a Testimonial
           </button>
-        </div>
-
-        {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md border border-purple-100">
-            <MessageCircle size={20} className="text-purple-600 mx-auto mb-2" />
-            <div className="text-2xl font-black text-gray-800">{testimonials.length}</div>
-            <div className="text-xs text-gray-500">Total Submitted</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md border border-purple-100">
-            <CheckCircle size={20} className="text-green-600 mx-auto mb-2" />
-            <div className="text-2xl font-black text-gray-800">
-              {testimonials.filter((t) => t.status === "approved").length}
-            </div>
-            <div className="text-xs text-gray-500">Approved</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md border border-purple-100">
-            <Clock size={20} className="text-yellow-600 mx-auto mb-2" />
-            <div className="text-2xl font-black text-gray-800">
-              {testimonials.filter((t) => t.status === "pending").length}
-            </div>
-            <div className="text-xs text-gray-500">Pending Review</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 text-center shadow-md border border-purple-100">
-            <Heart size={20} className="text-red-500 mx-auto mb-2" />
-            <div className="text-2xl font-black text-gray-800">
-              {testimonials.length > 0
-                ? (testimonials.reduce((acc, t) => acc + t.rating, 0) / testimonials.length).toFixed(1)
-                : "0"}
-            </div>
-            <div className="text-xs text-gray-500">Average Rating</div>
-          </div>
         </div>
 
         {/* Testimonials List */}
@@ -299,7 +267,7 @@ const ParentTestimonials = () => {
                 )}
 
                 <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                  "{testimonial.content}"
+                  {testimonial.content}
                 </p>
 
                 {testimonial.achievement && (
@@ -345,10 +313,10 @@ const ParentTestimonials = () => {
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-purple-100 px-6 py-4 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-bold text-gray-800">
+                <h2 className="text-xl font-serif font-bold text-gray-800">
                   {editingTestimonial ? "Edit Testimonial" : "Share Your Experience"}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm font-serif text-gray-500">
                   Help other parents discover the magic of coding!
                 </p>
               </div>
@@ -511,7 +479,7 @@ const ParentTestimonials = () => {
               </div>
 
               {/* Review Note */}
-              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
+              <div className="p-3 bg-purple-50 font-serif rounded-xl border border-purple-100">
                 <p className="text-xs text-purple-600">
                   <Sparkles size={10} className="inline mr-1" />
                   All testimonials are reviewed by our team before being published to ensure quality
@@ -523,7 +491,7 @@ const ParentTestimonials = () => {
             <div className="sticky bottom-0 bg-white border-t border-purple-100 px-6 py-4 flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition"
+                className="flex-1 px-4 font-serif py-2 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition"
               >
                 Cancel
               </button>

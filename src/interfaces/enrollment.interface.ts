@@ -30,7 +30,7 @@ export interface EnrollmentState {
 // POST /enrollments — request body
 export interface EnrollKidPayload {
   kid_id: string;
-  course_name: string;
+  course_id: string;
   fee_amount: number;
   billing_cycle: 'monthly' | 'termly' | 'once-off'; // ← was 'yearly'
   start_date?: string;

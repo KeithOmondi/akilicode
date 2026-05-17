@@ -26,7 +26,7 @@ interface SidebarContentProps {
 
 const navItems = [
   { path: "/kid/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} />, color: "purple" },
-  { path: "/kid/my-courses", label: "My Courses", icon: <BookOpen size={18} />, color: "blue" },
+  { path: "/kid/my-courses", label: "My Learning", icon: <BookOpen size={18} />, color: "blue" },
   { path: "/kid/playground", label: "Code Playground", icon: <Code2 size={18} />, color: "orange" },
   { path: "/kid/games", label: "Coding Games", icon: <Gamepad2 size={18} />, color: "green" },
   { path: "/kid/achievements", label: "Achievements", icon: <Trophy size={18} />, color: "yellow" },

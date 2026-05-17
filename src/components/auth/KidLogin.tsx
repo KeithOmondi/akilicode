@@ -18,18 +18,17 @@ const KidLogin = () => {
 
   // ── Success Navigation & Message ─────────────────────────────────────
   useEffect(() => {
-    if (currentKid) {
-      // The slice now provides a custom "Welcome back, {name}" message
-      // We display it and then navigate.
-      if (message) {
-        toast.success(message);
-        dispatch(resetKidState());
-      }
-      
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
-      navigate(from || "/kid/dashboard", { replace: true });
-    }
-  }, [currentKid, message, navigate, location.state, dispatch]);
+  console.log("👀 [KidLogin] useEffect:", { currentKid: !!currentKid, message });
+
+  if (currentKid) {
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+    console.log("➡️ [KidLogin] navigating to:", from || "/kid/dashboard");
+
+    if (message) toast.success(message);
+    navigate(from || "/kid/dashboard", { replace: true });
+    dispatch(resetKidState());
+  }
+}, [currentKid, message, navigate, location.state, dispatch]);
 
   // ── Error Handling ───────────────────────────────────────────────────
   useEffect(() => {
@@ -49,6 +48,7 @@ const KidLogin = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("📤 [KidLogin] handleSubmit fired", { username, pin });
     
     // UI Validation before dispatching
     if (username.length < 3) {
@@ -61,6 +61,7 @@ const KidLogin = () => {
     }
     
     dispatch(kidLogin({ username, pin }));
+      console.log("📤 [KidLogin] dispatch called");
   };
 
   return (

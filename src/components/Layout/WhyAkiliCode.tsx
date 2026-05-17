@@ -183,7 +183,7 @@ const WhyAkiliCode = () => {
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-black mb-4">
-            <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r font-serif from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent">
               Why Choose AkiliCode?
             </span>
           </h2>

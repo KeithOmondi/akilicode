@@ -1,27 +1,18 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { X, Wallet, CreditCard, BookOpen } from "lucide-react";
 import {
   getMyPayments,
   getReceipt,
-  initiateStkPush,
   resetPaymentState,
   clearReceipt,
   clearCheckoutRequest,
 } from "../../store/slices/paymentSlice";
 import { getMyEnrollments } from "../../store/slices/enrollmentSlice";
 import type { AppDispatch, RootState } from "../../store/store";
-import type { StkPushPayload } from "../../interfaces/payment.interface";
-import { Link, useLocation } from "react-router-dom";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type StatusFilter = "All" | "pending" | "completed" | "failed";
-interface MpesaFormState {
-  enrollment_id: string;
-  amount: string;
-  phone: string;
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const getInitials = (name: string) => {
@@ -63,89 +54,6 @@ const ModalOverlay = ({
     </div>
   </div>
 );
-
-// ─── M-Pesa Pay Modal ─────────────────────────────────────────────────────────
-interface PayModalProps {
-  onClose: () => void;
-  enrollments: RootState["enrollment"]["enrollments"];
-  loading: boolean;
-  onSubmit: (data: StkPushPayload) => void;
-}
-
-const PayModal = ({ onClose, enrollments, loading, onSubmit }: PayModalProps) => {
-  const [form, setForm] = useState<MpesaFormState>({ enrollment_id: "", amount: "", phone: "" });
-  const set = <K extends keyof MpesaFormState>(key: K, val: MpesaFormState[K]) =>
-    setForm((f) => ({ ...f, [key]: val }));
-
-  const handleEnrollmentChange = (id: string) => {
-    const found = enrollments.find((e) => e.id === id);
-    set("enrollment_id", id);
-    if (found) set("amount", String(found.fee_amount));
-  };
-
-  const canSubmit = !!form.enrollment_id && !!form.amount && Number(form.amount) > 0 && !!form.phone;
-  const inputCls = "w-full px-4 py-3 rounded-xl border-2 border-transparent bg-purple-50/50 text-sm focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 focus:bg-white transition-all font-medium text-gray-800 placeholder:text-gray-400";
-  const labelCls = "block text-[11px] font-black text-purple-900 uppercase tracking-wider mb-1.5";
-
-  return (
-    <ModalOverlay onClose={onClose}>
-      <div className="px-6 py-5 border-b border-purple-50 flex items-center justify-between bg-gradient-to-r from-purple-700 to-purple-800">
-        <div>
-          <h2 className="text-lg font-black text-white">M-Pesa Payment</h2>
-          <p className="text-xs text-purple-200 mt-0.5">Lipa na M-Pesa Online</p>
-        </div>
-        <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
-        <div>
-          <label className={labelCls}>Enrollment</label>
-          <select value={form.enrollment_id} onChange={(e) => handleEnrollmentChange(e.target.value)} className={inputCls}>
-            <option value="">Choose student...</option>
-            {enrollments.filter((e) => e.status === "active").map((e) => (
-              <option key={e.id} value={e.id}>{e.kid_name} — {e.course_name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Amount (KES)</label>
-            <input type="number" placeholder="0" value={form.amount} onChange={(e) => set("amount", e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Phone No.</label>
-            <input type="tel" placeholder="2547XXXXXXXX" value={form.phone} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
-          </div>
-        </div>
-
-        <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex items-start gap-3">
-          <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center shrink-0 mt-0.5">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M20 6L9 17l-5-5"/></svg>
-          </div>
-          <p className="text-[11px] text-orange-800 leading-relaxed font-medium">
-            Keep your phone unlocked. You will receive a prompt to enter your M-Pesa PIN.
-          </p>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-all text-sm border-2 border-gray-100">
-            Cancel
-          </button>
-          <button
-            onClick={() => canSubmit && onSubmit({ enrollment_id: form.enrollment_id, phone: form.phone, amount: Number(form.amount) })}
-            disabled={loading || !canSubmit}
-            className="flex-1 py-3 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-sm shadow-lg shadow-purple-200 transition-all"
-          >
-            {loading ? "Waiting for M-Pesa..." : "Send STK Push"}
-          </button>
-        </div>
-      </div>
-    </ModalOverlay>
-  );
-};
 
 // ─── Receipt Modal ────────────────────────────────────────────────────────────
 interface ReceiptModalProps {
@@ -194,137 +102,12 @@ const ReceiptModal = ({ onClose, receipt }: ReceiptModalProps) => (
   </ModalOverlay>
 );
 
-// ─── Sub Navigation Component ────────────────────────────────────────────────
-const SubNavigation = () => {
-  const location = useLocation();
-  const [isSticky, setIsSticky] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsSticky(!entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
-
-  const navLinks = [
-    { path: "/parent/enrollments", label: "Enrollments", icon: <BookOpen size={16} /> },
-    { path: "/parent/payments", label: "Payments", icon: <CreditCard size={16} /> },
-  ];
-
-  const isActive = (path: string) => location.pathname === path;
-
-  return (
-    <>
-      {/* Sentinel for detecting scroll position */}
-      <div ref={sentinelRef} className="h-0" />
-
-      <div
-        ref={navRef}
-        className={`
-          bg-white border-b border-purple-100 transition-all duration-300 z-45
-          ${isSticky 
-            ? "fixed top-0 left-0 right-0 shadow-md animate-in slide-in-from-top duration-300" 
-            : "relative"
-          }
-        `}
-        style={{ top: isSticky ? "0px" : "auto" }}
-      >
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`
-                  flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all relative group
-                  ${isActive(link.path)
-                    ? "text-purple-700"
-                    : "text-gray-500 hover:text-purple-600"
-                  }
-                `}
-              >
-                {link.icon}
-                <span>{link.label}</span>
-                {isActive(link.path) && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-orange-500 rounded-full" />
-                )}
-                {!isActive(link.path) && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-600 to-orange-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                )}
-              </Link>
-            ))}
-          </div>
-
-          {/* Mobile Navigation - Dropdown */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="w-full flex items-center justify-between py-3 px-2 text-sm font-bold text-gray-700"
-            >
-              <div className="flex items-center gap-2">
-                {isActive("/parent/enrollments") ? <BookOpen size={16} className="text-purple-600" /> : <CreditCard size={16} className="text-purple-600" />}
-                <span>{isActive("/parent/enrollments") ? "Enrollments" : "Payments"}</span>
-              </div>
-              <svg
-                className={`w-4 h-4 transition-transform ${isMobileMenuOpen ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isMobileMenuOpen && (
-              <div className="pb-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`
-                      flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all
-                      ${isActive(link.path)
-                        ? "bg-purple-50 text-purple-700"
-                        : "text-gray-600 hover:bg-gray-50"
-                      }
-                    `}
-                  >
-                    {link.icon}
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Spacer to prevent content jump when sticky */}
-      {isSticky && <div className="h-14 md:h-16" />}
-    </>
-  );
-};
-
 // ─── Main Page Component ─────────────────────────────────────────────────────
 const ParentPayments = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { payments, receipt, loading: payLoading, error, message } = useSelector((s: RootState) => s.payment);
-  const { enrollments } = useSelector((s: RootState) => s.enrollment);
+  //const { enrollments } = useSelector((s: RootState) => s.enrollment);
 
-  const [showPayModal, setShowPayModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -350,10 +133,6 @@ const ParentPayments = () => {
       dispatch(resetPaymentState());
     }
   }, [error, message, dispatch]);
-
-  const handlePay = (data: StkPushPayload) => {
-    dispatch(initiateStkPush(data)).then(() => setShowPayModal(false));
-  };
 
   const handleFetchReceipt = (id: string) => {
     toast.promise(dispatch(getReceipt(id)).unwrap(), {
@@ -383,9 +162,6 @@ const ParentPayments = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFCFE] pb-20">
-      {/* Sub Navigation */}
-      <SubNavigation />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -397,13 +173,6 @@ const ParentPayments = () => {
               Track all your transactions and download receipts.
             </p>
           </div>
-          <button
-            onClick={() => setShowPayModal(true)}
-            className="flex items-center justify-center gap-2 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-6 rounded-full shadow-lg shadow-purple-200 transition-all hover:scale-105 text-sm whitespace-nowrap self-start sm:self-auto"
-          >
-            <Wallet size={18} />
-            Pay with M-Pesa
-          </button>
         </div>
 
         {/* Filters */}
@@ -548,15 +317,7 @@ const ParentPayments = () => {
         </div>
       </div>
 
-      {/* Modals */}
-      {showPayModal && (
-        <PayModal
-          onClose={() => setShowPayModal(false)}
-          enrollments={enrollments}
-          loading={payLoading}
-          onSubmit={handlePay}
-        />
-      )}
+      {/* Receipt Modal */}
       {receipt && (
         <ReceiptModal
           onClose={() => { dispatch(clearReceipt()); dispatch(resetPaymentState()); }}

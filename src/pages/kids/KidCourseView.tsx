@@ -9,20 +9,8 @@ import {
   clearCurrentCourse,
 } from "../../store/slices/kidLearningSlice";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Code2,
-  CheckCircle,
-  Circle,
-  Star,
-  Trophy,
-  Clock,
-  BookOpen,
-  Send,
-  Loader2,
-  Menu,
-  X,
-  AlertCircle,
+  ChevronLeft, ChevronRight, Code2, CheckCircle, Circle,
+  Star, Trophy, Clock, BookOpen, Send, Loader2, Menu, X, AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Lesson, ModuleWithLessons } from "../../interfaces/kidLearning.interface";
@@ -31,51 +19,39 @@ const DEFAULT_CODE = "# Write your code here\nprint('Hello, World!')";
 
 const KidCourseView = () => {
   const { enrollmentId } = useParams<{ enrollmentId: string }>();
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const navigate          = useNavigate();
+  const dispatch          = useAppDispatch();
 
   const { currentKid } = useAppSelector((state) => state.kid);
-
   const {
-    courses,
-    currentCourse,
-    currentLesson,
-    dashboardStats,
-    loading,
-    submitting,
-    error,
+    courses, currentCourse, currentLesson,
+    dashboardStats, loading, submitting, error,
   } = useAppSelector((state) => state.kidLearning);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [code, setCode] = useState(DEFAULT_CODE);
-  const [output, setOutput] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
+  const [sidebarOpen,    setSidebarOpen]    = useState(false);
+  const [code,           setCode]           = useState(DEFAULT_CODE);
+  const [output,         setOutput]         = useState("");
+  const [isRunning,      setIsRunning]      = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   // 1. Auth guard
   useEffect(() => {
-    if (!currentKid) {
-      navigate("/kid/login");
-    }
+    if (!currentKid) navigate("/kid/login");
   }, [currentKid, navigate]);
 
-  // 2. Fetch all enrolled courses so the sidebar / course list stays up-to-date.
-  //    This mirrors what KidDashboard does and ensures `courses` in the store
-  //    is always populated when a child lands on this view.
+  // 2. Fetch all enrolled courses for sidebar
   useEffect(() => {
     dispatch(getMyCourses());
   }, [dispatch]);
 
-  // 3. Fetch the specific course content for this enrollment
+  // 3. Fetch course content for this enrollment
   useEffect(() => {
     if (!enrollmentId) return;
     dispatch(getCourseContent(enrollmentId));
-    return () => {
-      dispatch(clearCurrentCourse());
-    };
+    return () => { dispatch(clearCurrentCourse()); };
   }, [enrollmentId, dispatch]);
 
-  // 4. Fetch full lesson detail when a lesson is selected from the sidebar
+  // 4. Fetch full lesson detail when selected
   useEffect(() => {
     if (selectedLesson && enrollmentId) {
       dispatch(getLesson({ enrollmentId, lessonId: selectedLesson.id }));
@@ -133,17 +109,14 @@ const KidCourseView = () => {
     return idx > 0 ? allLessons[idx - 1] : null;
   }, [allLessons, currentLesson?.id]);
 
-  const completedCount = useMemo(
-    () => allLessons.filter((l: Lesson) => l.completed).length,
-    [allLessons]
-  );
+  const completedCount  = useMemo(() => allLessons.filter((l: Lesson) => l.completed).length, [allLessons]);
   const progressPercent = allLessons.length > 0 ? (completedCount / allLessons.length) * 100 : 0;
 
-  const kidPoints = dashboardStats?.stats.total_points ?? 0;
-  const kidLevel  = dashboardStats?.stats.level ?? 1;
+  const kidPoints  = dashboardStats?.stats.total_points ?? 0;
+  const kidLevel   = dashboardStats?.stats.level ?? 1;
   const courseName = currentCourse?.course_name ?? "";
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
+  // ── States ───────────────────────────────────────────────────────────────────
   if (loading && !currentCourse) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-orange-50">
@@ -155,7 +128,6 @@ const KidCourseView = () => {
     );
   }
 
-  // ── API error ────────────────────────────────────────────────────────────────
   if (error && !currentCourse) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-orange-50">
@@ -163,15 +135,12 @@ const KidCourseView = () => {
           <AlertCircle size={48} className="mx-auto text-orange-300 mb-4" />
           <h2 className="text-xl font-bold text-gray-800 mb-2">Course unavailable</h2>
           <p className="text-gray-500 mb-4">{error}</p>
-          <Link to="/kid/dashboard" className="text-purple-600 hover:underline">
-            ← Back to Dashboard
-          </Link>
+          <Link to="/kid/dashboard" className="text-purple-600 hover:underline">← Back to Dashboard</Link>
         </div>
       </div>
     );
   }
 
-  // ── Content missing after a successful fetch ─────────────────────────────────
   if (!currentCourse) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-orange-50">
@@ -179,9 +148,7 @@ const KidCourseView = () => {
           <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
           <h2 className="text-xl font-bold text-gray-800 mb-2">Course not found</h2>
           <p className="text-gray-500 mb-4">The course content could not be loaded.</p>
-          <Link to="/kid/dashboard" className="text-purple-600 hover:underline">
-            ← Back to Dashboard
-          </Link>
+          <Link to="/kid/dashboard" className="text-purple-600 hover:underline">← Back to Dashboard</Link>
         </div>
       </div>
     );
@@ -209,7 +176,6 @@ const KidCourseView = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Enrolled course count badge — powered by getMyCourses */}
             {courses.length > 0 && (
               <div className="hidden md:flex items-center gap-1 text-xs text-gray-500 bg-purple-50 px-2 py-1 rounded-full">
                 <BookOpen size={12} className="text-purple-400" />
@@ -238,13 +204,11 @@ const KidCourseView = () => {
 
       <div className="flex h-[calc(100vh-57px)]">
         {/* Sidebar */}
-        <aside
-          className={`
-            fixed lg:relative inset-y-0 left-0 z-30 w-80 bg-white border-r border-purple-100
-            transform transition-transform duration-300 ease-in-out overflow-y-auto
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-          `}
-        >
+        <aside className={`
+          fixed lg:relative inset-y-0 left-0 z-30 w-80 bg-white border-r border-purple-100
+          transform transition-transform duration-300 ease-in-out overflow-y-auto
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}>
           <div className="p-4 border-b border-purple-100 sticky top-0 bg-white">
             <h2 className="font-bold text-gray-800">Course Content</h2>
             <div className="flex items-center gap-2 mt-2">
@@ -261,27 +225,22 @@ const KidCourseView = () => {
           <div className="p-3">
             {currentCourse.modules?.map((module: ModuleWithLessons) => (
               <div key={module.id} className="mb-4">
-                <div className="font-semibold text-gray-700 text-sm mb-2 px-2">
-                  {module.title}
-                </div>
+                <div className="font-semibold text-gray-700 text-sm mb-2 px-2">{module.title}</div>
                 <div className="space-y-1">
                   {module.lessons?.map((lesson: Lesson) => (
                     <button
                       key={lesson.id}
                       onClick={() => handleSelectLesson(lesson)}
-                      className={`
-                        w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2
                         ${selectedLesson?.id === lesson.id
                           ? "bg-gradient-to-r from-purple-50 to-orange-50 text-purple-700"
                           : "hover:bg-gray-50 text-gray-600"
-                        }
-                      `}
+                        }`}
                     >
-                      {lesson.completed ? (
-                        <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
-                      ) : (
-                        <Circle size={16} className="text-gray-300 flex-shrink-0" />
-                      )}
+                      {lesson.completed
+                        ? <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
+                        : <Circle size={16} className="text-gray-300 flex-shrink-0" />
+                      }
                       <span className="text-sm flex-1">{lesson.title}</span>
                       {lesson.completed && <Star size={12} className="text-yellow-500" />}
                     </button>
@@ -291,7 +250,7 @@ const KidCourseView = () => {
             ))}
           </div>
 
-          {/* Other enrolled courses — powered by getMyCourses */}
+          {/* Other enrolled courses */}
           {courses.length > 1 && (
             <div className="p-3 border-t border-purple-50 mt-2">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-2 mb-2">
@@ -303,7 +262,7 @@ const KidCourseView = () => {
                   .map((c) => (
                     <Link
                       key={c.enrollment_id}
-                      to={`/kid/courses/${c.enrollment_id}`}
+                      to={`/kid/course/${c.enrollment_id}`}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-500 text-sm transition"
                     >
                       <BookOpen size={14} className="text-purple-300 flex-shrink-0" />
@@ -321,12 +280,8 @@ const KidCourseView = () => {
             <div className="flex flex-col items-center justify-center h-full p-8">
               <div className="text-center max-w-md">
                 <BookOpen size={64} className="mx-auto text-purple-200 mb-4" />
-                <h2 className="text-xl font-bold text-gray-800 mb-2">
-                  Welcome to {courseName}!
-                </h2>
-                <p className="text-gray-500 mb-4">
-                  Select a lesson from the sidebar to start learning.
-                </p>
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to {courseName}!</h2>
+                <p className="text-gray-500 mb-4">Select a lesson from the sidebar to start learning.</p>
                 {currentCourse.modules?.[0]?.lessons?.[0] && (
                   <button
                     onClick={() => handleSelectLesson(currentCourse.modules[0].lessons[0])}
@@ -390,18 +345,13 @@ const KidCourseView = () => {
                       disabled={submitting || currentLesson.completed}
                       className="px-3 py-1 text-sm bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white rounded-lg transition flex items-center gap-1 disabled:opacity-50"
                     >
-                      {submitting ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        <>
-                          <Send size={12} />
-                          Submit
-                        </>
-                      )}
+                      {submitting
+                        ? <Loader2 size={14} className="animate-spin" />
+                        : <><Send size={12} /> Submit</>
+                      }
                     </button>
                   </div>
                 </div>
-
                 <textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
@@ -417,13 +367,10 @@ const KidCourseView = () => {
                 <div className="bg-gray-800 rounded-xl overflow-hidden mb-6">
                   <div className="px-4 py-2 bg-gray-700 border-b border-gray-600">
                     <span className="text-sm text-gray-300 flex items-center gap-2">
-                      <Clock size={14} />
-                      Output
+                      <Clock size={14} /> Output
                     </span>
                   </div>
-                  <pre className="text-gray-300 font-mono text-sm p-4 whitespace-pre-wrap">
-                    {output}
-                  </pre>
+                  <pre className="text-gray-300 font-mono text-sm p-4 whitespace-pre-wrap">{output}</pre>
                 </div>
               )}
 
@@ -434,8 +381,7 @@ const KidCourseView = () => {
                   disabled={!prevLesson}
                   className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition"
                 >
-                  <ChevronLeft size={16} />
-                  Previous Lesson
+                  <ChevronLeft size={16} /> Previous Lesson
                 </button>
 
                 {!currentLesson.completed && (
@@ -444,14 +390,10 @@ const KidCourseView = () => {
                     disabled={submitting}
                     className="px-6 py-2 bg-gradient-to-r from-purple-600 to-orange-500 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-orange-600 transition flex items-center gap-2"
                   >
-                    {submitting ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <>
-                        <Send size={16} />
-                        Submit & Continue
-                      </>
-                    )}
+                    {submitting
+                      ? <Loader2 size={16} className="animate-spin" />
+                      : <><Send size={16} /> Submit & Continue</>
+                    }
                   </button>
                 )}
 
@@ -460,8 +402,7 @@ const KidCourseView = () => {
                     onClick={() => handleSelectLesson(nextLesson)}
                     className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
                   >
-                    Next Lesson
-                    <ChevronRight size={16} />
+                    Next Lesson <ChevronRight size={16} />
                   </button>
                 )}
               </div>

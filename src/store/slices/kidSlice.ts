@@ -150,6 +150,7 @@ export const updateKidLogin = createAsyncThunk<
 export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
   "kid/kidLogin",
   async (data, thunkAPI) => {
+    console.log("📡 [kidLogin thunk] called with:", data);
     try {
       const res = await api.post<{ accessToken: string } & KidResponse>(
         "/kids/login",
@@ -159,12 +160,16 @@ export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
       const { accessToken } = res.data;
       const { kid } = res.data.data;
 
+      console.log("✅ [kidLogin] API response:", { kid, hasToken: !!accessToken });
+
       if (accessToken) {
         // 1. Persist for page refreshes
-        localStorage.setItem("accessToken", accessToken);
-        // 2. Set in memory for immediate API calls
-        setAccessToken(accessToken);
+        // kidLogin thunk
+localStorage.setItem("kid_accessToken", accessToken); // 👈 was "accessToken"
+setAccessToken(accessToken);
+  console.log("✅ [kidLogin] token saved. Verify:", localStorage.getItem("kid_accessToken") ? "SAVED" : "FAILED");
       }
+      
 
       return kid;
     } catch (err) {
@@ -196,7 +201,7 @@ const kidSlice = createSlice({
     logoutKid: (state) => {
       state.currentKid = null;
       state.kids = [];
-      localStorage.removeItem("accessToken");
+      localStorage.removeItem("kid_accessToken");
       setAccessToken(null); // Clear in-memory token on logout
     },
   },
@@ -285,7 +290,7 @@ const kidSlice = createSlice({
           if (action.type.includes("getKidMe")) {
             state.currentKid = null;
             // Clear tokens if session restore fails
-            localStorage.removeItem("accessToken");
+            localStorage.removeItem("kid_accessToken");
             setAccessToken(null);
           }
         }
