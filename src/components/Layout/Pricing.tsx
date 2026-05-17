@@ -100,7 +100,7 @@ const CheckoutModal = ({ plan, onClose }: CheckoutModalProps) => {
       // 1. Create enrollment
       const enrollment = await dispatch(enrollKid({
         kid_id:        selectedKidId,
-        course_name:   plan.name,
+        course_id:   plan.name,
         fee_amount:    finalPrice,
         billing_cycle: billingCycle,
       })).unwrap();
