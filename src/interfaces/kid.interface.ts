@@ -11,6 +11,22 @@ export interface IKid {
   created_at: Date;
 }
 
+
+// src/interfaces/kidLearning.interface.ts
+export interface Lesson {
+  id: string;
+  title: string;
+  lesson_type: 'notes' | 'coding' | 'scratch';
+  notes?: string;
+  assignment?: string | null;   // ✨ add this
+  language?: string;
+  starter_code?: string;
+  order_index: number;
+  completed: boolean;
+  points_earned: number;
+}
+
+
 export interface KidState {
   kids: IKid[];
   currentKid: IKid | null;

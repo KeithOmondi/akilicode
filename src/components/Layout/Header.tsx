@@ -5,6 +5,7 @@ import { FaFacebook, FaLinkedin, FaTwitter } from "react-icons/fa";
 const NAV_LINKS = [
   { label: "What We Offer", href: "/#offer" },
   { label: "How It Works", href: "/#how" },
+  { label: "About AkiliCode", href: "/#about" },
   { label: "Pricing", href: "/#pricing" },
   { label: "FAQ", href: "/#faq" },
   { label: "Blog", href: "/blog" },

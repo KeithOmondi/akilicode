@@ -11,7 +11,6 @@ import {
   Settings,
   Sparkles,
   Rocket,
-  Code2
 } from "lucide-react";
 
 interface KidsSidebarProps {
@@ -25,32 +24,115 @@ interface SidebarContentProps {
 }
 
 const navItems = [
-  { path: "/kid/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} />, color: "purple" },
-  { path: "/kid/my-courses", label: "My Learning", icon: <BookOpen size={18} />, color: "blue" },
-  { path: "/kid/playground", label: "Code Playground", icon: <Code2 size={18} />, color: "orange" },
-  { path: "/kid/games", label: "Coding Games", icon: <Gamepad2 size={18} />, color: "green" },
-  { path: "/kid/achievements", label: "Achievements", icon: <Trophy size={18} />, color: "yellow" },
-  { path: "/kid/leaderboard", label: "Leaderboard", icon: <Users size={18} />, color: "pink" },
-  { path: "/kid/badges", label: "My Badges", icon: <Award size={18} />, color: "indigo" },
-  { path: "/kid/calendar", label: "Learning Calendar", icon: <Calendar size={18} />, color: "teal" },
+  {
+    path: "/kid/dashboard",
+    label: "Dashboard",
+    icon: <LayoutDashboard size={18} />,
+    color: "purple",
+  },
+  {
+    path: "/kid/my-courses",
+    label: "My Learning",
+    icon: <BookOpen size={18} />,
+    color: "blue",
+  },
+  {
+    path: "/kid/games",
+    label: "Coding Games",
+    icon: <Gamepad2 size={18} />,
+    color: "green",
+  },
+  {
+    path: "/kid/achievements",
+    label: "Achievements",
+    icon: <Trophy size={18} />,
+    color: "yellow",
+  },
+  {
+    path: "/kid/leaderboard",
+    label: "Leaderboard",
+    icon: <Users size={18} />,
+    color: "pink",
+  },
+  {
+    path: "/kid/badges",
+    label: "My Badges",
+    icon: <Award size={18} />,
+    color: "indigo",
+  },
+  {
+    path: "/kid/calendar",
+    label: "Learning Calendar",
+    icon: <Calendar size={18} />,
+    color: "teal",
+  },
 ];
 
 const bottomNavItems = [
-  { path: "/kid/help", label: "Help & Tips", icon: <HelpCircle size={18} />, color: "gray" },
-  { path: "/kid/settings", label: "Settings", icon: <Settings size={18} />, color: "gray" },
+  {
+    path: "/kid/help",
+    label: "Help & Tips",
+    icon: <HelpCircle size={18} />,
+    color: "gray",
+  },
+  {
+    path: "/kid/settings",
+    label: "Settings",
+    icon: <Settings size={18} />,
+    color: "gray",
+  },
 ];
 
 const getColorClass = (color: string, isActive: boolean) => {
-  const colors: Record<string, { active: string; inactive: string; bg: string }> = {
-    purple: { active: "text-purple-700", inactive: "text-gray-500", bg: "bg-purple-50" },
-    blue: { active: "text-blue-700", inactive: "text-gray-500", bg: "bg-blue-50" },
-    orange: { active: "text-orange-600", inactive: "text-gray-500", bg: "bg-orange-50" },
-    green: { active: "text-green-700", inactive: "text-gray-500", bg: "bg-green-50" },
-    yellow: { active: "text-yellow-700", inactive: "text-gray-500", bg: "bg-yellow-50" },
-    pink: { active: "text-pink-600", inactive: "text-gray-500", bg: "bg-pink-50" },
-    indigo: { active: "text-indigo-700", inactive: "text-gray-500", bg: "bg-indigo-50" },
-    teal: { active: "text-teal-700", inactive: "text-gray-500", bg: "bg-teal-50" },
-    gray: { active: "text-gray-700", inactive: "text-gray-500", bg: "bg-gray-50" },
+  const colors: Record<
+    string,
+    { active: string; inactive: string; bg: string }
+  > = {
+    purple: {
+      active: "text-purple-700",
+      inactive: "text-gray-500",
+      bg: "bg-purple-50",
+    },
+    blue: {
+      active: "text-blue-700",
+      inactive: "text-gray-500",
+      bg: "bg-blue-50",
+    },
+    orange: {
+      active: "text-orange-600",
+      inactive: "text-gray-500",
+      bg: "bg-orange-50",
+    },
+    green: {
+      active: "text-green-700",
+      inactive: "text-gray-500",
+      bg: "bg-green-50",
+    },
+    yellow: {
+      active: "text-yellow-700",
+      inactive: "text-gray-500",
+      bg: "bg-yellow-50",
+    },
+    pink: {
+      active: "text-pink-600",
+      inactive: "text-gray-500",
+      bg: "bg-pink-50",
+    },
+    indigo: {
+      active: "text-indigo-700",
+      inactive: "text-gray-500",
+      bg: "bg-indigo-50",
+    },
+    teal: {
+      active: "text-teal-700",
+      inactive: "text-gray-500",
+      bg: "bg-teal-50",
+    },
+    gray: {
+      active: "text-gray-700",
+      inactive: "text-gray-500",
+      bg: "bg-gray-50",
+    },
   };
   const c = colors[color] || colors.purple;
   return isActive ? c.active : c.inactive;
@@ -83,7 +165,10 @@ const SidebarContent = ({ onClose }: SidebarContentProps) => (
             key={day}
             className="flex-1 h-1.5 bg-white rounded-full overflow-hidden"
           >
-            <div className="h-full bg-gradient-to-r from-purple-500 to-orange-500 rounded-full" style={{ width: day <= 5 ? "100%" : "0%" }} />
+            <div
+              className="h-full bg-gradient-to-r from-purple-500 to-orange-500 rounded-full"
+              style={{ width: day <= 5 ? "100%" : "0%" }}
+            />
           </div>
         ))}
       </div>
@@ -109,7 +194,9 @@ const SidebarContent = ({ onClose }: SidebarContentProps) => (
               <span className={getColorClass(item.color, isActive)}>
                 {item.icon}
               </span>
-              <span className={`text-sm font-medium ${isActive ? "text-gray-800" : "text-gray-600"}`}>
+              <span
+                className={`text-sm font-medium ${isActive ? "text-gray-800" : "text-gray-600"}`}
+              >
                 {item.label}
               </span>
               {isActive && (
@@ -130,9 +217,7 @@ const SidebarContent = ({ onClose }: SidebarContentProps) => (
           onClick={onClose}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 ${
-              isActive
-                ? "bg-gray-100"
-                : "hover:bg-gray-50"
+              isActive ? "bg-gray-100" : "hover:bg-gray-50"
             }`
           }
         >
@@ -141,7 +226,9 @@ const SidebarContent = ({ onClose }: SidebarContentProps) => (
               <span className={getColorClass(item.color, isActive)}>
                 {item.icon}
               </span>
-              <span className={`text-sm font-medium ${isActive ? "text-gray-800" : "text-gray-600"}`}>
+              <span
+                className={`text-sm font-medium ${isActive ? "text-gray-800" : "text-gray-600"}`}
+              >
                 {item.label}
               </span>
             </>
@@ -154,7 +241,9 @@ const SidebarContent = ({ onClose }: SidebarContentProps) => (
     <div className="m-3 p-3 bg-purple-50 rounded-xl">
       <div className="flex items-center gap-2 mb-1">
         <Sparkles size={12} className="text-orange-500" />
-        <span className="text-[10px] font-bold text-purple-700">Did you know?</span>
+        <span className="text-[10px] font-bold text-purple-700">
+          Did you know?
+        </span>
       </div>
       <p className="text-[10px] text-gray-600 leading-relaxed">
         Coding helps you think better and solve problems faster! 🧠💡
@@ -186,7 +275,7 @@ const KidsSidebar = ({ isOpen, onClose }: KidsSidebarProps) => {
           }`}
           onClick={onClose}
         />
-        
+
         {/* Sidebar Panel */}
         <div
           className={`absolute left-0 top-0 bottom-0 w-80 bg-white shadow-2xl transition-transform duration-300 transform ${

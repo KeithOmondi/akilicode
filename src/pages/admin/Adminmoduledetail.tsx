@@ -78,7 +78,7 @@ const LanguageBadge = ({ language }: { language?: LessonLanguage }) => {
   if (!language)
     return (
       <span className="text-[10px] font-black px-2.5 py-1 rounded-lg border bg-purple-900/20 border-purple-800/30 text-purple-500 uppercase tracking-widest">
-        No Code
+        Notes Only
       </span>
     );
   const style = LANGUAGE_STYLES[language] ?? {
@@ -99,6 +99,7 @@ const LanguageBadge = ({ language }: { language?: LessonLanguage }) => {
 interface LessonFormData {
   title: string;
   language: LessonLanguage | "";
+  assignment: string;      // ✨ NEW
   order_index: string;
 }
 
@@ -117,8 +118,7 @@ interface AddLessonModalProps {
   nextOrder: number;
 }
 
-// Inner content — only mounted when open=true, so useState initializer always
-// receives the correct nextOrder. No reset effect needed.
+// Inner content — only mounted when open=true
 const AddLessonModalContent = ({
   onClose,
   onSubmit,
@@ -128,13 +128,13 @@ const AddLessonModalContent = ({
   const [form, setForm] = useState<LessonFormData>({
     title: "",
     language: "",
+    assignment: "",
     order_index: String(nextOrder),
   });
- type FormErrors = Partial<Record<keyof LessonFormData, string>>;
-const [errors, setErrors] = useState<FormErrors>({});
+  type FormErrors = Partial<Record<keyof LessonFormData, string>>;
+  const [errors, setErrors] = useState<FormErrors>({});
   const [success, setSuccess] = useState(false);
 
-  // Escape key — reading from external DOM, this useEffect is correct.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -144,7 +144,7 @@ const [errors, setErrors] = useState<FormErrors>({});
   }, [onClose]);
 
   const validate = (): boolean => {
-    const newErrors: Partial<Record<keyof LessonFormData, string>> = {};
+    const newErrors: FormErrors = {};
     if (!form.title.trim()) newErrors.title = "Title is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -184,7 +184,7 @@ const [errors, setErrors] = useState<FormErrors>({});
               New <span className="text-orange-500">Lesson</span>
             </h2>
             <p className="text-purple-500 text-xs font-semibold mt-0.5">
-              Notes and code editor are added after creation
+              Notes, starter code, and assignment are added after creation
             </p>
           </div>
           <button
@@ -247,6 +247,20 @@ const [errors, setErrors] = useState<FormErrors>({});
             </div>
           </Field>
 
+          {/* ✨ NEW assignment field */}
+          <Field label="Assignment (coding task description)">
+            <textarea
+              placeholder="Describe what the student should build and how to submit their GitHub repository..."
+              value={form.assignment}
+              onChange={(e) => setForm((p) => ({ ...p, assignment: e.target.value }))}
+              rows={3}
+              className={inputClass}
+            />
+            <p className="text-[10px] text-purple-600 font-mono -mt-1">
+              This can be left empty and filled later in the lesson editor.
+            </p>
+          </Field>
+
           <Field label="Order">
             <input
               type="number"
@@ -302,7 +316,6 @@ const [errors, setErrors] = useState<FormErrors>({});
 };
 
 // Wrapper: renders nothing when closed, remounts content fresh on each open.
-// key={nextOrder} also forces a remount if nextOrder changes while open.
 const AddLessonModal = (props: AddLessonModalProps) => {
   if (!props.open) return null;
   return (
@@ -359,6 +372,7 @@ const AdminModuleDetail = () => {
           module_id: moduleId,
           title: formData.title,
           language: formData.language || undefined,
+          assignment: formData.assignment || undefined,   // ✨ NEW
           order_index: Number(formData.order_index) || 0,
         })
       ).unwrap();
@@ -496,7 +510,7 @@ const AdminModuleDetail = () => {
               key={lesson.id}
               className="group bg-purple-950/5 border border-purple-900/20 hover:border-purple-700/40 rounded-2xl p-5 transition-all"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
                 {/* Drag Handle */}
                 <GripVertical
                   size={16}
@@ -531,9 +545,15 @@ const AdminModuleDetail = () => {
                   )}
                 </div>
 
-                {/* Language Badge */}
-                <div className="flex-shrink-0">
+                {/* Badges */}
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <LanguageBadge language={lesson.language} />
+                  {/* ✨ NEW assignment badge */}
+                  {lesson.assignment && (
+                    <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase tracking-widest">
+                      Assignment
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}

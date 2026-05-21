@@ -54,9 +54,13 @@ import BlogList from "./pages/BlogList";
 import BlogPost from "./pages/BlogPost";
 import LegalPage from "./pages/LegalPage";
 import KidCourseView from "./pages/kids/KidCourseView";
-import KidCodePlayground from "./pages/kids/KidCodePlayground";
-import KidInteractivePlayground from "./pages/kids/KidInteractivePlayground";
+//import KidInteractivePlayground from "./pages/kids/KidInteractivePlayground";
 import KidMyCourses from "./pages/kids/KidMyCourses";
+import KidAchievement from "./pages/kids/KidAchievement";
+import KidLeaderboard from "./pages/kids/Kidleaderboard";
+import KidBadges from "./pages/kids/KidBadges";
+import KidCalendar from "./pages/kids/KidCalendar";
+import ComingSoonWrapper from "./pages/kids/Comingsoonwrapper";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -67,35 +71,30 @@ const App = () => {
     // Only run this logic once on mount
     if (sessionChecked.current) return;
 
-const initializeAuth = async () => {
-  const path = window.location.pathname;
-  const isKidPath = path.startsWith("/kid");
-  const isLoginPage = path === "/login" || path === "/kid/login";
-  const tokenKey = isKidPath ? "kid_accessToken" : "accessToken";
-  const token = localStorage.getItem(tokenKey);
+    const initializeAuth = async () => {
+      const path = window.location.pathname;
+      const isKidPath = path.startsWith("/kid");
+      const isLoginPage = path === "/login" || path === "/kid/login";
 
-  console.log("🚀 [App] initializeAuth", { path, isKidPath, tokenKey, token: token ? "EXISTS" : "NULL" });
-
-  if (token) setAccessToken(token);
-
-  try {
-    if (token && !isLoginPage) {
-      if (isKidPath) {
-        console.log("🚀 [App] dispatching getKidMe...");
-        const result = await dispatch(getKidMe()).unwrap();
-        console.log("✅ [App] getKidMe success:", result);
-      } else {
-        await dispatch(refreshSession()).unwrap();
+      try {
+        if (isKidPath) {
+          const kidToken = localStorage.getItem("kid_accessToken");
+          if (kidToken && !isLoginPage) {
+            setAccessToken(kidToken);
+            await dispatch(getKidMe()).unwrap();
+          }
+        } else {
+          if (!isLoginPage) {
+            await dispatch(refreshSession()).unwrap();
+          }
+        }
+      } catch {
+        setAccessToken(null);
+      } finally {
+        sessionChecked.current = true;
+        setIsInitializing(false);
       }
-    }
-  } catch (err) {
-    console.error("❌ [App] session restore failed:", err);
-  } finally {
-    sessionChecked.current = true;
-    setIsInitializing(false);
-    console.log("🏁 [App] isInitializing = false");
-  }
-};
+    };
 
     initializeAuth();
   }, [dispatch]);
@@ -103,7 +102,7 @@ const initializeAuth = async () => {
   // Prevent ProtectedRoutes from redirecting before session check finishes
   if (isInitializing) {
     // Return null or a subtle loading indicator to prevent layout shift
-    return null; 
+    return null;
   }
 
   return (
@@ -141,12 +140,24 @@ const initializeAuth = async () => {
             <Route path="/admin/enrollments" element={<AdminEnrollments />} />
             <Route path="/admin/payments" element={<AdminPayments />} />
             <Route path="/admin/courses" element={<AdminCourses />} />
-            <Route path="/admin/courses/:courseId" element={<AdminCourseDetail />} />
-            <Route path="/admin/courses/:courseId/modules/:moduleId" element={<AdminModuleDetail />} />
-            <Route path="/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId" element={<AdminLessonEditor />} />
+            <Route
+              path="/admin/courses/:courseId"
+              element={<AdminCourseDetail />}
+            />
+            <Route
+              path="/admin/courses/:courseId/modules/:moduleId"
+              element={<AdminModuleDetail />}
+            />
+            <Route
+              path="/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId"
+              element={<AdminLessonEditor />}
+            />
             <Route path="/admin/blog" element={<AdminBlog />} />
             <Route path="/admin/blog/new" element={<AdminBlogEditor />} />
-            <Route path="/admin/blog/edit/:postId" element={<AdminBlogEditor />} />
+            <Route
+              path="/admin/blog/edit/:postId"
+              element={<AdminBlogEditor />}
+            />
             <Route path="/admin/testimonials" element={<AdminTestimonials />} />
           </Route>
         </Route>
@@ -157,9 +168,15 @@ const initializeAuth = async () => {
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/parent/kids" element={<MyKids />} />
             <Route path="/parent/settings" element={<ParentSettings />} />
-            <Route path="/parent/programs" element={<ParentProgramsAndPayments />} />
+            <Route
+              path="/parent/programs"
+              element={<ParentProgramsAndPayments />}
+            />
             <Route path="/parent/courses" element={<ParentCourses />} />
-            <Route path="/parent/testimonials" element={<ParentTestimonials />} />
+            <Route
+              path="/parent/testimonials"
+              element={<ParentTestimonials />}
+            />
           </Route>
         </Route>
 
@@ -167,16 +184,30 @@ const initializeAuth = async () => {
         <Route element={<KidProtectedRoute />}>
           <Route element={<KidsLayout />}>
             <Route path="/kid/dashboard" element={<KidDashboard />} />
-            // With these two:
-<Route path="/kid/my-courses" element={<KidMyCourses />} />
-<Route path="/kid/course/:enrollmentId" element={<KidCourseView />} />
-            <Route path="/kid/playground" element={<KidCodePlayground />} />
-            <Route path="/kid/games" element={<KidInteractivePlayground />} />
+
+            <Route path="/kid/my-courses" element={<KidMyCourses />} />
+            <Route
+              path="/kid/course/:enrollmentId"
+              element={<KidCourseView />}
+            />
+            <Route path="/kid/games" element={<ComingSoonWrapper />} />
+            <Route path="/kid/achievements" element={<KidAchievement />} />
+            <Route path="/kid/leaderboard" element={<KidLeaderboard />} />
+            <Route path="/kid/badges" element={<KidBadges />} />
+            <Route path="/kid/calendar" element={<KidCalendar />} />
+            {/*<Route path="/kid/games" element={<ComingSoonWrapper />} /> */}
           </Route>
         </Route>
 
         {/* ── Fallback ── */}
-        <Route path="*" element={<div className="p-10 text-center font-bold">404 - Page Not Found</div>} />
+        <Route
+          path="*"
+          element={
+            <div className="p-10 text-center font-bold">
+              404 - Page Not Found
+            </div>
+          }
+        />
       </Routes>
     </>
   );

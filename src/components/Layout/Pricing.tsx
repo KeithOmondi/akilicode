@@ -427,7 +427,7 @@ const Pricing = () => {
                         <p className="text-gray-500">Perfect for beginners</p>
                       </div>
                       <div className="text-center mb-6">
-                        <div className="text-5xl font-black text-purple-700">
+                        <div className="text-5xl font-serif font-black text-purple-700">
                           KES {monthlyPlan.price.toLocaleString()}
                         </div>
                         <div className="text-gray-500 mt-2">per month</div>
@@ -530,15 +530,15 @@ const Pricing = () => {
                         )}
                       </div>
                       <div className="text-center mb-4">
-                        <div className="text-2xl font-black text-purple-700">
+                        <div className="text-2xl font-serif font-black text-purple-700">
                           KES {plan.price.toLocaleString()}
                         </div>
                         {plan.original_price && (
-                          <div className="text-sm text-gray-400 line-through">
+                          <div className="text-sm font-serif text-gray-400 line-through">
                             KES {plan.original_price.toLocaleString()}
                           </div>
                         )}
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs font-serif text-gray-500 mt-1">
                           Just KES {Math.round(plan.price / plan.duration_months).toLocaleString()}/month
                         </div>
                       </div>

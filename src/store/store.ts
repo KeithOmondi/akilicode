@@ -9,6 +9,8 @@ import kidLearningReducer from "./slices/kidLearningSlice"
 import codePlaygroundReducer from './slices/codePlaygroundSlice';
 import pricingReducer from "./slices/pricingSlice"
 import userReducer from "./slices/userSlice"
+import submissionsReducer from "./slices/submissionSlice"
+import kidCalendarReducer from "./slices/kidCalendarSlice"
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +24,8 @@ export const store = configureStore({
     codePlayground: codePlaygroundReducer,
     pricing: pricingReducer,
     user: userReducer,
+    submissions: submissionsReducer,
+    kidCalendar: kidCalendarReducer
     // other reducers go here
   },
 });

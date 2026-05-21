@@ -1,3 +1,4 @@
+import AboutUs from "../components/Layout/AboutUs"
 import FAQ from "../components/Layout/FAQ"
 import Footer from "../components/Layout/Footer"
 import Header from "../components/Layout/Header"
@@ -15,6 +16,7 @@ const HomePage = () => {
         <Header />
         <Hero />
         <WhatWeOffer />
+        <AboutUs />
         <HowItWorks />
         <WhyAkiliCode />
         <Pricing />

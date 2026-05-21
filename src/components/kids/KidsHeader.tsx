@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { logoutKid } from "../../store/slices/kidSlice"; // Updated import
-import { 
-  Menu, 
-  X, 
-  Gamepad2, 
-  Star, 
-  Trophy, 
-  LogOut, 
-  User, 
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../../store/store";
+import { logoutKid } from "../../store/slices/kidSlice";
+import { getDashboardStats } from "../../store/slices/kidLearningSlice";
+import {
+  Menu,
+  X,
+  Gamepad2,
+  Star,
+  Trophy,
+  LogOut,
+  User,
   Settings,
   Bell,
-  Sparkles
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 interface KidsHeaderProps {
@@ -22,18 +25,29 @@ interface KidsHeaderProps {
 
 const KidsHeader = ({ sidebarOpen, setSidebarOpen }: KidsHeaderProps) => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { currentKid } = useAppSelector((state) => state.kid);
+  const dispatch = useDispatch<AppDispatch>();
+  const { currentKid } = useSelector((state: RootState) => state.kid);
+  const { dashboardStats, loading: statsLoading } = useSelector(
+    (state: RootState) => state.kidLearning
+  );
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  // Fetch dashboard stats once when header mounts
+  useEffect(() => {
+    if (!dashboardStats && !statsLoading) {
+      dispatch(getDashboardStats());
+    }
+  }, [dispatch, dashboardStats, statsLoading]);
+
   const handleLogout = () => {
-    // 1. Closes the menu
     setShowProfileMenu(false);
-    // 2. Clear Redux + localStorage in one go
     dispatch(logoutKid());
-    // 3. Send them home
     navigate("/kid/login");
   };
+
+  const totalPoints = dashboardStats?.stats.total_points ?? 0;
+  const level = dashboardStats?.stats.level ?? 1;
+  const streakDays = dashboardStats?.stats.streak_days ?? 0;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-md border-b border-purple-100 shadow-sm">
@@ -47,9 +61,9 @@ const KidsHeader = ({ sidebarOpen, setSidebarOpen }: KidsHeaderProps) => {
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          
-          <div 
-            className="flex items-center gap-2 cursor-pointer" 
+
+          <div
+            className="flex items-center gap-2 cursor-pointer"
             onClick={() => navigate("/kid/dashboard")}
           >
             <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-orange-500 rounded-xl flex items-center justify-center shadow-sm">
@@ -65,7 +79,9 @@ const KidsHeader = ({ sidebarOpen, setSidebarOpen }: KidsHeaderProps) => {
         <div className="hidden md:flex items-center gap-2 px-4 py-1.5 bg-purple-50 rounded-full border border-purple-100">
           <Sparkles size={14} className="text-orange-500 animate-pulse" />
           <span className="text-xs font-bold text-purple-700">
-            Keep coding! You're doing great! 🚀
+            {streakDays > 0
+              ? `${streakDays} day streak! Keep going! 🔥`
+              : "Keep coding! You're doing great! 🚀"}
           </span>
         </div>
 
@@ -73,17 +89,23 @@ const KidsHeader = ({ sidebarOpen, setSidebarOpen }: KidsHeaderProps) => {
         <div className="flex items-center gap-2">
           {/* Points Display */}
           <div className="hidden sm:flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100">
-            <Star size={14} className="text-yellow-500 fill-yellow-500" />
-            <span className="text-xs font-bold text-yellow-700">1,250 pts</span>
+            {statsLoading ? (
+              <Loader2 size={14} className="animate-spin text-yellow-500" />
+            ) : (
+              <Star size={14} className="text-yellow-500 fill-yellow-500" />
+            )}
+            <span className="text-xs font-bold text-yellow-700">
+              {totalPoints.toLocaleString()} pts
+            </span>
           </div>
 
           {/* Level Display */}
           <div className="hidden md:flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-100">
             <Trophy size={14} className="text-purple-600" />
-            <span className="text-xs font-bold text-purple-700">Level 5</span>
+            <span className="text-xs font-bold text-purple-700">Level {level}</span>
           </div>
 
-          {/* Notifications */}
+          {/* Notifications (placeholder – add functionality later) */}
           <button className="p-2 rounded-xl hover:bg-purple-50 text-purple-600 transition-colors relative group">
             <Bell size={18} className="group-hover:rotate-12 transition-transform" />
             <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
@@ -112,10 +134,14 @@ const KidsHeader = ({ sidebarOpen, setSidebarOpen }: KidsHeaderProps) => {
                 />
                 <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-purple-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
                   <div className="p-4 bg-gradient-to-br from-purple-50 to-white border-b border-purple-50">
-                    <p className="text-sm font-black text-purple-900">{currentKid?.name}</p>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-purple-400">Junior Developer</p>
+                    <p className="text-sm font-black text-purple-900">
+                      {currentKid?.name || "Kid"}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-purple-400">
+                      Level {level} • {totalPoints} pts
+                    </p>
                   </div>
-                  
+
                   <div className="p-2">
                     <button
                       onClick={() => {

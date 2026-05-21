@@ -66,13 +66,13 @@ export const getMyCourses = createAsyncThunk(
   }
 );
 
-// Get course content with modules and lessons
-// Get course content — now takes enrollmentId, not courseId
+// Get course content with modules and lessons (using enrollmentId)
 export const getCourseContent = createAsyncThunk(
   'kidLearning/getCourseContent',
   async (enrollmentId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/learning/enrollments/${enrollmentId}/content`);
+      // ✅ Updated URL to match route: /learning/courses/:enrollmentId/content
+      const response = await api.get(`/learning/courses/${enrollmentId}/content`);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -85,7 +85,8 @@ export const getLesson = createAsyncThunk(
   'kidLearning/getLesson',
   async ({ enrollmentId, lessonId }: { enrollmentId: string; lessonId: string }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/learning/enrollments/${enrollmentId}/lessons/${lessonId}`);
+      // ✅ Updated URL to match route
+      const response = await api.get(`/learning/courses/${enrollmentId}/lessons/${lessonId}`);
       return response.data.data.lesson;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -93,7 +94,7 @@ export const getLesson = createAsyncThunk(
   }
 );
 
-// Submit lesson — now requires enrollmentId too
+// Submit lesson (for notes-only lessons; coding assignments use separate submissions endpoint)
 export const submitLesson = createAsyncThunk(
   'kidLearning/submitLesson',
   async (
@@ -101,8 +102,9 @@ export const submitLesson = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      // ✅ Updated URL to match route
       const response = await api.post<SubmitLessonResponse>(
-        `/learning/enrollments/${enrollmentId}/lessons/${lessonId}/submit`,
+        `/learning/courses/${enrollmentId}/lessons/${lessonId}/submit`,
         { code_submitted }
       );
       return response.data.data;

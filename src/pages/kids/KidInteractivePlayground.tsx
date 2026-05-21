@@ -220,11 +220,10 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
   const outputEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const currentExecutionId = useRef<string | null>(null);
-  // Fixed: Use ReturnType<typeof setTimeout> instead of NodeJS.Timeout
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const totalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRunningRef = useRef(false);
+  const outputBufferRef = useRef(''); // Accumulate incomplete lines
 
-  // Define addOutput before using it in useEffect
   const addOutput = (text: string, isError: boolean = false) => {
     setOutput(prev => [...prev, { text, isError, timestamp: Date.now() }]);
     setTimeout(() => {
@@ -232,36 +231,61 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
     }, 100);
   };
 
-  // Reset running state with timeout protection
   const resetRunningState = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
+    if (totalTimeoutRef.current) clearTimeout(totalTimeoutRef.current);
     setIsRunning(false);
     isRunningRef.current = false;
     setWaitingForInput(false);
     currentExecutionId.current = null;
+    outputBufferRef.current = '';
+  };
+
+  // Robust prompt detection (for Python input() prompts like "Your guess: ")
+  const isPromptLine = (text: string): boolean => {
+    if (!text) return false;
+    const lastLine = text.trim().split('\n').pop() || '';
+    // Ends with : ? > (and no newline afterwards)
+    if (lastLine.match(/[?:>]\s*$/)) return true;
+    const lower = lastLine.toLowerCase();
+    return lower.includes('input') || lower.includes('enter') || lower.includes('?');
   };
 
   useEffect(() => {
-    // Connect to WebSocket
     codeExecutionSocket.connect();
-    
-    // Monitor connection status
     const checkConnection = setInterval(() => {
       setConnectionStatus(codeExecutionSocket.isConnected() ? 'connected' : 'disconnected');
     }, 1000);
 
     const unsubscribeOutput = codeExecutionSocket.onOutput((data) => {
-      addOutput(data.output, data.isError);
+      // Store executionId for later input
+      if (!currentExecutionId.current) currentExecutionId.current = data.executionId;
+
+      // Accumulate to handle partial chunks
+      outputBufferRef.current += data.output;
+      const lines = outputBufferRef.current.split('\n');
+      outputBufferRef.current = lines.pop() || ''; // keep last incomplete line
+      
+      // Display complete lines
+      for (const line of lines) {
+        addOutput(line, data.isError);
+      }
+      
+      // Check if we should request input (only if program is still running)
+      if (!waitingForInput && isRunningRef.current && !data.isError) {
+        const currentLine = outputBufferRef.current;
+        if (isPromptLine(data.output) || isPromptLine(currentLine)) {
+          setWaitingForInput(true);
+          setTimeout(() => inputRef.current?.focus(), 100);
+        }
+      }
     });
 
-    const unsubscribeInput = codeExecutionSocket.onInputRequest((data) => {
+    // Fallback for old backend (input-requested event) – not used by our refactored backend, but kept for safety
+    const unsubscribeInputRequest = codeExecutionSocket.onInputRequest((data) => {
+      if (!currentExecutionId.current) currentExecutionId.current = data.executionId;
       setWaitingForInput(true);
       addOutput(`🎮 ${data.prompt}`, false);
       setTimeout(() => inputRef.current?.focus(), 100);
-      currentExecutionId.current = data.executionId;
     });
 
     const unsubscribeComplete = codeExecutionSocket.onComplete(() => {
@@ -276,18 +300,16 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
 
     return () => {
       unsubscribeOutput();
-      unsubscribeInput();
+      unsubscribeInputRequest();
       unsubscribeComplete();
       unsubscribeError();
       clearInterval(checkConnection);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
-  }, []);
+  }, [waitingForInput]); // Empty dependency – only run once
 
   const handleRunCode = () => {
     if (isRunningRef.current) {
+      // Stop current execution
       resetRunningState();
       addOutput('🛑 Program stopped by user\n', false);
       return;
@@ -296,6 +318,9 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
     setOutput([]);
     setIsRunning(true);
     isRunningRef.current = true;
+    setWaitingForInput(false);
+    currentExecutionId.current = null;
+    outputBufferRef.current = '';
     addOutput('🚀 Running your interactive game...', false);
     addOutput('─'.repeat(50), false);
     addOutput('💡 Tip: The game will ask for input - type your answer and press Enter!', false);
@@ -306,33 +331,32 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
     } catch (error) {
       resetRunningState();
       addOutput(`❌ Failed to start: ${error}`, true);
+      return;
     }
     
-    timeoutRef.current = setTimeout(() => {
+    // Total execution safety timeout (30 seconds)
+    totalTimeoutRef.current = setTimeout(() => {
       if (isRunningRef.current) {
         resetRunningState();
-        addOutput('\n⚠️ Execution timeout - no response from server\n', true);
+        addOutput('\n⚠️ Execution timed out (30s) – possible infinite loop or stuck input\n', true);
       }
     }, 30000);
   };
 
   const handleSendInput = () => {
     if (!waitingForInput || !currentExecutionId.current) return;
-    
     codeExecutionSocket.sendInput(currentExecutionId.current, inputValue);
     addOutput(`📝 You entered: ${inputValue}`, false);
     setInputValue('');
     setWaitingForInput(false);
-    
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => {
-        if (isRunningRef.current) {
-          resetRunningState();
-          addOutput('\n⚠️ Execution timeout - no response after input\n', true);
-        }
-      }, 30000);
-    }
+    // Reset the total timeout when input is sent (program is still alive)
+    if (totalTimeoutRef.current) clearTimeout(totalTimeoutRef.current);
+    totalTimeoutRef.current = setTimeout(() => {
+      if (isRunningRef.current) {
+        resetRunningState();
+        addOutput('\n⚠️ Execution timed out after input – no response from server\n', true);
+      }
+    }, 30000);
   };
 
   const handleGameChange = (game: 'guessNumber' | 'quiz' | 'calculator') => {
@@ -418,7 +442,7 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
             <div className="flex gap-3">
               <button
                 onClick={() => handleGameChange('guessNumber')}
-                className={`flex-1 px-4 py-2 rounded-lg transition ${
+                className={`flex-1 px-4 font-serif font-bold py-2 rounded-lg transition ${
                   activeGame === 'guessNumber'
                     ? 'bg-purple-600 text-white'
                     : dk("bg-gray-700 text-gray-300 hover:bg-gray-600", "bg-gray-100 text-gray-600 hover:bg-gray-200")
@@ -428,7 +452,7 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
               </button>
               <button
                 onClick={() => handleGameChange('quiz')}
-                className={`flex-1 px-4 py-2 rounded-lg transition ${
+                className={`flex-1 px-4 font-serif font-bold py-2 rounded-lg transition ${
                   activeGame === 'quiz'
                     ? 'bg-green-600 text-white'
                     : dk("bg-gray-700 text-gray-300 hover:bg-gray-600", "bg-gray-100 text-gray-600 hover:bg-gray-200")
@@ -438,7 +462,7 @@ const KidInteractivePlayground: React.FC<InteractivePlaygroundProps> = ({ isDark
               </button>
               <button
                 onClick={() => handleGameChange('calculator')}
-                className={`flex-1 px-4 py-2 rounded-lg transition ${
+                className={`flex-1 px-4 font-serif font-bold text-center align-center py-2 rounded-lg transition ${
                   activeGame === 'calculator'
                     ? 'bg-blue-600 text-white'
                     : dk("bg-gray-700 text-gray-300 hover:bg-gray-600", "bg-gray-100 text-gray-600 hover:bg-gray-200")

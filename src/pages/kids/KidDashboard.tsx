@@ -15,7 +15,7 @@ const KidDashboard = () => {
   const navigate = useNavigate();
 
   const { currentKid } = useAppSelector((state) => state.kid);
-  const { courses, dashboardStats, leaderboard, achievements, loading } = useAppSelector(
+  const { courses, dashboardStats, leaderboard, achievements = [], loading } = useAppSelector(
     (state) => state.kidLearning
   );
 
@@ -34,11 +34,9 @@ const KidDashboard = () => {
 
   if (!currentKid) return null;
 
-  // All values from the nested stats/kid objects — no hardcoding
   const kidPoints   = dashboardStats?.stats.total_points ?? 0;
   const kidLevel    = dashboardStats?.stats.level ?? 1;
   const streakDays  = dashboardStats?.stats.streak_days ?? 0;
-  //const hoursLearned = dashboardStats?.stats.completed_lessons ?? 0; // proxy until backend adds hours
   const totalBadges = achievements.filter((a) => a.earned).length;
 
   return (
@@ -85,8 +83,8 @@ const KidDashboard = () => {
               }
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Hey, {currentKid.name}! 👋</h1>
-              <p className="text-purple-100 flex items-center gap-1">
+              <h1 className="text-2xl font-serif font-bold">Hey, {currentKid.name}! 👋</h1>
+              <p className="text-purple-100 font-extrabold flex items-center gap-1">
                 <Sparkles size={14} />
                 Ready for your coding adventure today?
               </p>
@@ -121,7 +119,7 @@ const KidDashboard = () => {
 
         {/* My Courses */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-serif font-bold text-purple-900 mb-4 flex items-center gap-2">
             <BookOpen size={20} />
             My Courses
           </h2>
@@ -137,7 +135,6 @@ const KidDashboard = () => {
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
               {courses.map((course) => {
-                // progress is 0–100 from the interface
                 const pct = course.progress ?? 0;
                 return (
                   <div
@@ -153,7 +150,6 @@ const KidDashboard = () => {
                         {course.status}
                       </span>
                     </div>
-                    {/* interface field is 'name', not 'title' */}
                     <h3 className="font-bold text-gray-800 mb-1 group-hover:text-purple-700">{course.name}</h3>
                     <p className="text-xs text-gray-500 mb-1 font-medium">
                       {course.completed_lessons} / {course.total_lessons} lessons
@@ -175,7 +171,7 @@ const KidDashboard = () => {
         {/* Achievements — only show earned ones */}
         {achievements.some((a) => a.earned) && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold font-serif text-purple-900 mb-4 flex items-center gap-2">
               <Medal size={20} />
               My Badges
             </h2>
@@ -188,7 +184,6 @@ const KidDashboard = () => {
                     className="bg-white rounded-2xl p-4 text-center shadow-md border border-purple-100 flex flex-col items-center gap-2"
                   >
                     {badge.icon ? (
-                      // icon is a string — could be an emoji or a URL; render both gracefully
                       badge.icon.startsWith("http") ? (
                         <img src={badge.icon} alt={badge.name} className="w-12 h-12 object-contain" />
                       ) : (
@@ -209,14 +204,13 @@ const KidDashboard = () => {
         {/* Leaderboard */}
         {leaderboard.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-serif font-bold text-purple-900 mb-4 flex items-center gap-2">
               <Trophy size={20} />
               Leaderboard
             </h2>
             <div className="bg-white rounded-2xl border border-purple-100 shadow-md overflow-hidden">
               {leaderboard.map((entry, idx) => {
                 const isMe = entry.id === currentKid.id;
-                // Use entry.rank if provided, else fall back to idx+1
                 const rank = entry.rank ?? idx + 1;
                 return (
                   <div

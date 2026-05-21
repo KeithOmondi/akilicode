@@ -16,6 +16,8 @@ import type {
 } from "../../interfaces/codePlayground.interface";
 import { codePlaygroundService } from "../../components/service/codePlaygroundService";
 
+// Supported languages: javascript, python, html, css
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 interface CodePlaygroundState {
@@ -45,7 +47,7 @@ interface CodePlaygroundState {
 }
 
 const initialState: CodePlaygroundState = {
-  code: "// Start coding here\nconsole.log('Hello, AkiliCode!');",
+  code: "// Welcome to AkiliCode Playground!\n// Write JavaScript, Python, HTML, or CSS\nconsole.log('Hello, young coder!');",
   language: "javascript",
   isDarkMode: true,
   fontSize: 14,
@@ -156,9 +158,8 @@ export const executeCode = createAsyncThunk<CodeExecutionResult, ExecuteCodePayl
     try {
       const result = await codePlaygroundService.executeCode(payload);
       
-      // Handle HTML/CSS special output
+      // For HTML/CSS, mark the type so the frontend can render in an iframe
       if (payload.language === 'html' || payload.language === 'css') {
-        // For HTML/CSS, we want to render it in an iframe
         result.type = payload.language;
       }
       

@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
+  ClipboardList,
 } from "lucide-react";
 import type { AppDispatch, RootState } from "../../store/store";
 import {
@@ -93,9 +94,50 @@ const renderMarkdown = (text: string): string => {
     .replace(/<p><\/p>/g, "");
 };
 
+// ─── Shared preview panel classes ─────────────────────────────────────────────
+
+const PREVIEW_CLASSES = `
+  flex-1 min-h-[400px] bg-purple-950/10 border border-purple-900/20 rounded-2xl p-6 overflow-y-auto
+  prose prose-invert prose-sm max-w-none
+  [&_h1]:text-white [&_h1]:font-black [&_h1]:text-xl [&_h1]:mb-3
+  [&_h2]:text-white [&_h2]:font-black [&_h2]:text-lg [&_h2]:mb-2
+  [&_h3]:text-orange-400 [&_h3]:font-black [&_h3]:text-base [&_h3]:mb-2
+  [&_p]:text-purple-300 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-3
+  [&_strong]:text-white [&_strong]:font-black
+  [&_em]:text-purple-300 [&_em]:italic
+  [&_code]:bg-purple-900/40 [&_code]:text-orange-300 [&_code]:px-1.5 [&_code]:py-0.5
+  [&_code]:rounded [&_code]:text-xs [&_code]:font-mono
+  [&_ul]:text-purple-300 [&_ul]:text-sm [&_ul]:pl-4 [&_ul]:mb-3
+  [&_li]:mb-1
+`.trim();
+
+const TEXTAREA_CLASSES = `
+  flex-1 min-h-[400px] bg-purple-950/10 border border-purple-900/20 rounded-2xl p-6
+  text-purple-200 placeholder:text-purple-800 outline-none focus:border-orange-500/40
+  transition-all text-sm font-mono leading-relaxed resize-none
+`.trim();
+
+// ─── Preview Toggle Button ────────────────────────────────────────────────────
+
+const PreviewToggle = ({
+  previewing,
+  onToggle,
+}: {
+  previewing: boolean;
+  onToggle: () => void;
+}) => (
+  <button
+    onClick={onToggle}
+    className="flex items-center gap-1.5 text-purple-500 hover:text-orange-400 font-bold text-xs transition-colors flex-shrink-0"
+  >
+    {previewing ? <EyeOff size={13} /> : <Eye size={13} />}
+    {previewing ? "Edit" : "Preview"}
+  </button>
+);
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-type ActiveTab = "notes" | "starter" | "solution";
+type ActiveTab = "notes" | "assignment" | "starter" | "solution";
 
 const AdminLessonEditor = () => {
   const { courseId, moduleId, lessonId } = useParams<{
@@ -111,10 +153,12 @@ const AdminLessonEditor = () => {
 
   // ── Editor State ───────────────────────────────────────────────────────────
   const [notes, setNotes] = useState("");
+  const [assignment, setAssignment] = useState("");
   const [starterCode, setStarterCode] = useState("");
   const [solutionCode, setSolutionCode] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("notes");
   const [previewNotes, setPreviewNotes] = useState(false);
+  const [previewAssignment, setPreviewAssignment] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -128,14 +172,13 @@ const AdminLessonEditor = () => {
   }, [dispatch, lessonId, courseId, currentCurriculum]);
 
   // ── Populate fields when lesson loads ─────────────────────────────────────
-  // Use a ref to track which lesson we last initialised from so we only
-  // populate once per lesson identity — avoids synchronous setState in effect.
   const initialisedForLesson = useRef<string | null>(null);
 
   useEffect(() => {
     if (currentLesson && currentLesson.id !== initialisedForLesson.current) {
       initialisedForLesson.current = currentLesson.id;
       setNotes(currentLesson.notes ?? "");
+      setAssignment(currentLesson.assignment ?? "");
       setStarterCode(
         currentLesson.starter_code ??
           (currentLesson.language
@@ -164,6 +207,7 @@ const AdminLessonEditor = () => {
           lessonId,
           data: {
             notes: notes || undefined,
+            assignment: assignment || undefined,
             starter_code: starterCode || undefined,
             solution_code: solutionCode || undefined,
           },
@@ -176,19 +220,20 @@ const AdminLessonEditor = () => {
     } finally {
       setSaving(false);
     }
-  }, [dispatch, lessonId, notes, starterCode, solutionCode]);
+  }, [dispatch, lessonId, notes, assignment, starterCode, solutionCode]);
 
   // ── Reset to last saved ────────────────────────────────────────────────────
   const handleReset = useCallback(() => {
     if (!currentLesson) return;
     setNotes(currentLesson.notes ?? "");
+    setAssignment(currentLesson.assignment ?? "");
     setStarterCode(currentLesson.starter_code ?? "");
     setSolutionCode(currentLesson.solution_code ?? "");
     setDirty(false);
     toast("Reset to last saved version", { icon: "↩️" });
   }, [currentLesson]);
 
-  // ── Keyboard shortcut: Ctrl+S / Cmd+S ────────────────────────────────────
+  // ── Keyboard shortcut: Ctrl+S / Cmd+S ─────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -332,6 +377,12 @@ const AdminLessonEditor = () => {
             icon={FileText}
             label="Notes"
           />
+          <TabButton
+            active={activeTab === "assignment"}
+            onClick={() => setActiveTab("assignment")}
+            icon={ClipboardList}
+            label="Assignment"
+          />
           {lesson.language && (
             <>
               <TabButton
@@ -357,27 +408,15 @@ const AdminLessonEditor = () => {
               <p className="text-[11px] font-black text-purple-500 uppercase tracking-widest">
                 Lesson Notes (Markdown)
               </p>
-              <button
-                onClick={() => setPreviewNotes((v) => !v)}
-                className="flex items-center gap-1.5 text-purple-500 hover:text-orange-400 font-bold text-xs transition-colors"
-              >
-                {previewNotes ? <EyeOff size={13} /> : <Eye size={13} />}
-                {previewNotes ? "Edit" : "Preview"}
-              </button>
+              <PreviewToggle
+                previewing={previewNotes}
+                onToggle={() => setPreviewNotes((v) => !v)}
+              />
             </div>
 
             {previewNotes ? (
               <div
-                className="flex-1 min-h-[400px] bg-purple-950/10 border border-purple-900/20 rounded-2xl p-6 overflow-y-auto prose prose-invert prose-sm max-w-none
-                  [&_h1]:text-white [&_h1]:font-black [&_h1]:text-xl [&_h1]:mb-3
-                  [&_h2]:text-white [&_h2]:font-black [&_h2]:text-lg [&_h2]:mb-2
-                  [&_h3]:text-orange-400 [&_h3]:font-black [&_h3]:text-base [&_h3]:mb-2
-                  [&_p]:text-purple-300 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-3
-                  [&_strong]:text-white [&_strong]:font-black
-                  [&_em]:text-purple-300 [&_em]:italic
-                  [&_code]:bg-purple-900/40 [&_code]:text-orange-300 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono
-                  [&_ul]:text-purple-300 [&_ul]:text-sm [&_ul]:pl-4 [&_ul]:mb-3
-                  [&_li]:mb-1"
+                className={PREVIEW_CLASSES}
                 dangerouslySetInnerHTML={{
                   __html:
                     renderMarkdown(notes) ||
@@ -392,7 +431,48 @@ const AdminLessonEditor = () => {
                   markDirty();
                 }}
                 placeholder={`# Lesson Title\n\nWrite your lesson notes here using Markdown.\n\n## What you'll learn\n- Variables store information\n- Use \`let\` to create a variable\n\n## Example\n\`let name = "Alex";\``}
-                className="flex-1 min-h-[400px] bg-purple-950/10 border border-purple-900/20 rounded-2xl p-6 text-purple-200 placeholder:text-purple-800 outline-none focus:border-orange-500/40 transition-all text-sm font-mono leading-relaxed resize-none"
+                className={TEXTAREA_CLASSES}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ── Assignment Tab ───────────────────────────────────────────────── */}
+        {activeTab === "assignment" && (
+          <div className="flex flex-col gap-3 flex-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-black text-purple-500 uppercase tracking-widest">
+                  Coding Assignment / Task Description (Markdown)
+                </p>
+                <p className="text-[10px] text-purple-600 font-mono mt-0.5">
+                  Shown to the student alongside the Starter Code. Describe what to build and how to submit.
+                </p>
+              </div>
+              <PreviewToggle
+                previewing={previewAssignment}
+                onToggle={() => setPreviewAssignment((v) => !v)}
+              />
+            </div>
+
+            {previewAssignment ? (
+              <div
+                className={PREVIEW_CLASSES}
+                dangerouslySetInnerHTML={{
+                  __html:
+                    renderMarkdown(assignment) ||
+                    "<p class='text-purple-700'>Nothing to preview yet — write the assignment first.</p>",
+                }}
+              />
+            ) : (
+              <textarea
+                value={assignment}
+                onChange={(e) => {
+                  setAssignment(e.target.value);
+                  markDirty();
+                }}
+                placeholder={`# Assignment: Build a Calculator\n\nCreate a simple calculator that can add, subtract, multiply, and divide.\n\n## Requirements\n- Use HTML/CSS for the user interface\n- Write JavaScript for the logic\n- Buttons for numbers 0–9 and operators +, -, *, /\n- Display the result on screen\n\n## Submission\nPush your code to a public GitHub repository and paste the link in the submission form.`}
+                className={TEXTAREA_CLASSES}
               />
             )}
           </div>

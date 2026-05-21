@@ -1,9 +1,16 @@
+// CodeExecutionSocketService.ts
 import { io, Socket } from 'socket.io-client';
 
 export interface ExecutionOutput {
   executionId: string;
   output: string;
   isError: boolean;
+}
+
+export interface HtmlRenderData {
+  executionId: string;
+  code: string;       // Full HTML/CSS/JS code to render in iframe
+  language?: string;  // 'html' or 'css'
 }
 
 export interface InputRequest {
@@ -22,6 +29,7 @@ export interface ExecutionError {
 }
 
 type OutputCallback = (data: ExecutionOutput) => void;
+type HtmlRenderCallback = (data: HtmlRenderData) => void;
 type InputCallback = (data: InputRequest) => void;
 type CompleteCallback = (data: ExecutionComplete) => void;
 type ErrorCallback = (data: ExecutionError) => void;
@@ -29,26 +37,33 @@ type ErrorCallback = (data: ExecutionError) => void;
 class CodeExecutionSocketService {
   private socket: Socket | null = null;
   private outputCallbacks: OutputCallback[] = [];
+  private htmlRenderCallbacks: HtmlRenderCallback[] = [];
   private inputCallbacks: InputCallback[] = [];
   private completeCallbacks: CompleteCallback[] = [];
   private errorCallbacks: ErrorCallback[] = [];
 
-  connect() {
+  connect(url?: string) {
     if (this.socket?.connected) return;
-
-    this.socket = io('http://localhost:8000', {
+    const wsUrl = url || import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:8000`;
+    this.socket = io(wsUrl, {
       transports: ['websocket'],
       autoConnect: true
     });
 
     this.socket.on('connect', () => {
-      console.log('🔌 Connected to game server');
+      console.log('🔌 Connected to code execution server');
     });
 
     this.socket.on('output', (data: ExecutionOutput) => {
       this.outputCallbacks.forEach(cb => cb(data));
     });
 
+    // New event: backend sends HTML/CSS to be rendered in an iframe
+    this.socket.on('html-render', (data: HtmlRenderData) => {
+      this.htmlRenderCallbacks.forEach(cb => cb(data));
+    });
+
+    // Input request (optional: emitted when Python input() is waiting)
     this.socket.on('input-requested', (data: InputRequest) => {
       this.inputCallbacks.forEach(cb => cb(data));
     });
@@ -62,7 +77,7 @@ class CodeExecutionSocketService {
     });
 
     this.socket.on('disconnect', () => {
-      console.log('🔌 Disconnected from game server');
+      console.log('🔌 Disconnected from code execution server');
     });
   }
 
@@ -73,11 +88,11 @@ class CodeExecutionSocketService {
     }
   }
 
-  // Add this method to check connection status
   isConnected(): boolean {
     return this.socket?.connected || false;
   }
 
+  // Execute code – backend supports javascript, python, html, css
   executeCode(code: string, language: string) {
     if (!this.socket) {
       throw new Error('Socket not connected');
@@ -85,6 +100,7 @@ class CodeExecutionSocketService {
     this.socket.emit('execute-code', { code, language });
   }
 
+  // Send user input when a program (Python/JS) expects it
   sendInput(executionId: string, input: string) {
     if (!this.socket) {
       throw new Error('Socket not connected');
@@ -92,10 +108,18 @@ class CodeExecutionSocketService {
     this.socket.emit('input-response', { executionId, input });
   }
 
+  // Callback registrations
   onOutput(callback: OutputCallback) {
     this.outputCallbacks.push(callback);
     return () => {
       this.outputCallbacks = this.outputCallbacks.filter(cb => cb !== callback);
+    };
+  }
+
+  onHtmlRender(callback: HtmlRenderCallback) {
+    this.htmlRenderCallbacks.push(callback);
+    return () => {
+      this.htmlRenderCallbacks = this.htmlRenderCallbacks.filter(cb => cb !== callback);
     };
   }
 

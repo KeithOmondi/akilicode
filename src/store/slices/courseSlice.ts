@@ -10,10 +10,16 @@ import type {
   CourseCurriculum,
 } from "../../interfaces/course.interface";
 
-const initialState: CourseState = {
+// Extend CourseState to optionally hold the fetched assignment separately
+interface ExtendedCourseState extends CourseState {
+  currentLessonAssignment: string | null;
+}
+
+const initialState: ExtendedCourseState = {
   courses: [],
   currentCurriculum: null,
   currentLesson: null,
+  currentLessonAssignment: null,
   loading: false,
   error: null,
 };
@@ -195,6 +201,45 @@ export const deleteLesson = createAsyncThunk<string, string>(
   }
 );
 
+// ✨ NEW – dedicated assignment thunks
+export const getLessonAssignment = createAsyncThunk<string, string>(
+  "course/getLessonAssignment",
+  async (lessonId, thunkAPI) => {
+    try {
+      const res = await api.get<{ status: string; data: { assignment: string | null } }>(
+        `/courses/lessons/${lessonId}/assignment`
+      );
+      return res.data.data.assignment || "";
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch assignment"
+      );
+    }
+  }
+);
+
+export const updateLessonAssignment = createAsyncThunk<
+  { lessonId: string; assignment: string },
+  { lessonId: string; assignment: string }
+>(
+  "course/updateLessonAssignment",
+  async ({ lessonId, assignment }, thunkAPI) => {
+    try {
+      const res = await api.patch<{ status: string; data: { assignment: string } }>(
+        `/courses/lessons/${lessonId}/assignment`,
+        { assignment }
+      );
+      return { lessonId, assignment: res.data.data.assignment };
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to update assignment"
+      );
+    }
+  }
+);
+
 // ─── SLICE ────────────────────────────────────────────────────────────────────
 
 const courseSlice = createSlice({
@@ -207,6 +252,10 @@ const courseSlice = createSlice({
     },
     clearCurrentLesson: (state) => {
       state.currentLesson = null;
+      state.currentLessonAssignment = null;
+    },
+    clearCurrentLessonAssignment: (state) => {
+      state.currentLessonAssignment = null;
     },
   },
   extraReducers: (builder) => {
@@ -270,6 +319,8 @@ const courseSlice = createSlice({
       .addCase(getLessonById.fulfilled, (state, action: PayloadAction<Lesson>) => {
         state.loading = false;
         state.currentLesson = action.payload;
+        // Also store the assignment separately for convenience
+        state.currentLessonAssignment = action.payload.assignment || null;
       })
       .addCase(updateLesson.fulfilled, (state, action: PayloadAction<Lesson>) => {
         state.loading = false;
@@ -284,6 +335,7 @@ const courseSlice = createSlice({
         }
         if (state.currentLesson?.id === action.payload.id) {
           state.currentLesson = action.payload;
+          state.currentLessonAssignment = action.payload.assignment || null;
         }
       })
       .addCase(deleteLesson.fulfilled, (state, action: PayloadAction<string>) => {
@@ -293,6 +345,35 @@ const courseSlice = createSlice({
             ...m,
             lessons: m.lessons.filter((l) => l.id !== action.payload),
           }));
+        }
+        if (state.currentLesson?.id === action.payload) {
+          state.currentLesson = null;
+          state.currentLessonAssignment = null;
+        }
+      })
+
+      // ✨ NEW assignment cases
+      .addCase(getLessonAssignment.fulfilled, (state, action: PayloadAction<string>) => {
+        state.loading = false;
+        state.currentLessonAssignment = action.payload;
+      })
+      .addCase(updateLessonAssignment.fulfilled, (state, action) => {
+        state.loading = false;
+        const { lessonId, assignment } = action.payload;
+        state.currentLessonAssignment = assignment;
+        // Also update inside currentLesson if it matches
+        if (state.currentLesson?.id === lessonId) {
+          state.currentLesson.assignment = assignment;
+        }
+        // Also update inside currentCurriculum if present
+        if (state.currentCurriculum) {
+          for (const mod of state.currentCurriculum.modules) {
+            const lesson = mod.lessons.find(l => l.id === lessonId);
+            if (lesson) {
+              lesson.assignment = assignment;
+              break;
+            }
+          }
         }
       })
 
@@ -316,5 +397,5 @@ const courseSlice = createSlice({
   },
 });
 
-export const { resetCourseState, clearCurrentLesson } = courseSlice.actions;
+export const { resetCourseState, clearCurrentLesson, clearCurrentLessonAssignment } = courseSlice.actions;
 export default courseSlice.reducer;

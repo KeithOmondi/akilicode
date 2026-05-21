@@ -1,5 +1,6 @@
-// ─── COURSE ───────────────────────────────────────────────────────────────────
+// src/interfaces/course.interface.ts
 
+// ─── COURSE ───────────────────────────────────────────────────────────────────
 export interface Course {
   id: string;
   title: string;
@@ -13,40 +14,40 @@ export interface Course {
 }
 
 // ─── MODULE ───────────────────────────────────────────────────────────────────
-
 export interface Module {
   id: string;
   course_id: string;
   title: string;
   description?: string;
   order_index: number;
-  lesson_count?: number;        // returned by getModulesByCourse
+  lesson_count?: number;        // Returned by getModulesByCourse
   created_at: string;
   updated_at?: string;
 }
 
 // ─── LESSON ───────────────────────────────────────────────────────────────────
-
 export type LessonLanguage = 'javascript' | 'python' | 'html' | 'scratch';
 
 export interface Lesson {
   id: string;
   module_id: string;
   title: string;
-  notes?: string;               // markdown content
+  lesson_type: 'notes' | 'coding' | 'scratch';
+  notes?: string;               // Markdown content
+  assignment?: string | null;   // ✨ FIXED: coding task description (plain text)
   language?: LessonLanguage;
-  starter_code?: string;        // pre-filled in the editor
-  solution_code?: string;       // admin's reference solution
+  starter_code?: string;
+  solution_code?: string;
+  expected_output?: string;     // For optional auto‑check
   order_index: number;
-  module_title?: string;        // joined from getLessonById
-  course_id?: string;           // joined from getLessonById
+  question_count?: number;      // Joined from curriculum query
+  module_title?: string;        // Joined from getLessonById
+  course_id?: string;           // Joined from getLessonById
   created_at: string;
   updated_at?: string;
 }
 
 // ─── CURRICULUM ───────────────────────────────────────────────────────────────
-// Returned by getCourseCurriculum — full nested structure
-
 export interface ModuleWithLessons extends Module {
   lessons: Lesson[];
 }
@@ -55,18 +56,17 @@ export interface CourseCurriculum extends Course {
   modules: ModuleWithLessons[];
 }
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-
+// ─── STATE (fully matches Redux slice) ────────────────────────────────────────
 export interface CourseState {
   courses: Course[];
   currentCurriculum: CourseCurriculum | null;
   currentLesson: Lesson | null;
+  currentLessonAssignment: string | null;   // ✨ NEW: lightweight assignment cache
   loading: boolean;
   error: string | null;
 }
 
 // ─── API RESPONSES ────────────────────────────────────────────────────────────
-
 export interface CoursesListResponse {
   status: string;
   results: number;

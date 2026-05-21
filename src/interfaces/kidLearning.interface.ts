@@ -1,29 +1,41 @@
+// src/interfaces/kidLearning.interface.ts
+
 export interface KidCourse {
   enrollment_id: string;
   course_id: string;
-  name: string;             // was 'title' — controller now returns 'name'
+  name: string;
   enrolled_at: string;
   status: string;
   progress: number;
   completed_lessons: number;
   total_lessons: number;
-  // removed: id, title, description, duration, image, category (no longer from courses table)
+}
+
+export interface GitHubSubmission {
+  status: 'pending' | 'approved' | 'needs_fix';
+  github_url: string;
+  tutor_feedback: string | null;
+  graded_points: number;
+  submitted_at: string;
+  reviewed_at: string | null;
 }
 
 export interface Lesson {
   id: string;
   module_id: string;
   title: string;
+  lesson_type: 'notes' | 'coding' | 'scratch';
   notes: string;
   language: string;
   starter_code: string;
   solution_code: string;
   order_index: number;
+  assignment?: string | null;
   completed: boolean;
   points_earned: number;
   code_submitted: string | null;
   completed_at: string | null;
-  // removed: module_title, course_id, course_title (not returned by controller)
+  github_submission: GitHubSubmission | null;
 }
 
 export interface ModuleWithLessons {
@@ -37,9 +49,8 @@ export interface ModuleWithLessons {
 
 export interface CourseContent {
   enrollment_id: string;
-  course_name: string;      // replaces nested course object
+  course_name: string;
   modules: ModuleWithLessons[];
-  // removed: course object (no longer querying courses table)
 }
 
 export interface KidDashboardStats {
@@ -59,13 +70,12 @@ export interface KidDashboardStats {
     level: number;
     points_to_next_level: number;
     streak_days: number;
-    // removed: completed_courses (dropped from controller)
+    lessons_this_week: number;   // ✅ added
   };
   recent_achievements: Array<{
     name: string;
     earned_at: string;
     points_earned: number;
-    // removed: type (dropped from controller)
   }>;
 }
 
@@ -93,7 +103,9 @@ export interface SubmitLessonResponse {
       id: string;
       completed: boolean;
       points_earned: number;
+      code_submitted: string;
     };
+    submission?: GitHubSubmission;
     points_earned: number;
     message: string;
   };
