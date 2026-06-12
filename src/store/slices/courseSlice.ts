@@ -8,11 +8,16 @@ import type {
   Module,
   Lesson,
   CourseCurriculum,
+  Question,
+  QuizSubmissionResult,
 } from "../../interfaces/course.interface";
 
-// Extend CourseState to optionally hold the fetched assignment separately
+// ─── Extended State ───────────────────────────────────────────────────────────
+
 interface ExtendedCourseState extends CourseState {
   currentLessonAssignment: string | null;
+  currentLessonQuestions: Question[] | null;
+  quizSubmissionResult: QuizSubmissionResult | null;
 }
 
 const initialState: ExtendedCourseState = {
@@ -20,12 +25,13 @@ const initialState: ExtendedCourseState = {
   currentCurriculum: null,
   currentLesson: null,
   currentLessonAssignment: null,
+  currentLessonQuestions: null,
+  quizSubmissionResult: null,
   loading: false,
   error: null,
 };
 
 // ─── COURSES ──────────────────────────────────────────────────────────────────
-
 export const getAllCourses = createAsyncThunk<Course[], void>(
   "course/getAllCourses",
   async (_, thunkAPI) => {
@@ -60,7 +66,6 @@ export const createCourse = createAsyncThunk<Course, Partial<Course>>(
 );
 
 // ─── CURRICULUM ───────────────────────────────────────────────────────────────
-
 export const getCourseCurriculum = createAsyncThunk<CourseCurriculum, string>(
   "course/getCourseCurriculum",
   async (courseId, thunkAPI) => {
@@ -79,7 +84,6 @@ export const getCourseCurriculum = createAsyncThunk<CourseCurriculum, string>(
 );
 
 // ─── MODULES ──────────────────────────────────────────────────────────────────
-
 export const createModule = createAsyncThunk<Module, Partial<Module>>(
   "course/createModule",
   async (moduleData, thunkAPI) => {
@@ -98,7 +102,10 @@ export const createModule = createAsyncThunk<Module, Partial<Module>>(
   }
 );
 
-export const updateModule = createAsyncThunk<Module, { moduleId: string; data: Partial<Module> }>(
+export const updateModule = createAsyncThunk<
+  Module,
+  { moduleId: string; data: Partial<Module> }
+>(
   "course/updateModule",
   async ({ moduleId, data }, thunkAPI) => {
     try {
@@ -132,7 +139,6 @@ export const deleteModule = createAsyncThunk<string, string>(
 );
 
 // ─── LESSONS ──────────────────────────────────────────────────────────────────
-
 export const createLesson = createAsyncThunk<Lesson, Partial<Lesson>>(
   "course/createLesson",
   async (lessonData, thunkAPI) => {
@@ -168,7 +174,10 @@ export const getLessonById = createAsyncThunk<Lesson, string>(
   }
 );
 
-export const updateLesson = createAsyncThunk<Lesson, { lessonId: string; data: Partial<Lesson> }>(
+export const updateLesson = createAsyncThunk<
+  Lesson,
+  { lessonId: string; data: Partial<Lesson> }
+>(
   "course/updateLesson",
   async ({ lessonId, data }, thunkAPI) => {
     try {
@@ -201,7 +210,7 @@ export const deleteLesson = createAsyncThunk<string, string>(
   }
 );
 
-// ✨ NEW – dedicated assignment thunks
+// ─── ASSIGNMENT ───────────────────────────────────────────────────────────────
 export const getLessonAssignment = createAsyncThunk<string, string>(
   "course/getLessonAssignment",
   async (lessonId, thunkAPI) => {
@@ -240,8 +249,103 @@ export const updateLessonAssignment = createAsyncThunk<
   }
 );
 
-// ─── SLICE ────────────────────────────────────────────────────────────────────
+// ─── QUIZ QUESTIONS (async CRUD) ─────────────────────────────────────────────
+export const getLessonQuestions = createAsyncThunk<Question[], string>(
+  "course/getLessonQuestions",
+  async (lessonId, thunkAPI) => {
+    try {
+      const res = await api.get<{ status: string; data: { questions: Question[] } }>(
+        `/courses/lessons/${lessonId}/questions`
+      );
+      return res.data.data.questions;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch questions"
+      );
+    }
+  }
+);
 
+export const addQuestion = createAsyncThunk<
+  Question,
+  { lessonId: string; questionData: Omit<Question, 'id'> }
+>(
+  "course/addQuestion",
+  async ({ lessonId, questionData }, thunkAPI) => {
+    try {
+      const res = await api.post<{ status: string; data: { question: Question } }>(
+        `/courses/lessons/${lessonId}/questions`,
+        questionData
+      );
+      return res.data.data.question;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to add question"
+      );
+    }
+  }
+);
+
+export const updateQuestion = createAsyncThunk<
+  Question,
+  { questionId: string; questionData: Partial<Omit<Question, 'id'>> }
+>(
+  "course/updateQuestion",
+  async ({ questionId, questionData }, thunkAPI) => {
+    try {
+      const res = await api.patch<{ status: string; data: { question: Question } }>(
+        `/courses/lessons/questions/${questionId}`,
+        questionData
+      );
+      return res.data.data.question;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to update question"
+      );
+    }
+  }
+);
+
+export const deleteQuestion = createAsyncThunk<string, string>(
+  "course/deleteQuestion",
+  async (questionId, thunkAPI) => {
+    try {
+      await api.delete(`/courses/lessons/questions/${questionId}`);
+      return questionId;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to delete question"
+      );
+    }
+  }
+);
+
+export const submitLessonQuiz = createAsyncThunk<
+  QuizSubmissionResult,
+  { lessonId: string; studentId: string; answers: { questionId: string; selectedIndex: number }[] }
+>(
+  "course/submitLessonQuiz",
+  async ({ lessonId, studentId, answers }, thunkAPI) => {
+    try {
+      const res = await api.post<{ status: string; data: QuizSubmissionResult }>(
+        `/courses/lessons/${lessonId}/submit`,
+        { studentId, answers }
+      );
+      return res.data.data;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to submit quiz"
+      );
+    }
+  }
+);
+
+// ─── SLICE ────────────────────────────────────────────────────────────────────
 const courseSlice = createSlice({
   name: "course",
   initialState,
@@ -253,9 +357,14 @@ const courseSlice = createSlice({
     clearCurrentLesson: (state) => {
       state.currentLesson = null;
       state.currentLessonAssignment = null;
+      state.currentLessonQuestions = null;
+      state.quizSubmissionResult = null;
     },
     clearCurrentLessonAssignment: (state) => {
       state.currentLessonAssignment = null;
+    },
+    clearQuizSubmissionResult: (state) => {
+      state.quizSubmissionResult = null;
     },
   },
   extraReducers: (builder) => {
@@ -319,8 +428,10 @@ const courseSlice = createSlice({
       .addCase(getLessonById.fulfilled, (state, action: PayloadAction<Lesson>) => {
         state.loading = false;
         state.currentLesson = action.payload;
-        // Also store the assignment separately for convenience
         state.currentLessonAssignment = action.payload.assignment || null;
+        if (action.payload.questions) {
+          state.currentLessonQuestions = action.payload.questions;
+        }
       })
       .addCase(updateLesson.fulfilled, (state, action: PayloadAction<Lesson>) => {
         state.loading = false;
@@ -336,6 +447,9 @@ const courseSlice = createSlice({
         if (state.currentLesson?.id === action.payload.id) {
           state.currentLesson = action.payload;
           state.currentLessonAssignment = action.payload.assignment || null;
+          if (action.payload.questions) {
+            state.currentLessonQuestions = action.payload.questions;
+          }
         }
       })
       .addCase(deleteLesson.fulfilled, (state, action: PayloadAction<string>) => {
@@ -349,10 +463,11 @@ const courseSlice = createSlice({
         if (state.currentLesson?.id === action.payload) {
           state.currentLesson = null;
           state.currentLessonAssignment = null;
+          state.currentLessonQuestions = null;
         }
       })
 
-      // ✨ NEW assignment cases
+      // ── Assignment ─────────────────────────────────────────────────────────
       .addCase(getLessonAssignment.fulfilled, (state, action: PayloadAction<string>) => {
         state.loading = false;
         state.currentLessonAssignment = action.payload;
@@ -361,20 +476,55 @@ const courseSlice = createSlice({
         state.loading = false;
         const { lessonId, assignment } = action.payload;
         state.currentLessonAssignment = assignment;
-        // Also update inside currentLesson if it matches
         if (state.currentLesson?.id === lessonId) {
           state.currentLesson.assignment = assignment;
         }
-        // Also update inside currentCurriculum if present
         if (state.currentCurriculum) {
           for (const mod of state.currentCurriculum.modules) {
-            const lesson = mod.lessons.find(l => l.id === lessonId);
+            const lesson = mod.lessons.find((l) => l.id === lessonId);
             if (lesson) {
               lesson.assignment = assignment;
               break;
             }
           }
         }
+      })
+
+      // ── Quiz Questions (fetch & mutations) ─────────────────────────────────
+      .addCase(getLessonQuestions.fulfilled, (state, action: PayloadAction<Question[]>) => {
+        state.loading = false;
+        state.currentLessonQuestions = action.payload;
+      })
+      .addCase(addQuestion.fulfilled, (state, action: PayloadAction<Question>) => {
+        state.loading = false;
+        if (state.currentLessonQuestions) {
+          state.currentLessonQuestions.push(action.payload);
+        } else {
+          state.currentLessonQuestions = [action.payload];
+        }
+      })
+      .addCase(updateQuestion.fulfilled, (state, action: PayloadAction<Question>) => {
+        state.loading = false;
+        if (state.currentLessonQuestions) {
+          const idx = state.currentLessonQuestions.findIndex((q) => q.id === action.payload.id);
+          if (idx !== -1) {
+            state.currentLessonQuestions[idx] = action.payload;
+          }
+        }
+      })
+      .addCase(deleteQuestion.fulfilled, (state, action: PayloadAction<string>) => {
+        state.loading = false;
+        if (state.currentLessonQuestions) {
+          state.currentLessonQuestions = state.currentLessonQuestions.filter(
+            (q) => q.id !== action.payload
+          );
+        }
+      })
+
+      // ── Quiz Submission ────────────────────────────────────────────────────
+      .addCase(submitLessonQuiz.fulfilled, (state, action: PayloadAction<QuizSubmissionResult>) => {
+        state.loading = false;
+        state.quizSubmissionResult = action.payload;
       })
 
       // ── Global Pending ─────────────────────────────────────────────────────
@@ -385,7 +535,6 @@ const courseSlice = createSlice({
           state.error = null;
         }
       )
-
       // ── Global Rejected ────────────────────────────────────────────────────
       .addMatcher(
         (action) => action.type.startsWith("course/") && action.type.endsWith("/rejected"),
@@ -397,5 +546,13 @@ const courseSlice = createSlice({
   },
 });
 
-export const { resetCourseState, clearCurrentLesson, clearCurrentLessonAssignment } = courseSlice.actions;
+export const {
+  resetCourseState,
+  clearCurrentLesson,
+  clearCurrentLessonAssignment,
+  clearQuizSubmissionResult,
+} = courseSlice.actions;
+
+
+
 export default courseSlice.reducer;

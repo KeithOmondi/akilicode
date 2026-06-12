@@ -61,6 +61,7 @@ import KidLeaderboard from "./pages/kids/Kidleaderboard";
 import KidBadges from "./pages/kids/KidBadges";
 import KidCalendar from "./pages/kids/KidCalendar";
 import ComingSoonWrapper from "./pages/kids/Comingsoonwrapper";
+import ParentGuide from "./pages/ParentGuide";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -126,6 +127,7 @@ const App = () => {
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/kid/login" element={<KidLogin />} />
+        <Route path="/parent-guide" element={<ParentGuide />} />
 
         <Route element={<PublicLayout />}>
           <Route path="/blog" element={<BlogList />} />

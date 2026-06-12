@@ -25,29 +25,47 @@ export interface Module {
   updated_at?: string;
 }
 
-// ─── LESSON ───────────────────────────────────────────────────────────────────
+// ─── LESSON (simplified – no coding execution fields) ────────────────────────
 export type LessonLanguage = 'javascript' | 'python' | 'html' | 'scratch';
 
 export interface Lesson {
   id: string;
   module_id: string;
   title: string;
-  lesson_type: 'notes' | 'coding' | 'scratch';
-  notes?: string;               // Markdown content
-  assignment?: string | null;   // ✨ FIXED: coding task description (plain text)
-  language?: LessonLanguage;
-  starter_code?: string;
-  solution_code?: string;
-  expected_output?: string;     // For optional auto‑check
+  lesson_type?: 'notes' | 'coding' | 'scratch';  // Backward compatibility
+  notes?: string;               // Markdown content (lesson text)
+  assignment?: string | null;   // Optional coding task description (plain text)
+  language?: LessonLanguage;    // For reference only – no code execution
+  starter_code?: string;        // Can be removed, but keep for now
+  solution_code?: string;       // Can be removed
+  expected_output?: string;     // Not used in quiz-only mode
   order_index: number;
-  question_count?: number;      // Joined from curriculum query
+  question_count?: number;      // Number of quiz questions
   module_title?: string;        // Joined from getLessonById
   course_id?: string;           // Joined from getLessonById
+  questions?: Question[];       // ✨ NEW – quiz questions embedded (when fetched)
   created_at: string;
   updated_at?: string;
 }
 
-// ─── CURRICULUM ───────────────────────────────────────────────────────────────
+// ─── QUIZ QUESTION (Multiple Choice) ─────────────────────────────────────────
+export interface Question {
+  id: string;
+  question: string;
+  options: string[];            // Array of possible answers
+  answer: number;               // 0‑based index of correct option
+  order_index: number;
+}
+
+// ─── QUIZ SUBMISSION RESULT ─────────────────────────────────────────────────
+export interface QuizSubmissionResult {
+  score: number;
+  total: number;
+  percentage: number;
+  passed: boolean;              // e.g., ≥70%
+}
+
+// ─── CURRICULUM (unchanged) ──────────────────────────────────────────────────
 export interface ModuleWithLessons extends Module {
   lessons: Lesson[];
 }
@@ -56,12 +74,14 @@ export interface CourseCurriculum extends Course {
   modules: ModuleWithLessons[];
 }
 
-// ─── STATE (fully matches Redux slice) ────────────────────────────────────────
+// ─── STATE (fully matches Redux slice) ───────────────────────────────────────
 export interface CourseState {
   courses: Course[];
   currentCurriculum: CourseCurriculum | null;
   currentLesson: Lesson | null;
-  currentLessonAssignment: string | null;   // ✨ NEW: lightweight assignment cache
+  currentLessonAssignment: string | null;       // Cached assignment text
+  currentLessonQuestions: Question[] | null;    // ✨ NEW – fetched questions
+  quizSubmissionResult: QuizSubmissionResult | null; // ✨ NEW – last quiz result
   loading: boolean;
   error: string | null;
 }

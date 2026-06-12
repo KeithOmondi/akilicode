@@ -50,7 +50,7 @@ const Header = () => {
         <div className="max-w-6xl mx-auto px-4 py-2 flex justify-between items-center">
           <div className="flex items-center gap-3 sm:gap-4">
             <a href="mailto:info@akilicode.com" className="flex items-center gap-1 hover:text-orange-400">
-              <Mail size={12} /> <span className="hidden xs:inline">info@akilicode.com</span>
+              <Mail size={12} /> <span className="hidden xs:inline">akilicode2@gmail.com</span>
             </a>
             <a href="tel:+254705806889" className="flex items-center gap-1">
               <Phone size={12} /> <span>+ (254) 705806889</span>

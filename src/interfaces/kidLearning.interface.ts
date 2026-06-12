@@ -109,4 +109,31 @@ export interface SubmitLessonResponse {
     points_earned: number;
     message: string;
   };
+
+  
+}
+
+// src/interfaces/kidLearning.interface.ts
+
+// Add after existing interfaces
+
+export interface Question {
+  id: string;
+  question: string;
+  options: string[];
+  answer: number;          // 0-based index of correct option (not exposed to kid)
+  order_index: number;
+}
+
+export interface QuizSubmissionResult {
+  score: number;
+  total: number;
+  percentage: number;
+  passed: boolean;
+}
+
+// Also add to Lesson interface (optional, if backend embeds questions)
+export interface Lesson {
+  // ... existing fields
+  questions?: Question[];   // if embedded
 }

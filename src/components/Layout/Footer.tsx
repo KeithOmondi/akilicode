@@ -32,8 +32,8 @@ const Footer = () => {
   ];
 
   const contactInfo = [
-    { icon: <Mail size={16} />, text: "hello@akilicode.com", href: "mailto:hello@akilicode.com" },
-    { icon: <Phone size={16} />, text: "+254 700 123 456", href: "tel:+254700123456" },
+    { icon: <Mail size={16} />, text: "akilicode2@gmail.com", href: "mailto:akilicode2@gmail.com" },
+    { icon: <Phone size={16} />, text: "+254 705 806 889", href: "tel:+254705806889" },
     { icon: <MapPin size={16} />, text: "Nairobi, Kenya", href: "#" },
     { icon: <Clock size={16} />, text: "Mon-Fri: 9am - 6pm", href: "#" }
   ];

@@ -90,7 +90,7 @@ const LegalPage = () => {
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             <a href="mailto:legal@akilicode.com" className="flex items-center gap-2 text-purple-600 hover:text-purple-700">
               <Mail size={16} />
-              legal@akilicode.com
+              akilicode2@gmail.com
             </a>
             <a href="tel:+254705806889" className="flex items-center gap-2 text-purple-600 hover:text-purple-700">
               <Phone size={16} />
