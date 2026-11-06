@@ -9,8 +9,6 @@ import {
   X, 
   Baby, 
   ChevronRight,
-  MoreVertical,
-  BookOpen,
   Lock,
   KeyRound
 } from "lucide-react"; 
@@ -20,6 +18,7 @@ import type { IKid } from "../../interfaces/kid.interface";
 import api from "../../api/api";
 import ConsentPanel, { type ConsentValue } from "../../components/parent/ConsentPanel";
 import ChildSettingsModal from "../../components/parent/ChildSettingsModal";
+import KidActionsMenu from "../../components/parent/KidActionsMenu";
 
 const MyKids = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -48,8 +47,6 @@ const MyKids = () => {
   const [setupKid, setSetupKid] = useState<IKid | null>(null);
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(getMyKids());
@@ -85,20 +82,6 @@ const MyKids = () => {
       })
       .catch((err: string) => toast.error(err));
   };
-
-  const toggleDropdown = (kidId: string) => {
-    setOpenDropdownId(openDropdownId === kidId ? null : kidId);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdownId && !(event.target as Element).closest('.dropdown-container')) {
-        setOpenDropdownId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openDropdownId]);
 
   return (
     <div className="min-h-screen bg-[#FDFCFE] p-4 md:p-8">
@@ -336,48 +319,13 @@ const MyKids = () => {
                         )}
                        </td>
                       <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 relative dropdown-container">
-                          <div className="relative">
-                            <button 
-                              onClick={() => toggleDropdown(kid.id)}
-                              className="p-2 hover:bg-white rounded-lg text-gray-400 hover:text-purple-600 transition-all shadow-none hover:shadow-sm"
-                            >
-                              <MoreVertical size={18} />
-                            </button>
-                            
-                            {/* Dropdown Menu */}
-                            {openDropdownId === kid.id && (
-                              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-purple-100 py-2 z-50 overflow-hidden">
-                                <a
-                                  href="/parent/programs"
-                                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                                >
-                                  <BookOpen size={16} className="text-purple-400" />
-                                  View Programs
-                                </a>
-                                <button
-                                  onClick={() => {
-                                    setSettingsKid(kid);
-                                    setOpenDropdownId(null);
-                                  }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                                >
-                                  <MoreVertical size={16} className="text-purple-400" />
-                                  Child settings
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSetupKid(kid);
-                                    setOpenDropdownId(null);
-                                  }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors"
-                                >
-                                  <KeyRound size={16} className="text-orange-400" />
-                                  {kid.username ? "Update Login" : "Setup Login"}
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                        <div className="flex items-center justify-end gap-2">
+                          <KidActionsMenu
+                            childName={kid.name}
+                            hasLogin={!!kid.username}
+                            onSettings={() => setSettingsKid(kid)}
+                            onLogin={() => setSetupKid(kid)}
+                          />
                           <ChevronRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
                         </div>
                        </td>
