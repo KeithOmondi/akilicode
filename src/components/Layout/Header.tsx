@@ -49,11 +49,11 @@ const Header = () => {
       <div className={`fixed top-0 left-0 right-0 z-50 bg-purple-900 text-white/90 text-[10px] sm:text-xs transition-transform duration-300 ${scrolled ? "-translate-y-full" : "translate-y-0"}`}>
         <div className="max-w-6xl mx-auto px-4 py-2 flex justify-between items-center">
           <div className="flex items-center gap-3 sm:gap-4">
-            <a href="mailto:info@akilicode.com" className="flex items-center gap-1 hover:text-orange-400">
+            <a href="mailto:akilicode2@gmail.com" className="flex items-center gap-1 hover:text-orange-400">
               <Mail size={12} /> <span className="hidden xs:inline">akilicode2@gmail.com</span>
             </a>
             <a href="tel:+254705806889" className="flex items-center gap-1">
-              <Phone size={12} /> <span>+ (254) 705806889</span>
+              <Phone size={12} /> <span>+ (254) 705 806 889</span>
             </a>
           </div>
           <div className="flex items-center gap-3">

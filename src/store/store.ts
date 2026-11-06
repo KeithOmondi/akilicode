@@ -6,7 +6,6 @@ import paymentReducer from "./slices/paymentSlice"
 import courseReducer from "./slices/courseSlice"
 import trialsReducer from "./slices/trialSlice"
 import kidLearningReducer from "./slices/kidLearningSlice"
-import codePlaygroundReducer from './slices/codePlaygroundSlice';
 import pricingReducer from "./slices/pricingSlice"
 import userReducer from "./slices/userSlice"
 import submissionsReducer from "./slices/submissionSlice"
@@ -21,7 +20,6 @@ export const store = configureStore({
     course: courseReducer,
     trials: trialsReducer,
     kidLearning: kidLearningReducer,
-    codePlayground: codePlaygroundReducer,
     pricing: pricingReducer,
     user: userReducer,
     submissions: submissionsReducer,
