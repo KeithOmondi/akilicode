@@ -56,7 +56,9 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequest;
-    const isRefreshCall   = originalRequest.url?.includes("/auth/refresh");
+    // A 401 from these calls means "wrong password / wrong code", NOT "your session expired".
+    // Treating it as an expired session made the page reload and wipe the error message.
+    const isRefreshCall   = /\/auth\/(refresh|login|register|otp\/|forgot-password|reset-password|parent-gate)/.test(originalRequest.url ?? "");
     const isKidPath       = window.location.pathname.startsWith("/kid");
 
     const body = error.response?.data as { code?: string; message?: string } | undefined;

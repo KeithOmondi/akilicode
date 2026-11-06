@@ -116,6 +116,12 @@ const Login = () => {
             </div>
           </div>
 
+          {typeof error === "string" && error && (
+            <p role="alert" className="text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+              {error}
+            </p>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
