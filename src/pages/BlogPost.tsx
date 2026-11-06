@@ -1,3 +1,4 @@
+import { sanitizeHtml } from "../lib/sanitize";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { BlogPost as BlogPostType } from "../interfaces/blog.interface";
@@ -154,7 +155,7 @@ const BlogPost = () => {
               prose-strong:text-gray-800
               prose-code:text-orange-600 prose-code:bg-orange-50 prose-code:px-1 prose-code:rounded
               prose-blockquote:border-purple-400 prose-blockquote:text-purple-700"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
           />
 
           {/* Tags */}

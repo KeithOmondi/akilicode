@@ -17,6 +17,9 @@ import {
 import { getMyKids, registerKid, setKidLogin } from "../../store/slices/kidSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import type { IKid } from "../../interfaces/kid.interface";
+import api from "../../api/api";
+import ConsentPanel, { type ConsentValue } from "../../components/parent/ConsentPanel";
+import ChildSettingsModal from "../../components/parent/ChildSettingsModal";
 
 const MyKids = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -27,6 +30,19 @@ const MyKids = () => {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [grade, setGrade] = useState("");
+  const [consent, setConsent] = useState<ConsentValue | null>(null);
+  const [settingsKid, setSettingsKid] = useState<IKid | null>(null);
+  const settingsKidNow = settingsKid ? kids.find((k) => k.id === settingsKid.id) ?? settingsKid : null;
+
+  const linkThisDevice = async () => {
+    try {
+      await api.post("/kids/device/link");
+      toast.success("Done! This device now shows your children's picture login.");
+    } catch (e) {
+      const msg = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
+      if (msg) toast.error(msg);
+    }
+  };
 
   // Login Setup States
   const [setupKid, setSetupKid] = useState<IKid | null>(null);
@@ -41,7 +57,8 @@ const MyKids = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(registerKid({ name, age: Number(age), grade: grade || undefined }))
+    if (!consent) return;
+    dispatch(registerKid({ name, age: Number(age), grade: grade || undefined, consent }))
       .unwrap()
       .then(() => {
         toast.success("Great! Your explorer is registered.");
@@ -101,6 +118,16 @@ const MyKids = () => {
           </div>
           
           {!showForm && (
+            <div className="flex flex-col sm:flex-row gap-3">
+            {kids.length > 0 && (
+              <button
+                onClick={linkThisDevice}
+                className="flex items-center justify-center gap-2 border-2 border-purple-200 text-purple-800 font-bold py-3 px-5 rounded-2xl hover:bg-purple-50"
+                title="Shows your children's pictures on this device's login page"
+              >
+                <KeyRound size={18} /> Use this device for my kids
+              </button>
+            )}
             <button
               onClick={() => setShowForm(true)}
               className="flex items-center justify-center gap-2 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-105"
@@ -108,6 +135,7 @@ const MyKids = () => {
               <Plus size={20} />
               Add Explorer
             </button>
+            </div>
           )}
         </div>
 
@@ -125,11 +153,11 @@ const MyKids = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-purple-900 ml-1">Full Name</label>
+                  <label className="text-sm font-bold text-purple-900 ml-1">Nickname</label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 text-purple-300" size={18} />
                     <input
-                      type="text" required placeholder="e.g. Amara"
+                      type="text" required maxLength={40} placeholder="e.g. Amara (a nickname is fine)"
                       value={name} onChange={(e) => setName(e.target.value)}
                       className="w-full bg-purple-50 border-none rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-orange-500 transition-all outline-none"
                     />
@@ -141,7 +169,7 @@ const MyKids = () => {
                   <div className="relative">
                     <Calendar className="absolute left-3 top-3 text-purple-300" size={18} />
                     <input
-                      type="number" required min={1} max={18}
+                      type="number" required min={3} max={19}
                       value={age} onChange={(e) => setAge(e.target.value)}
                       className="w-full bg-purple-50 border-none rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none"
                     />
@@ -161,6 +189,8 @@ const MyKids = () => {
                 </div>
               </div>
 
+              <ConsentPanel onChange={setConsent} />
+
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button" onClick={() => setShowForm(false)}
@@ -169,7 +199,7 @@ const MyKids = () => {
                   Cancel
                 </button>
                 <button
-                  type="submit" disabled={loading}
+                  type="submit" disabled={loading || !consent}
                   className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-xl shadow-md transition-all active:scale-95"
                 >
                   {loading ? "Processing..." : "Register Kid"}
@@ -235,6 +265,8 @@ const MyKids = () => {
           </div>
         )}
 
+        {settingsKidNow && <ChildSettingsModal kid={settingsKidNow} onClose={() => setSettingsKid(null)} />}
+
         {/* Empty State */}
         {!loading && kids.length === 0 && !showForm && (
           <div className="bg-white rounded-3xl p-16 text-center border-2 border-dashed border-purple-100">
@@ -292,6 +324,16 @@ const MyKids = () => {
                             No credentials set
                           </div>
                         )}
+                        {kid.pin_reset_required && (
+                          <button onClick={() => setSettingsKid(kid)} className="mt-1 block text-xs font-black text-orange-700 bg-orange-50 rounded-lg px-2 py-1">
+                            New PIN needed
+                          </button>
+                        )}
+                        {kid.needs_consent && (
+                          <button onClick={() => setSettingsKid(kid)} className="mt-1 block text-xs font-black text-red-700 bg-red-50 rounded-lg px-2 py-1">
+                            Please confirm consent
+                          </button>
+                        )}
                        </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 relative dropdown-container">
@@ -313,6 +355,16 @@ const MyKids = () => {
                                   <BookOpen size={16} className="text-purple-400" />
                                   View Programs
                                 </a>
+                                <button
+                                  onClick={() => {
+                                    setSettingsKid(kid);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                                >
+                                  <MoreVertical size={16} className="text-purple-400" />
+                                  Child settings
+                                </button>
                                 <button
                                   onClick={() => {
                                     setSetupKid(kid);

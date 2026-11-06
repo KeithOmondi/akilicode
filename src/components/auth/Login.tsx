@@ -4,11 +4,13 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { login, resetAuthState } from "../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import { Mail, Lock, LogIn, Loader2, Eye, EyeOff } from "lucide-react";
+import PhoneAuth from "./PhoneAuth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [usePhone, setUsePhone] = useState(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -61,6 +63,7 @@ const Login = () => {
           </p>
         </div>
 
+        {usePhone ? <PhoneAuth mode="login" /> : (
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Field */}
           <div>
@@ -126,6 +129,17 @@ const Login = () => {
             )}
           </button>
         </form>
+        )}
+
+        <div className="mt-5 text-center">
+          <button
+            type="button"
+            onClick={() => setUsePhone(!usePhone)}
+            className="text-sm font-bold text-orange-600 hover:text-orange-700 underline underline-offset-4"
+          >
+            {usePhone ? "Use my email and password instead" : "Use my phone number instead"}
+          </button>
+        </div>
 
         {/* Footer Link */}
         <div className="mt-8 text-center">

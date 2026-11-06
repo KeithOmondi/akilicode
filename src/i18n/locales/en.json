@@ -6,7 +6,8 @@
     "next": "Next",
     "save": "Save",
     "cancel": "Cancel",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "somethingWrong": "Something went wrong. Please try again."
   },
   "notFound": {
     "title": "We can't find that page",
@@ -21,5 +22,112 @@
   },
   "kid": {
     "tooManyTries": "Too many tries. Ask a grown-up to help, or wait a few minutes."
+  },
+  "gate": {
+    "title": "Please confirm it's you",
+    "subtitle": "This keeps your family's settings and payments safe.",
+    "explain": "Children share devices. Before we change something important, we check that you are the grown-up.",
+    "password": "Your password",
+    "code": "6-digit code from the text message",
+    "codeSent": "We sent a code by text message. It can take a minute.",
+    "codeFailed": "We could not send the code. Please try again.",
+    "failed": "That did not match. Please try again.",
+    "confirm": "Confirm",
+    "useCode": "Text me a code instead",
+    "usePassword": "Use my password instead",
+    "resend": "Send a new code"
+  },
+  "phoneAuth": {
+    "phone": "Phone number",
+    "hint": "We will text you a 6-digit code. Standard message rates may apply.",
+    "sendCode": "Send me a code",
+    "sent": "Code sent! Check your messages.",
+    "sendFailed": "We could not send the code. Please try again.",
+    "enterCode": "Enter the 6-digit code we sent to {{phone}}.",
+    "code": "6-digit code",
+    "name": "Your name",
+    "acceptPrefix": "I agree to the",
+    "terms": "Terms and Privacy Policy",
+    "createAccount": "Create my account",
+    "signIn": "Sign in",
+    "verifyFailed": "That code is wrong or has expired.",
+    "changeNumber": "Use a different number",
+    "resend": "Send a new code",
+    "resendIn": "New code in {{s}}s"
+  },
+  "kidPicker": {
+    "whoIsLearning": "Who is learning today?",
+    "hello": "Hi {{name}}!",
+    "enterPin": "Tap your secret PIN",
+    "needsNewPin": "Your PIN needs to be changed. Ask your grown-up to choose a new one for you.",
+    "useUsername": "I have a username instead"
+  },
+  "screenTime": {
+    "doneTitle": "Great work today!",
+    "doneBody": "Your screen time is finished for today. Your brain needs a rest. See you tomorrow!",
+    "bye": "Bye for now",
+    "breakTitle": "Time for a break!",
+    "breakBody": "Stand up, stretch and drink some water. Then come back and keep going.",
+    "tookBreak": "I took a break",
+    "left_one": "{{count}} minute left",
+    "left_other": "{{count}} minutes left"
+  },
+  "consent": {
+    "agree": "I have read this, and I agree.",
+    "version": "Wording version {{v}}",
+    "draft": "draft wording, pending legal review",
+    "loadFailed": "We could not load the consent text. Please refresh and try again."
+  },
+  "child": {
+    "settingsTitle": "{{name}}'s settings",
+    "settingsSubtitle": "You are in control of everything here.",
+    "consentNeeded": "Please confirm consent",
+    "acceptConsent": "I agree",
+    "consentSaved": "Thank you. Your consent is recorded.",
+    "pinTitle": "Login PIN",
+    "pinHelp": "A 4-digit PIN. Young children can use the pictures on the keypad: the same number, shown as an animal.",
+    "pinSaved": "PIN saved.",
+    "pinMustChange": "A new PIN is needed before this child can log in again.",
+    "timeTitle": "Screen time",
+    "usedToday": "Used today: {{min}} minutes.",
+    "dailyLimit": "Daily limit",
+    "noLimit": "No limit",
+    "breakEvery": "Remind to take a break every",
+    "timeSaved": "Screen time saved.",
+    "leaderboardTitle": "Friends ranking",
+    "leaderboardHelp": "Show my child's nickname and avatar in a ranking with other children who also have this switched on. Off by default. No real names are ever shown.",
+    "dataTitle": "Download or delete data",
+    "dataHelp": "You can download everything we hold about your child, or delete it for good. Payment receipts are kept for accounting but are no longer linked to your child.",
+    "download": "Download data",
+    "deleteAll": "Delete everything",
+    "deleteWarning": "This permanently deletes {{name}}'s profile, progress, submissions and badges. It cannot be undone.",
+    "typeName": "Type your child's nickname to confirm",
+    "deleteForever": "Delete forever",
+    "deleted": "Your child's profile and data were deleted."
+  },
+  "account": {
+    "dataTitle": "Your data",
+    "dataHelp": "Download everything we hold about you and your children, or delete your account and all children's data for good.",
+    "download": "Download my data",
+    "delete": "Delete my account",
+    "deleteWarning": "This permanently deletes your account and every child profile. It cannot be undone.",
+    "typeDelete": "Type DELETE to confirm",
+    "deleteForever": "Delete my account forever",
+    "deleted": "Your account was deleted."
+  },
+  "best": {
+    "title1": "My",
+    "title2": "Best",
+    "subtitle": "You against your own best. That's the only race that matters!",
+    "points": "Points",
+    "streak": "Day streak",
+    "thisWeek": "This week",
+    "bestWeek": "Best week",
+    "isBest": "🎉 This is your best week ever! Keep going!",
+    "startNow": "Complete a lesson to start your first week!",
+    "toBeat": "Just {{n}} more points to beat your best week!",
+    "friends": "Friends ranking",
+    "you": "you",
+    "askParent": "Want to see a friends ranking? Ask your grown-up to switch it on."
   }
 }

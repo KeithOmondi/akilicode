@@ -1,4 +1,5 @@
 // src/components/kid/KidCourseView.tsx
+import { sanitizeHtml } from "../../lib/sanitize";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -584,7 +585,7 @@ const KidCourseView = () => {
                       [&_blockquote]:border-l-4 [&_blockquote]:border-orange-400 [&_blockquote]:pl-5 [&_blockquote]:py-1 [&_blockquote]:italic [&_blockquote]:text-gray-600
                       [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-violet-100 [&_hr]:my-8"
                     dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(currentLesson.notes),
+                      __html: sanitizeHtml(renderMarkdown(currentLesson.notes)),
                     }}
                   />
                 </div>

@@ -29,6 +29,8 @@ import type { User } from '../../interfaces/auth.interface';
 // TODO: move two_factor_enabled into the shared User interface and remove this.
 type ParentUser = User & { two_factor_enabled?: boolean };
 
+import AccountDataCard from '../../components/parent/AccountDataCard';
+
 const ParentSettings: React.FC = () => {
   const dispatch = useAppDispatch();
 
@@ -556,6 +558,8 @@ const ParentSettings: React.FC = () => {
           </div>
         </div>
       )}
+
+      <AccountDataCard />
 
       {/* ── Snackbar ────────────────────────────────────────────────────────── */}
       {snackbar.open && (

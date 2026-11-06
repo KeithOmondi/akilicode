@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { register, resetAuthState } from "../../store/slices/authSlice";
 import toast from "react-hot-toast";
 import { User, Mail, Phone, Lock, UserPlus, Loader2, Eye, EyeOff } from "lucide-react";
+import PhoneAuth from "./PhoneAuth";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ const Register = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [usePhone, setUsePhone] = useState(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -55,6 +57,7 @@ const Register = () => {
           <p className="text-slate-500 font-serif mt-2 font-medium">Join the Akili Code community</p>
         </div>
 
+        {usePhone ? <PhoneAuth mode="signup" /> : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
@@ -141,6 +144,17 @@ const Register = () => {
             </button>
           </div>
         </form>
+        )}
+
+        <div className="mt-5 text-center">
+          <button
+            type="button"
+            onClick={() => setUsePhone(!usePhone)}
+            className="text-sm font-bold text-orange-600 hover:text-orange-700 underline underline-offset-4"
+          >
+            {usePhone ? "Sign up with email and password instead" : "Sign up with just my phone number"}
+          </button>
+        </div>
 
         <div className="mt-10 text-center">
           <p className="text-slate-500 font-medium text-sm">

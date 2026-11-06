@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../store/hooks";
 import KidsHeader from "./KidsHeader";
 import KidsSidebar from "./KidsSidebar";
+import ScreenTimeGuard from "./ScreenTimeGuard";
 
 interface KidsLayoutProps {
   children?: React.ReactNode;
@@ -48,6 +49,7 @@ const KidsLayout = ({ children }: KidsLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-orange-50">
+      <ScreenTimeGuard />
       <KidsHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <KidsSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       

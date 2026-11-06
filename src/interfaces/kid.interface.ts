@@ -8,6 +8,14 @@ export interface IKid {
   avatar?: string;
   username?: string;
   has_pin?: boolean;
+  birth_year?: number | null;
+  screen_time_daily_minutes?: number | null;
+  break_every_minutes?: number;
+  pin_reset_required?: boolean;
+  leaderboard_opt_in?: boolean;
+  /** true until the parent has accepted the CURRENT consent wording for this child */
+  needs_consent?: boolean;
+  consent_version?: string | null;
   created_at: Date;
 }
 
@@ -40,6 +48,8 @@ export interface RegisterKidPayload {
   age: number;
   grade?: string;
   avatar?: string;
+  /** The parent's consent: what they accepted, and in which version of the text. */
+  consent: { accepted: true; is_guardian: true; version: string };
 }
 
 export interface SetKidLoginPayload {

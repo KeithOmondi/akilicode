@@ -177,6 +177,25 @@ setAccessToken(accessToken);
   }
 );
 
+// POST /kids/picker/login — child taps their avatar on a family device and enters the PIN
+export const kidPickerLogin = createAsyncThunk<IKid, { kid_id: string; pin: string }>(
+  "kid/kidPickerLogin",
+  async (data, thunkAPI) => {
+    try {
+      const res = await api.post<{ accessToken: string } & KidResponse>("/kids/picker/login", data);
+      const { accessToken } = res.data;
+      if (accessToken) {
+        localStorage.setItem("kid_accessToken", accessToken);
+        setAccessToken(accessToken);
+      }
+      return res.data.data.kid;
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Incorrect PIN. Try again!");
+    }
+  }
+);
+
 // ─── HELPER ───────────────────────────────────────────────────────────────────
 
 /**
@@ -259,6 +278,11 @@ const kidSlice = createSlice({
       })
 
       // ── Kid Login ─────────────────────────────────────────────────────────
+      .addCase(kidPickerLogin.fulfilled, (state, action: PayloadAction<IKid>) => {
+        state.loading = false;
+        state.currentKid = withKidRole(action.payload);
+        state.message = `Welcome back, ${action.payload.name}!`;
+      })
       .addCase(kidLogin.fulfilled, (state, action: PayloadAction<IKid>) => {
         state.loading = false;
         state.currentKid = withKidRole(action.payload);

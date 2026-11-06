@@ -138,6 +138,14 @@ const authSlice = createSlice({
       state.error = null;
       state.message = null;
     },
+    /** Used by the phone + SMS-code flow, which talks to the API directly. */
+    sessionStarted: (state, action: PayloadAction<AuthResponse>) => {
+      state.loading = false;
+      state.error = null;
+      state.isAuthenticated = true;
+      state.user = action.payload.data.user;
+      setAccessToken(action.payload.accessToken);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -220,5 +228,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { resetAuthState } = authSlice.actions;
+export const { resetAuthState, sessionStarted } = authSlice.actions;
 export default authSlice.reducer;

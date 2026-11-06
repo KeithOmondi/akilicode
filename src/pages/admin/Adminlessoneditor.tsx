@@ -1,3 +1,4 @@
+import { sanitizeHtml } from "../../lib/sanitize";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -486,7 +487,7 @@ const AdminLessonEditor = () => {
               <PreviewToggle previewing={previewNotes} onToggle={() => setPreviewNotes((v) => !v)} />
             </div>
             {previewNotes ? (
-              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: renderMarkdown(notes) || "<p class='text-gray-600'>Nothing to preview yet.</p>" }} />
+              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(notes) || "<p class='text-gray-600'>Nothing to preview yet.</p>") }} />
             ) : (
               <textarea
                 value={notes}
@@ -509,7 +510,7 @@ const AdminLessonEditor = () => {
               <PreviewToggle previewing={previewAssignment} onToggle={() => setPreviewAssignment((v) => !v)} />
             </div>
             {previewAssignment ? (
-              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: renderMarkdown(assignment) || "<p class='text-gray-600'>No assignment yet.</p>" }} />
+              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(assignment) || "<p class='text-gray-600'>No assignment yet.</p>") }} />
             ) : (
               <textarea
                 value={assignment}

@@ -48,6 +48,7 @@ const AdminSidebar = ({ open, onClose }: AdminSidebarProps) => {
       path: "/admin/payments",      
       icon: <CreditCard size={20} /> 
     },
+    { name: "Prices & Coupons", path: "/admin/pricing", icon: <CreditCard size={20} /> },
     { 
       name: "User Directory", 
       path: "/admin/users",          

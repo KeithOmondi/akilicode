@@ -37,6 +37,7 @@ import AdminLessonEditor from "./pages/admin/Adminlessoneditor";
 import AdminBlog from "./pages/admin/AdminBlog";
 import AdminBlogEditor from "./pages/admin/AdminBlogEditor";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
+import AdminPricing from "./pages/admin/AdminPricing";
 
 // --- PARENT PAGES ---
 import ParentDashboard from "./pages/parent/ParentDashboard";
@@ -62,6 +63,7 @@ import KidBadges from "./pages/kids/KidBadges";
 import KidCalendar from "./pages/kids/KidCalendar";
 import ComingSoonWrapper from "./pages/kids/Comingsoonwrapper";
 import ParentGuide from "./pages/ParentGuide";
+import ParentGateDialog from "./components/shared/ParentGateDialog";
 import NotFound from "./pages/NotFound";
 import DesignSystem from "./pages/DesignSystem";
 
@@ -119,6 +121,7 @@ const App = () => {
           error: { iconTheme: { primary: "#dc2626", secondary: "#fff" } },
         }}
       />
+      <ParentGateDialog />
       <Routes>
         {/* ── Public Routes ── */}
         <Route path="/" element={<HomePage />} />
@@ -157,6 +160,7 @@ const App = () => {
               path="/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId"
               element={<AdminLessonEditor />}
             />
+            <Route path="/admin/pricing" element={<AdminPricing />} />
             <Route path="/admin/blog" element={<AdminBlog />} />
             <Route path="/admin/blog/new" element={<AdminBlogEditor />} />
             <Route

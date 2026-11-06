@@ -14,7 +14,7 @@ export interface IKid {
 export interface User {
   id: string;        // ← backend uses 'id' (PostgreSQL), not '_id' (MongoDB)
   name: string;
-  email: string;
+  email?: string;   // phone-only parents have no email
   phone: string;
   role: 'admin' | 'parent'; // ← matches your backend: role === 'admin' ? 'admin' : 'parent'
   isVerified?: boolean;

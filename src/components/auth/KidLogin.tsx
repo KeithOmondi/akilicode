@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { kidLogin, resetKidState } from "../../store/slices/kidSlice";
+import { kidLogin, kidPickerLogin, resetKidState } from "../../store/slices/kidSlice";
+import KidPicker from "./KidPicker";
 import toast from "react-hot-toast";
 import { User, Lock, Loader2, Eye, EyeOff, Sparkles, Gamepad2, Rocket } from "lucide-react";
 
@@ -9,6 +10,9 @@ const KidLogin = () => {
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
+  // "picker" = family device (avatars + PIN pad); "username" = classic form. Starts on picker and
+  // falls back to the username form by itself if this browser has not been set up by a parent.
+  const [view, setView] = useState<"picker" | "username">("picker");
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -18,11 +22,8 @@ const KidLogin = () => {
 
   // ── Success Navigation & Message ─────────────────────────────────────
   useEffect(() => {
-  console.log("👀 [KidLogin] useEffect:", { currentKid: !!currentKid, message });
-
   if (currentKid) {
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
-    console.log("➡️ [KidLogin] navigating to:", from || "/kid/dashboard");
 
     if (message) toast.success(message);
     navigate(from || "/kid/dashboard", { replace: true });
@@ -48,7 +49,6 @@ const KidLogin = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("📤 [KidLogin] handleSubmit fired", { username, pin });
     
     // UI Validation before dispatching
     if (username.length < 3) {
@@ -61,7 +61,6 @@ const KidLogin = () => {
     }
     
     dispatch(kidLogin({ username, pin }));
-      console.log("📤 [KidLogin] dispatch called");
   };
 
   return (
@@ -96,6 +95,14 @@ const KidLogin = () => {
             </p>
           </div>
 
+          {view === "picker" ? (
+            <KidPicker
+              busy={loading}
+              onPick={(kid_id, p) => dispatch(kidPickerLogin({ kid_id, pin: p }))}
+              onUnavailable={() => setView("username")}
+              onUseUsername={() => setView("username")}
+            />
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username Field */}
             <div>
@@ -165,6 +172,7 @@ const KidLogin = () => {
               )}
             </button>
           </form>
+          )}
         </div>
       </div>
 

@@ -4,8 +4,11 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
+import { askForGate, getGateToken } from "./parentGate";
+
 interface RetryableRequest extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _gateRetry?: boolean;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -24,6 +27,9 @@ const api: AxiosInstance = axios.create({
 // ── REQUEST INTERCEPTOR ───────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const gate = getGateToken();
+    if (gate) config.headers["X-Parent-Gate"] = gate;
+
     const isKidPath = window.location.pathname.startsWith("/kid");
 
     if (isKidPath) {
@@ -52,6 +58,26 @@ api.interceptors.response.use(
     const originalRequest = error.config as RetryableRequest;
     const isRefreshCall   = originalRequest.url?.includes("/auth/refresh");
     const isKidPath       = window.location.pathname.startsWith("/kid");
+
+    const body = error.response?.data as { code?: string; message?: string } | undefined;
+
+    // The server wants the parent to confirm it is them: ask, then repeat the request once.
+    if (error.response?.status === 403 && body?.code === "PARENT_GATE_REQUIRED" && !originalRequest._gateRetry) {
+      originalRequest._gateRetry = true;
+      try {
+        await askForGate();
+      } catch {
+        return Promise.reject(error);
+      }
+      const token = getGateToken();
+      if (token) originalRequest.headers["X-Parent-Gate"] = token;
+      return api(originalRequest);
+    }
+
+    // The parent's daily limit is used up: tell the screen-time guard (see ScreenTimeGuard.tsx).
+    if (error.response?.status === 403 && body?.code === "SCREEN_TIME_UP") {
+      window.dispatchEvent(new CustomEvent("akili:screen-time-up"));
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
       originalRequest._retry = true;
