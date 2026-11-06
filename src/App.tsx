@@ -62,6 +62,8 @@ import KidBadges from "./pages/kids/KidBadges";
 import KidCalendar from "./pages/kids/KidCalendar";
 import ComingSoonWrapper from "./pages/kids/Comingsoonwrapper";
 import ParentGuide from "./pages/ParentGuide";
+import NotFound from "./pages/NotFound";
+import DesignSystem from "./pages/DesignSystem";
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -128,6 +130,7 @@ const App = () => {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/kid/login" element={<KidLogin />} />
         <Route path="/parent-guide" element={<ParentGuide />} />
+        {import.meta.env.DEV && <Route path="/design-system" element={<DesignSystem />} />}
 
         <Route element={<PublicLayout />}>
           <Route path="/blog" element={<BlogList />} />
@@ -202,14 +205,7 @@ const App = () => {
         </Route>
 
         {/* ── Fallback ── */}
-        <Route
-          path="*"
-          element={
-            <div className="p-10 text-center font-bold">
-              404 - Page Not Found
-            </div>
-          }
-        />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );

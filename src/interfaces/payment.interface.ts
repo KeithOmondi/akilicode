@@ -55,8 +55,9 @@ export interface CreatePaymentPayload {
 // POST /mpesa/stk-push — request body
 export interface StkPushPayload {
   enrollment_id: string;
-  phone: string; // e.g. 2547XXXXXXXX
-  amount: number;
+  phone: string; // 07XX..., +2547XX... or 2547XX... (server normalises it)
+  /** Ignored by the server: the amount is always taken from the enrollment record. */
+  amount?: number;
 }
 
 // Single payment response — createPayment

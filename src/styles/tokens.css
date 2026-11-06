@@ -1,0 +1,136 @@
+/*
+  AKILI design tokens — PLACEHOLDER BRANDING.
+  Colours are deliberately neutral (calm blue + a few friendly accents) until the
+  owner chooses brand colours. To re-brand, change ONLY the values in this file:
+  every component class below and every Tailwind utility (bg-brand-600, text-ink-700…)
+  reads from these variables.
+
+  Two moods share one set of tokens:
+    • Parent / admin  (default)           calm, clean, trustworthy
+    • Kid             (data-mood="kid")   bigger, rounder, more colourful
+  Put data-mood="kid" on the layout wrapper of every child screen.
+*/
+
+@theme {
+  /* ── Brand (placeholder: calm blue) ─────────────────────────── */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;   /* primary buttons: 5.2:1 on white ✔ AA */
+  --color-brand-700: #1d4ed8;
+  --color-brand-900: #1e3a8a;
+
+  /* ── Playful accents (kid mood) ─────────────────────────────── */
+  --color-kid-sun:    #f59e0b;
+  --color-kid-grass:  #16a34a;
+  --color-kid-berry:  #db2777;
+  --color-kid-sky:    #0ea5e9;
+  --color-kid-grape:  #7c3aed;
+
+  /* ── Neutrals ───────────────────────────────────────────────── */
+  --color-ink-900: #0f172a;     /* body text on white: 17:1 */
+  --color-ink-700: #334155;     /* secondary text: 10:1 */
+  --color-ink-500: #64748b;     /* hints: 4.8:1 (large text / non-essential only below 14px) */
+  --color-ink-200: #e2e8f0;     /* borders */
+  --color-ink-100: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-canvas:  #f8fafc;
+
+  /* ── Feedback ───────────────────────────────────────────────── */
+  --color-ok:      #15803d;
+  --color-warn:    #b45309;
+  --color-danger:  #b91c1c;
+  --color-info:    #1d4ed8;
+
+  /* ── Type ───────────────────────────────────────────────────── */
+  --font-sans:     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-display:  "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Swapped in by data-font="readable" (dyslexia-friendly option, see below). */
+  --font-readable: "Atkinson Hyperlegible", "Lexend", "Verdana", sans-serif;
+
+  /* ── Radius & shadow ────────────────────────────────────────── */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 16px rgb(15 23 42 / 0.06);
+}
+
+/* ── Mood: kid ───────────────────────────────────────────────────
+   Same tokens, friendlier values. Used through the --ds-* variables below. */
+:root {
+  --ds-control-h: 2.75rem;      /* 44px minimum touch target (WCAG 2.5.5) */
+  --ds-radius: var(--radius-control);
+  --ds-text: 1rem;
+  --ds-gap: 1rem;
+  --ds-font: var(--font-sans);
+  --ds-scale: 1;                /* "Large text" setting multiplies this */
+}
+[data-mood="kid"] {
+  --ds-control-h: 3.75rem;      /* big buttons for small fingers */
+  --ds-radius: 1.25rem;
+  --ds-text: 1.25rem;
+  --ds-gap: 1.25rem;
+}
+[data-font="readable"] { --ds-font: var(--font-readable); }
+[data-text="large"]    { --ds-scale: 1.25; }
+
+html { font-size: calc(100% * var(--ds-scale)); }
+body { font-family: var(--ds-font); color: var(--color-ink-900); background: var(--color-canvas); }
+
+/* ── Accessibility baselines ────────────────────────────────────── */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+.skip-link { position: absolute; left: -999px; top: 0; z-index: 100; background: var(--color-ink-900); color: #fff; padding: .75rem 1rem; border-radius: 0 0 .5rem 0; }
+.skip-link:focus { left: 0; }
+.sr-only-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ── Components ─────────────────────────────────────────────────── */
+@layer components {
+  .ds-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    min-height: var(--ds-control-h); padding: 0 1.25rem;
+    border-radius: var(--ds-radius); border: 2px solid transparent;
+    font-size: var(--ds-text); font-weight: 700; line-height: 1.1; cursor: pointer;
+    transition: background-color .15s, transform .05s, box-shadow .15s;
+  }
+  .ds-btn:active { transform: translateY(1px); }
+  .ds-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .ds-btn-primary   { background: var(--color-brand-600); color: #fff; }
+  .ds-btn-primary:hover:not(:disabled) { background: var(--color-brand-700); }
+  .ds-btn-secondary { background: var(--color-surface); color: var(--color-brand-700); border-color: var(--color-brand-200); }
+  .ds-btn-secondary:hover:not(:disabled) { background: var(--color-brand-50); }
+  .ds-btn-danger    { background: var(--color-danger); color: #fff; }
+  .ds-btn-ghost     { background: transparent; color: var(--color-ink-700); }
+  .ds-btn-ghost:hover:not(:disabled) { background: var(--color-ink-100); }
+  /* the one big "Next" button on a child's home screen */
+  .ds-btn-next      { background: var(--color-kid-grass); color: #fff; min-height: 4.5rem; font-size: 1.5rem; padding: 0 2rem; box-shadow: 0 6px 0 #166534; }
+
+  .ds-card {
+    background: var(--color-surface); border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card); padding: calc(var(--ds-gap) * 1.25);
+  }
+  .ds-input {
+    width: 100%; min-height: var(--ds-control-h); padding: 0 1rem;
+    border: 2px solid var(--color-ink-200); border-radius: var(--ds-radius);
+    background: var(--color-surface); color: var(--color-ink-900); font-size: max(16px, var(--ds-text)); /* 16px+ stops iOS zoom */
+  }
+  .ds-input:focus { border-color: var(--color-brand-500); }
+  .ds-input[aria-invalid="true"] { border-color: var(--color-danger); }
+  .ds-label { display: block; margin-bottom: .375rem; font-weight: 600; color: var(--color-ink-700); }
+  .ds-help  { margin-top: .375rem; font-size: .875rem; color: var(--color-ink-700); }
+  .ds-error { margin-top: .375rem; font-size: .875rem; color: var(--color-danger); font-weight: 600; }
+
+  .ds-badge { display: inline-flex; align-items: center; gap: .25rem; padding: .125rem .625rem; border-radius: 999px; font-size: .8125rem; font-weight: 700; }
+  .ds-badge-ok     { background: #dcfce7; color: #166534; }
+  .ds-badge-warn   { background: #fef3c7; color: #92400e; }
+  .ds-badge-danger { background: #fee2e2; color: #991b1b; }
+  .ds-badge-info   { background: var(--color-brand-100); color: var(--color-brand-900); }
+
+  .ds-page { max-width: 72rem; margin-inline: auto; padding-inline: 1rem; } /* 16px gutter at 360px */
+}

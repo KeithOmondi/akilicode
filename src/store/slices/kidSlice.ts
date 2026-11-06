@@ -150,7 +150,6 @@ export const updateKidLogin = createAsyncThunk<
 export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
   "kid/kidLogin",
   async (data, thunkAPI) => {
-    console.log("📡 [kidLogin thunk] called with:", data);
     try {
       const res = await api.post<{ accessToken: string } & KidResponse>(
         "/kids/login",
@@ -160,14 +159,11 @@ export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
       const { accessToken } = res.data;
       const { kid } = res.data.data;
 
-      console.log("✅ [kidLogin] API response:", { kid, hasToken: !!accessToken });
-
       if (accessToken) {
         // 1. Persist for page refreshes
         // kidLogin thunk
 localStorage.setItem("kid_accessToken", accessToken); // 👈 was "accessToken"
 setAccessToken(accessToken);
-  console.log("✅ [kidLogin] token saved. Verify:", localStorage.getItem("kid_accessToken") ? "SAVED" : "FAILED");
       }
       
 

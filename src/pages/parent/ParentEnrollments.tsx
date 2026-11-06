@@ -305,7 +305,15 @@ const ParentEnrollments = () => {
           toast.dismiss("stk-push");
           toast.success("🎉 Payment confirmed! Enrollment is now active.");
           dispatch(getMyEnrollments());
-        } else if (payment_status === "failed") {
+        } else if (payment_status === "review") {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          toast.dismiss("stk-push");
+          toast("We received your payment and are checking it. This usually takes a short while.", {
+            icon: "🔎", duration: 8000,
+          });
+          dispatch(getMyEnrollments());
+        } else if (payment_status === "failed" || payment_status === "expired") {
           clearInterval(pollRef.current!);
           pollRef.current = null;
           toast.dismiss("stk-push");
