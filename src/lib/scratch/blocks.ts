@@ -170,7 +170,6 @@ const blk = (type: string, inputs?: Record<string, unknown>) => ({ kind: "block"
 export const TOOLBOX = {
   kind: "categoryToolbox",
   contents: [
-    { kind: "category", name: "Events", colour: COLORS.events, contents: [blk("ev_flag"), blk("ev_key"), blk("ev_click")] },
     {
       kind: "category", name: "Motion", colour: COLORS.motion, contents: [
         blk("mo_move", { N: n(10) }), blk("mo_turn_right", { N: n(15) }), blk("mo_turn_left", { N: n(15) }),
@@ -186,6 +185,7 @@ export const TOOLBOX = {
       ],
     },
     { kind: "category", name: "Sound", colour: COLORS.sound, contents: [blk("so_note", { BEATS: n(1) })] },
+    { kind: "category", name: "Events", colour: COLORS.events, contents: [blk("ev_flag"), blk("ev_key"), blk("ev_click")] },
     {
       kind: "category", name: "Control", colour: COLORS.control, contents: [
         blk("co_wait", { SECS: n(1) }), blk("co_repeat", { N: n(10) }), blk("co_forever"), blk("co_if"), blk("co_if_else"), blk("co_repeat_until"), blk("co_stop"),

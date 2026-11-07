@@ -27,13 +27,13 @@ const THEME = Blockly.Theme.defineTheme("akili", {
     variable_dynamic_blocks: { colourPrimary: COLORS.variables },
   },
   componentStyles: {
-    workspaceBackgroundColour: "#faf7ff",
+    workspaceBackgroundColour: "#f9f9f9",
     toolboxBackgroundColour: "#ffffff",
-    toolboxForegroundColour: "#3b1a8c",
-    flyoutBackgroundColour: "#efe8ff",
-    flyoutForegroundColour: "#3b1a8c",
+    toolboxForegroundColour: "#575e75",
+    flyoutBackgroundColour: "#f9f9f9",
+    flyoutForegroundColour: "#575e75",
     flyoutOpacity: 1,
-    scrollbarColour: "#c4b0f5",
+    scrollbarColour: "#cecdce",
     insertionMarkerColour: "#7c3aed",
     insertionMarkerOpacity: 0.3,
     cursorColour: "#7c3aed",
@@ -69,7 +69,7 @@ const BlockWorkspace = ({ initialState, onChange, onReady, readOnly = false, hei
       sounds: false,
       trashcan: !readOnly,
       zoom: { controls: !readOnly, wheel: false, startScale: 0.85, maxScale: 1.6, minScale: 0.4, scaleSpeed: 1.15 },
-      grid: { spacing: 28, length: 2, colour: "#e4dbfa", snap: true },
+      grid: { spacing: 28, length: 2, colour: "#d9d9d9", snap: true },
       move: { scrollbars: true, drag: true, wheel: true },
     });
 
@@ -100,7 +100,7 @@ const BlockWorkspace = ({ initialState, onChange, onReady, readOnly = false, hei
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readOnly]);
 
-  return <div ref={host} style={{ height }} className="w-full rounded-2xl overflow-hidden border-2 border-brand-100" aria-label="Block editor" />;
+  return <div ref={host} style={{ height }} className="scratch-ws w-full overflow-hidden" aria-label="Block editor" />;
 };
 
 export default BlockWorkspace;

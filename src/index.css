@@ -187,3 +187,24 @@
   .animate-float-slow {
     animation: floatSlow 4s ease-in-out infinite;
   }
+/* Block editor: Scratch-style palette on desktop (coloured circle above each name); phones keep the row of categories */
+@media (min-width: 1024px) {
+  .scratch-ws .blocklyToolboxDiv { width: 64px; background: #fff; border-right: 1px solid #ddd; padding: 0; }
+  .scratch-ws .blocklyToolboxCategory { border-left: 0 !important; height: auto; margin: 0; padding: 6px 0 4px !important; display: flex; justify-content: center; }
+  .scratch-ws .blocklyTreeRowContentContainer { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .scratch-ws .blocklyToolboxCategoryIcon { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.15); background: var(--cat, #999); display: inline-block !important; visibility: visible !important; background-image: none !important; }
+  .scratch-ws .blocklyToolboxCategoryLabel { font-size: 11px; font-weight: 700; color: #575e75; line-height: 1.1; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(1) { --cat: #4c97ff; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(2) { --cat: #9966ff; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(3) { --cat: #cf63cf; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(4) { --cat: #ffbf00; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(5) { --cat: #ffab19; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(6) { --cat: #5cb1d6; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(7) { --cat: #59c059; }
+  .scratch-ws .blocklyToolboxCategoryContainer:nth-child(8) { --cat: #ff8c1a; }
+  .scratch-ws .blocklyToolboxCategoryContainer[aria-selected="true"] .blocklyToolboxCategory,
+  .scratch-ws .blocklyToolboxCategory.blocklyToolboxSelected { background: #e9eef2 !important; }
+  .scratch-ws .blocklyToolboxCategoryContainer[aria-selected="true"] .blocklyToolboxCategoryLabel,
+  .scratch-ws .blocklyToolboxSelected .blocklyToolboxCategoryLabel { color: #575e75 !important; }
+
+}
