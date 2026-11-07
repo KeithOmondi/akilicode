@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Code2, Loader2 } from "lucide-react";
 import { PageHeader, StatusBadge, EmptyState } from "../../components/admin/ui";
@@ -6,6 +6,10 @@ import { dateShort } from "../../components/admin/format";
 import CodePreview from "../../components/kids/CodePreview";
 import { newRunId } from "../../lib/sandbox";
 import { projectsApi, errorText, type HandedInProject } from "../../lib/projectsApi";
+
+// Block projects need Blockly, which is large: it is only downloaded when a block project is opened.
+const BlockWorkspace = lazy(() => import("../../components/scratch/BlockWorkspace"));
+const StagePreview = lazy(() => import("../../components/scratch/StagePreview"));
 
 type Filter = "submitted" | "reviewed";
 
@@ -19,6 +23,7 @@ const AdminProjects = () => {
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
   const [codeTab, setCodeTab] = useState<"html" | "css" | "js">("html");
+  const [blocksCode, setBlocksCode] = useState("");
 
   const load = (f: Filter) => {
     setItems(null);
@@ -44,6 +49,11 @@ const AdminProjects = () => {
     setMarks(p.marks === null ? "" : String(p.marks));
     setFeedback(p.feedback ?? "");
     setCodeTab("html");
+    setBlocksCode("");
+    if (p.kind === "blocks") {
+      // turn the child's blocks into the code the stage runs
+      import("../../lib/scratch/blocks").then((m) => setBlocksCode(m.compileBlocks(p.blocks))).catch(() => toast.error("Could not read these blocks."));
+    }
   };
 
   const current = items?.find((p) => p.id === openId) ?? null;
@@ -111,21 +121,33 @@ const AdminProjects = () => {
                 {current.assignment && <p className="mt-2 text-ink-700">{current.assignment}</p>}
               </div>
 
-              <div className="grid xl:grid-cols-2 gap-4">
-                <div className="adm-card overflow-hidden">
-                  <div className="flex border-b border-ink-200" role="tablist" aria-label="Files">
-                    {(["html", "css", "js"] as const).map((t) => (
-                      <button key={t} role="tab" aria-selected={codeTab === t} onClick={() => setCodeTab(t)}
-                        className={`px-4 h-10 text-sm font-bold uppercase ${codeTab === t ? "text-brand-700 border-b-2 border-brand-600" : "text-ink-500"}`}>{t}</button>
-                    ))}
+              {current.kind === "blocks" ? (
+                <div className="grid xl:grid-cols-2 gap-4">
+                  <Suspense fallback={<div className="adm-card p-10 flex justify-center"><Loader2 className="animate-spin text-brand-600" /></div>}>
+                    <BlockWorkspace key={current.id} initialState={current.blocks} readOnly height="26rem" />
+                    <div>
+                      <StagePreview code={blocksCode} runId={runId} />
+                      <button className="ds-btn ds-btn-secondary ds-btn-sm mt-2" onClick={() => setRunId(newRunId())}>Start again</button>
+                    </div>
+                  </Suspense>
+                </div>
+              ) : (
+                <div className="grid xl:grid-cols-2 gap-4">
+                  <div className="adm-card overflow-hidden">
+                    <div className="flex border-b border-ink-200" role="tablist" aria-label="Files">
+                      {(["html", "css", "js"] as const).map((t) => (
+                        <button key={t} role="tab" aria-selected={codeTab === t} onClick={() => setCodeTab(t)}
+                          className={`px-4 h-10 text-sm font-bold uppercase ${codeTab === t ? "text-brand-700 border-b-2 border-brand-600" : "text-ink-500"}`}>{t}</button>
+                      ))}
+                    </div>
+                    <pre className="p-4 text-[13px] leading-relaxed overflow-auto max-h-96 bg-ink-900 text-slate-100 font-mono whitespace-pre-wrap break-words">{current[codeTab] || "(empty)"}</pre>
                   </div>
-                  <pre className="p-4 text-[13px] leading-relaxed overflow-auto max-h-96 bg-ink-900 text-slate-100 font-mono whitespace-pre-wrap break-words">{current[codeTab] || "(empty)"}</pre>
+                  <div>
+                    <CodePreview html={current.html} css={current.css} js={current.js} runId={runId} heightClass="h-80" />
+                    <button className="ds-btn ds-btn-secondary ds-btn-sm mt-2" onClick={() => setRunId(newRunId())}>Run again</button>
+                  </div>
                 </div>
-                <div>
-                  <CodePreview html={current.html} css={current.css} js={current.js} runId={runId} heightClass="h-80" />
-                  <button className="ds-btn ds-btn-secondary ds-btn-sm mt-2" onClick={() => setRunId(newRunId())}>Run again</button>
-                </div>
-              </div>
+              )}
 
               <div className="adm-card adm-card-pad grid sm:grid-cols-[8rem_1fr] gap-4">
                 <label className="text-sm font-semibold text-ink-700">Marks (0 to 100)

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import CodeMirror, { EditorView, keymap } from "@uiw/react-codemirror";
 import { indentWithTab } from "@codemirror/commands";
@@ -12,6 +12,9 @@ import { newRunId } from "../../lib/sandbox";
 import { projectsApi, errorText, type Project } from "../../lib/projectsApi";
 import { EDITOR_THEMES, FONT_MAX, FONT_MIN, loadPrefs, savePrefs, themeById, type EditorPrefs } from "../../lib/editorTheme";
 import { formatCode } from "../../lib/formatCode";
+
+// Block projects open in the block studio (a separate download: Blockly is large).
+const ScratchStudio = lazy(() => import("./ScratchStudio"));
 
 type Tab = "html" | "css" | "js";
 const TABS: { id: Tab; file: string; hint: string; dot: string; name: string }[] = [
@@ -189,6 +192,14 @@ const KidEditor = () => {
       <div className="flex justify-center py-20" role="status" aria-label="Opening your project">
         <Loader2 className="animate-spin text-brand-600" size={40} />
       </div>
+    );
+  }
+
+  if (project.kind === "blocks") {
+    return (
+      <Suspense fallback={<div className="flex justify-center py-20" role="status" aria-label="Opening your blocks"><Loader2 className="animate-spin text-brand-600" size={40} /></div>}>
+        <ScratchStudio project={project} />
+      </Suspense>
     );
   }
 

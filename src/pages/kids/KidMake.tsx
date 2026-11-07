@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Code2, Loader2, Plus, Trash2 } from "lucide-react";
+import { Blocks, Code2, Globe, Loader2, Trash2 } from "lucide-react";
+import { useAppSelector } from "../../store/hooks";
 import toast from "react-hot-toast";
 import { projectsApi, errorText, type ProjectSummary } from "../../lib/projectsApi";
 
@@ -11,7 +12,10 @@ const KidMake = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<"web" | "blocks" | null>(null);
+  const group = useAppSelector((st) => st.kid.currentKid?.age_group);
+  // Younger groups start with blocks, older ones with web pages. Both are always there.
+  const blocksFirst = group === "4-6" || group === "7-9" || group === "10-12" || !group;
 
   const load = () => {
     setError(null);
@@ -25,14 +29,14 @@ const KidMake = () => {
     };
   }, []);
 
-  const create = async () => {
-    setCreating(true);
+  const create = async (kind: "web" | "blocks") => {
+    setCreating(kind);
     try {
-      const p = await projectsApi.create();
+      const p = await projectsApi.create(kind);
       navigate(`/kid/make/${p.id}`);
     } catch (e) {
       toast.error(errorText(e));
-      setCreating(false);
+      setCreating(null);
     }
   };
 
@@ -54,11 +58,16 @@ const KidMake = () => {
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-black text-brand-900">Make</h1>
-          <p className="text-slate-600 font-bold mt-1">Build web pages with HTML, CSS and JavaScript.</p>
+          <p className="text-slate-600 font-bold mt-1">Snap blocks together, or build web pages with HTML, CSS and JavaScript.</p>
         </div>
-        <button onClick={create} disabled={creating} className="ds-btn ds-btn-next !min-h-[3.5rem] !text-lg !px-6">
-          {creating ? <Loader2 className="animate-spin" size={20} /> : <Plus size={22} aria-hidden="true" />} New project
-        </button>
+        <div className={`flex gap-2 flex-wrap ${blocksFirst ? "" : "flex-row-reverse"}`}>
+          <button onClick={() => create("blocks")} disabled={creating !== null} className="ds-btn ds-btn-next !min-h-[3.5rem] !text-lg !px-6">
+            {creating === "blocks" ? <Loader2 className="animate-spin" size={20} /> : <Blocks size={22} aria-hidden="true" />} New blocks project
+          </button>
+          <button onClick={() => create("web")} disabled={creating !== null} className="ds-btn ds-btn-secondary !min-h-[3.5rem] !text-lg !px-6">
+            {creating === "web" ? <Loader2 className="animate-spin" size={20} /> : <Globe size={22} aria-hidden="true" />} New web page
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -74,7 +83,7 @@ const KidMake = () => {
         <div className="kid-card p-10 text-center mt-6">
           <p className="text-6xl" aria-hidden="true">🧑‍💻</p>
           <p className="mt-3 text-xl font-black text-brand-900">Make your first page!</p>
-          <p className="text-slate-600 font-bold mt-1">Press “New project” to start. We give you a page to play with.</p>
+          <p className="text-slate-600 font-bold mt-1">Pick “New blocks project” or “New web page” to start. We give you something to play with.</p>
         </div>
       ) : (
         <>
@@ -105,7 +114,7 @@ const Cards = ({ items, onDelete }: { items: ProjectSummary[]; onDelete: (p: Pro
     {items.map((p) => (
       <li key={p.id} className="kid-card p-4 flex flex-col">
         <Link to={`/kid/make/${p.id}`} className="flex items-start gap-3 flex-1">
-          <span className="w-12 h-12 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center shrink-0" aria-hidden="true"><Code2 size={24} /></span>
+          <span className="w-12 h-12 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center shrink-0" aria-hidden="true">{p.kind === "blocks" ? <Blocks size={24} /> : <Code2 size={24} />}</span>
           <span className="min-w-0">
             <span className="block font-black text-brand-900 truncate">{p.title}</span>
             <span className="block text-xs font-bold text-slate-500">Changed {when(p.updated_at)}</span>

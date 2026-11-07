@@ -89,7 +89,7 @@ const KidAssignments = () => {
                     <div className="mt-4 flex justify-end">
                       <button onClick={() => open(a)} disabled={opening === a.lesson_id} className={`ds-btn ${done ? "ds-btn-secondary" : "ds-btn-primary"} !min-h-[3rem]`}>
                         {opening === a.lesson_id ? <Loader2 className="animate-spin" size={18} /> : done ? <CheckCircle2 size={18} aria-hidden="true" /> : a.project_id ? <PencilLine size={18} aria-hidden="true" /> : <Send size={18} aria-hidden="true" />}
-                        {done ? "See my work" : a.project_id ? "Keep going" : "Start in the editor"}
+                        {done ? "See my work" : a.project_id ? "Keep going" : a.lesson_type === "scratch" ? "Start with blocks" : "Start in the editor"}
                       </button>
                     </div>
                   </li>
