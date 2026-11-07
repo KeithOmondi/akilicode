@@ -34,6 +34,11 @@ const COSTUMES: [string, string][] = [
 const BACKDROPS: [string, string][] = [
   ["white", "#ffffff"], ["sky", "#bfe3ff"], ["grass", "#c8f0b0"], ["sand", "#f5e3b3"], ["night", "#1c2541"], ["sunset", "#ffb38a"], ["pink", "#ffd1e8"],
 ];
+/** Sound effects the stage can make (it builds them from tones and noise, so there are no files to load). */
+const SOUND_EFFECTS: [string, string][] = [
+  ["🫧 pop", "pop"], ["🐱 meow", "meow"], ["🐶 woof", "woof"], ["🪙 coin", "coin"], ["🚀 laser", "laser"], ["⬆️ jump", "jump"],
+  ["🥁 drum", "drum"], ["👏 clap", "clap"], ["🔔 bell", "bell"], ["🪀 boing", "boing"], ["🎉 win", "win"], ["😢 lose", "lose"],
+];
 const NOTES: [string, string][] = [
   ["C", "261.63"], ["D", "293.66"], ["E", "329.63"], ["F", "349.23"], ["G", "392"], ["A", "440"], ["B", "493.88"], ["high C", "523.25"],
 ];
@@ -65,6 +70,15 @@ export const registerBlocks = () => {
   if (registered) return;
   registered = true;
   Blockly.setLocale(En as unknown as { [key: string]: string });
+
+  // In Blockly, clicking a block in the palette drops a copy into the coding area. In Scratch it just runs the block
+  // (the studio does that), so a click must not add blocks to the program.
+  const gesture = Blockly.Gesture.prototype as unknown as { doBlockClick: () => void; flyout?: { autoClose?: boolean } };
+  const originalBlockClick = gesture.doBlockClick;
+  gesture.doBlockClick = function (this: typeof gesture) {
+    if (this.flyout?.autoClose) return;
+    originalBlockClick.call(this);
+  };
 
   const stack = { previousStatement: null, nextStatement: null } as const;
   const num = (name: string) => ({ type: "input_value", name, check: "Number" });
@@ -101,6 +115,8 @@ export const registerBlocks = () => {
     { type: "lo_background", message0: "switch backdrop to %1", args0: [{ type: "field_dropdown", name: "C", options: BACKDROPS }], ...stack, colour: COLORS.looks },
 
     // sound
+    { type: "so_play", message0: "play sound %1 until done", args0: [{ type: "field_dropdown", name: "S", options: SOUND_EFFECTS }], ...stack, colour: COLORS.sound },
+    { type: "so_start", message0: "start sound %1", args0: [{ type: "field_dropdown", name: "S", options: SOUND_EFFECTS }], ...stack, colour: COLORS.sound },
     { type: "so_note", message0: "play note %1 for %2 beats", args0: [{ type: "field_dropdown", name: "NOTE", options: NOTES }, num("BEATS")], ...stack, colour: COLORS.sound },
 
     // control
@@ -158,6 +174,8 @@ export const registerBlocks = () => {
   simple("lo_next_costume", () => "S.nextCostume();");
   simple("lo_costume", (b) => `S.costume(${JSON.stringify(b.getFieldValue("C"))});`);
   simple("lo_background", (b) => `S.background(${JSON.stringify(b.getFieldValue("C"))});`);
+  simple("so_play", (b) => `await S.playSound(${JSON.stringify(b.getFieldValue("S"))});`);
+  simple("so_start", (b) => `S.startSound(${JSON.stringify(b.getFieldValue("S"))});`);
   simple("so_note", (b) => `await S.note(${Number(b.getFieldValue("NOTE")) || 261.63}, ${value(b, "BEATS", "1")});`);
   simple("co_wait", (b) => `await S.wait(${value(b, "SECS", "1")});`);
   simple("co_stop", () => "S.stop();\nreturn;");
@@ -206,7 +224,7 @@ export const TOOLBOX = {
         blk("lo_costume2"), blk("lo_next_costume"), blk("lo_background"), blk("lo_set_size", { N: n(100) }), blk("lo_change_size", { N: n(10) }), blk("lo_show"), blk("lo_hide"),
       ],
     },
-    { kind: "category", name: "Sound", colour: COLORS.sound, contents: [blk("so_note", { BEATS: n(1) })] },
+    { kind: "category", name: "Sound", colour: COLORS.sound, contents: [blk("so_play"), blk("so_start"), blk("so_note", { BEATS: n(1) })] },
     { kind: "category", name: "Events", colour: COLORS.events, contents: [blk("ev_flag"), blk("ev_key"), blk("ev_click")] },
     {
       kind: "category", name: "Control", colour: COLORS.control, contents: [
@@ -297,6 +315,40 @@ export const normalizeProject = (raw: unknown): ProjectState => {
 };
 
 const indent = (code: string) => code.replace(/^(?=.)/gm, "  ");
+
+/**
+ * The code for the stack a child just clicked (any block in it): like Scratch, the whole stack runs from its top
+ * block. Under a hat block that means the blocks below the hat. A lone value block has nothing to run (null).
+ */
+export const compileStack = (block: Blockly.Block, spriteIds: string[], spriteIndex: number): string | null => {
+  registerBlocks();
+  compileIds = spriteIds;
+  const root = block.getRootBlock();
+  if (root.outputConnection) return null;
+  javascriptGenerator.init(root.workspace);
+  const first = HATS[root.type] ? root.getNextBlock() : root;
+  const body = first ? (javascriptGenerator.blockToCode(first) as string) : "";
+  return `(async function (S) {
+${indent(javascriptGenerator.finish(body))}})(S.forSprite(${spriteIndex}));
+`;
+};
+
+/** How many stacks of blocks are not joined to a start block (so pressing the flag would never run them). */
+export const countLooseStacks = (raw: unknown): number => {
+  registerBlocks();
+  let loose = 0;
+  for (const sp of normalizeProject(raw).sprites) {
+    if (!sp.blocks) continue;
+    const ws = new Blockly.Workspace();
+    try {
+      Blockly.serialization.workspaces.load(sp.blocks as never, ws);
+      for (const top of ws.getTopBlocks(false)) if (!HATS[top.type] && !top.outputConnection) loose++;
+    } finally {
+      ws.dispose();
+    }
+  }
+  return loose;
+};
 
 /** The code for ONE sprite's blocks. Only blocks under a hat block (flag, key, click) run, like in Scratch. */
 const compileWorkspace = (state: object | null | undefined): string => {

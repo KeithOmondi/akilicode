@@ -11,6 +11,8 @@ interface Props {
   onChange?: (state: WorkspaceState) => void;
   /** The workspace itself, once it exists (for the studio to read the latest blocks). */
   onReady?: (ws: Blockly.WorkspaceSvg) => void;
+  /** A block (or stack) was clicked: like Scratch, the studio runs it right away. Also fires for blocks in the palette. */
+  onRunBlock?: (block: Blockly.Block) => void;
   readOnly?: boolean;
   /** CSS height of the editor. */
   height?: string;
@@ -45,14 +47,16 @@ const THEME = Blockly.Theme.defineTheme("akili", {
  * The block editor. Blockly draws and edits; we only load the saved blocks and report changes.
  * The look is Scratch-like: round "zelos" blocks, big colourful categories, drag and drop.
  */
-const BlockWorkspace = ({ initialState, onChange, onReady, readOnly = false, height = "28rem" }: Props) => {
+const BlockWorkspace = ({ initialState, onChange, onReady, onRunBlock, readOnly = false, height = "28rem" }: Props) => {
   const host = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   const onReadyRef = useRef(onReady);
+  const onRunRef = useRef(onRunBlock);
   useEffect(() => {
     onChangeRef.current = onChange;
     onReadyRef.current = onReady;
-  }, [onChange, onReady]);
+    onRunRef.current = onRunBlock;
+  }, [onChange, onReady, onRunBlock]);
 
   useEffect(() => {
     if (!host.current) return;
@@ -82,6 +86,33 @@ const BlockWorkspace = ({ initialState, onChange, onReady, readOnly = false, hei
       }
     }
 
+    // A click on a block (a press and release in the same place, no drag, not on an editable field) runs its stack,
+    // in the coding area and in the palette. (Blockly does not report plain clicks to listeners, so we watch the pointer.)
+    let press: { x: number; y: number; t: number } | null = null;
+    let dragged = false;
+    const el = host.current;
+    const onDown = (e: PointerEvent) => {
+      press = { x: e.clientX, y: e.clientY, t: Date.now() };
+      dragged = false;
+    };
+    const onUp = (e: PointerEvent) => {
+      const p = press;
+      press = null;
+      if (!p || dragged || !onRunRef.current) return;
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6 || Date.now() - p.t > 700) return;
+      const target = e.target as Element | null;
+      if (!target || target.closest("[class*='blocklyEditable'], .blocklyHtmlInput, .blocklyDropDownDiv, .blocklyWidgetDiv")) return;
+      const id = target.closest("[data-id]")?.getAttribute("data-id");
+      if (!id) return;
+      const block = ws.getBlockById(id) ?? ws.getFlyout()?.getWorkspace().getBlockById(id);
+      if (block) onRunRef.current(block);
+    };
+    el.addEventListener("pointerdown", onDown, true);
+    el.addEventListener("pointerup", onUp, true);
+    ws.addChangeListener((e: Blockly.Events.Abstract) => {
+      if (e.type === Blockly.Events.BLOCK_DRAG) dragged = true;
+    });
+
     ws.addChangeListener((e: Blockly.Events.Abstract) => {
       // Moving the view, selecting a block or opening the flyout is not a change to the program.
       if (e.isUiEvent || e.type === Blockly.Events.FINISHED_LOADING) return;
@@ -93,6 +124,8 @@ const BlockWorkspace = ({ initialState, onChange, onReady, readOnly = false, hei
     observer.observe(host.current);
 
     return () => {
+      el.removeEventListener("pointerdown", onDown, true);
+      el.removeEventListener("pointerup", onUp, true);
       observer.disconnect();
       ws.dispose();
     };

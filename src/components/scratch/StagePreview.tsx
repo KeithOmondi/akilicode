@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { buildStageDoc, type StageCostume } from "../../lib/scratch/runtime";
 import { readBridgeMessage } from "../../lib/sandbox";
@@ -10,13 +10,22 @@ interface Props {
   runId: string;
   /** The pictures of every sprite (set together with runId). */
   costumes?: StageCostume[][];
+  /** Start the 🏁 programs when this run opens (default). False: just show the sprites, ready for clicked blocks. */
+  autostart?: boolean;
+  /** Lets the studio run a clicked stack of blocks on the live stage, or stop everything. */
+  handle?: Ref<StageHandle>;
+}
+
+export interface StageHandle {
+  run: (code: string) => void;
+  stopAll: () => void;
 }
 
 /**
  * The stage. It runs in a locked-down iframe (no same-origin, no network: see lib/sandbox.ts),
  * keeps a 4:3 shape, and can go full screen without restarting.
  */
-const StagePreview = ({ code, runId, costumes }: Props) => {
+const StagePreview = ({ code, runId, costumes, autostart = true, handle }: Props) => {
   const [full, setFull] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [seenRun, setSeenRun] = useState(runId);
@@ -28,8 +37,18 @@ const StagePreview = ({ code, runId, costumes }: Props) => {
     setError(null);
   }
 
+  // The page may send the stage a stack of blocks to run, or tell it to stop (only this run's frame listens).
+  useImperativeHandle(
+    handle,
+    () => ({
+      run: (js: string) => frame.current?.contentWindow?.postMessage({ __akili: runId, type: "run", code: js }, "*"),
+      stopAll: () => frame.current?.contentWindow?.postMessage({ __akili: runId, type: "stop" }, "*"),
+    }),
+    [runId]
+  );
+
   const doc = useMemo(
-    () => (runId ? buildStageDoc({ code, token: runId, costumes }) : ""),
+    () => (runId ? buildStageDoc({ code, token: runId, costumes, autostart }) : ""),
     // A new run rebuilds the stage; editing blocks alone does not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [runId]
@@ -75,7 +94,7 @@ const StagePreview = ({ code, runId, costumes }: Props) => {
       )}
       <div className={`relative rounded-2xl border-2 border-brand-100 bg-white overflow-hidden ${full ? "flex-1 min-h-0" : "aspect-[4/3] w-full"}`}>
         {runId ? (
-          <iframe ref={frame} key={runId} title="The stage" sandbox="allow-scripts" srcDoc={doc} className="w-full h-full bg-white" />
+          <iframe ref={frame} key={runId} title="The stage" sandbox="allow-scripts" allow="autoplay" srcDoc={doc} className="w-full h-full bg-white" />
         ) : (
           <div className="h-full flex items-center justify-center text-slate-500 font-bold p-6 text-center">
             Press the green <span className="mx-1.5 px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700">🏁 flag</span> to start.

@@ -65,6 +65,51 @@ export const RUNTIME_SOURCE = String.raw`
   var halfW = W / 2 - EDGE, halfH = H / 2 - EDGE;
   var NEVER = new Promise(function () {});
 
+  // ---- sound ----
+  function ctxAudio() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audio = audio || new AC();
+      if (audio.resume) audio.resume();
+      return audio;
+    } catch (e) { return null; }
+  }
+  function tone(a, type, f0, f1, at, dur, vol) {
+    var t = a.currentTime + at, osc = a.createOscillator(), g = a.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f0, t);
+    if (f1) osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(g); g.connect(a.destination);
+    osc.start(t); osc.stop(t + dur + 0.03);
+  }
+  function noise(a, at, dur, vol, cutoff) {
+    var t = a.currentTime + at, n = Math.max(1, Math.floor(a.sampleRate * dur)), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    var src = a.createBufferSource(), g = a.createGain(), filt = a.createBiquadFilter();
+    src.buffer = buf; filt.type = 'highpass'; filt.frequency.value = cutoff || 800;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(filt); filt.connect(g); g.connect(a.destination);
+    src.start(t);
+  }
+  // name -> [length in seconds, how to play it]
+  var SOUNDS = {
+    pop:   [0.15, function (a) { tone(a, 'sine', 700, 120, 0, 0.12, 0.35); }],
+    boing: [0.45, function (a) { tone(a, 'sine', 180, 520, 0, 0.18, 0.3); tone(a, 'sine', 520, 160, 0.18, 0.25, 0.3); }],
+    laser: [0.3,  function (a) { tone(a, 'sawtooth', 1400, 150, 0, 0.28, 0.12); }],
+    coin:  [0.35, function (a) { tone(a, 'square', 988, 0, 0, 0.08, 0.12); tone(a, 'square', 1319, 0, 0.08, 0.25, 0.12); }],
+    jump:  [0.25, function (a) { tone(a, 'square', 240, 720, 0, 0.2, 0.1); }],
+    drum:  [0.3,  function (a) { tone(a, 'sine', 160, 45, 0, 0.25, 0.6); noise(a, 0, 0.06, 0.25, 1500); }],
+    clap:  [0.35, function (a) { noise(a, 0, 0.05, 0.4, 1200); noise(a, 0.07, 0.05, 0.4, 1200); noise(a, 0.14, 0.15, 0.4, 1200); }],
+    meow:  [0.6,  function (a) { tone(a, 'sawtooth', 520, 900, 0, 0.2, 0.09); tone(a, 'sawtooth', 900, 380, 0.2, 0.4, 0.09); }],
+    woof:  [0.4,  function (a) { tone(a, 'sawtooth', 260, 110, 0, 0.14, 0.18); tone(a, 'sawtooth', 280, 100, 0.2, 0.16, 0.18); }],
+    bell:  [0.9,  function (a) { tone(a, 'sine', 1320, 0, 0, 0.8, 0.25); tone(a, 'sine', 1980, 0, 0, 0.5, 0.1); }],
+    win:   [0.8,  function (a) { [523, 659, 784, 1047].forEach(function (f, i) { tone(a, 'triangle', f, 0, i * 0.15, 0.3, 0.25); }); }],
+    lose:  [0.8,  function (a) { [392, 330, 262, 196].forEach(function (f, i) { tone(a, 'triangle', f, 0, i * 0.18, 0.3, 0.25); }); }]
+  };
+
   // The commands one sprite understands. Every sprite gets its own set, tied to its own position and costume.
   function makeApi(sprite) {
     function inside() { sprite.x = clamp(sprite.x, -W / 2, W / 2); sprite.y = clamp(sprite.y, -H / 2, H / 2); }
@@ -153,6 +198,13 @@ export const RUNTIME_SOURCE = String.raw`
         return api.wait(num(beats) * 0.4);
       },
 
+      startSound: function (name) {
+        var snd = SOUNDS[String(name)], a = ctxAudio();
+        if (snd && a) { try { snd[1](a); } catch (e) {} }
+        return snd ? snd[0] : 0;
+      },
+      playSound: function (name) { return api.wait(api.startSound(name)); },
+
       // -- control
       wait: function (secs) {
         return new Promise(function (resolve) {
@@ -187,6 +239,7 @@ export const RUNTIME_SOURCE = String.raw`
 
   var S = makeApi(sprites[0]);
   S.states = function () { return sprites.map(publicState); };
+  S.audioState = function () { return audio ? audio.state : 'none'; };
   window.S = S;
 
   function run(fn) {
@@ -194,6 +247,20 @@ export const RUNTIME_SOURCE = String.raw`
       send('error', 'Something went wrong in your blocks: ' + (e && e.message ? e.message : e));
     });
   }
+
+  // The page can ask the stage to run one stack of blocks right now (a click on a block) or to stop.
+  // Only our own page may ask, and only with this run's secret token.
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (e.source !== window.parent || !d || d.__akili !== TOKEN) return;
+    if (d.type === 'stop') { shared.running = false; return; }
+    if (d.type === 'run' && typeof d.code === 'string') {
+      shared.running = true;
+      var el = document.createElement('script');
+      el.textContent = d.code;
+      document.body.appendChild(el);
+    }
+  });
 
   // -- keyboard and mouse
   var KEYMAP = { ' ': 'space', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'enter' };
@@ -273,6 +340,8 @@ const escapeScript = (code: string) => code.replace(/<\/script/gi, "<\\/script")
 
 export interface StageCostume { id: string; name: string; src: string; /** the costume the sprite starts with */ current?: boolean }
 export interface StageParts {
+  /** Start the flag programs when the page opens (default). False = show the sprites and wait. */
+  autostart?: boolean;
   /** The JavaScript generated from the blocks. */
   code: string;
   /** Random per run: the parent ignores messages that do not carry it. */
@@ -282,7 +351,7 @@ export interface StageParts {
 }
 
 /** The complete document for the stage iframe's srcdoc. */
-export const buildStageDoc = ({ code, token, costumes = [] }: StageParts): string =>
+export const buildStageDoc = ({ code, token, costumes = [], autostart = true }: StageParts): string =>
   '<!doctype html><html><head><meta charset="utf-8">' +
   `<meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">` +
   '<meta name="viewport" content="width=device-width, initial-scale=1">' +
@@ -291,4 +360,5 @@ export const buildStageDoc = ({ code, token, costumes = [] }: StageParts): strin
   `<script>window.__COSTUMES__ = ${JSON.stringify(costumes).replace(/</g, "\\u003c")};</script>` +
   `<script>${RUNTIME_SOURCE.replace("__TOKEN__", () => JSON.stringify(token))}</script>` +
   `<script>${escapeScript(code)}</script>` +
-  "<script>if (window.S) window.S.start();</script></body></html>";
+  (autostart ? "<script>if (window.S) window.S.start();</script>" : "") +
+  "</body></html>";

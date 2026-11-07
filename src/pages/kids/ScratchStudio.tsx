@@ -4,11 +4,11 @@ import * as Blockly from "blockly/core";
 import { ArrowLeft, Brush, CheckCircle2, ClipboardList, Code2, Eye, Image as ImageIcon, Loader2, Plus, Send, Trash2, Undo2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import BlockWorkspace from "../../components/scratch/BlockWorkspace";
-import StagePreview from "../../components/scratch/StagePreview";
+import StagePreview, { type StageHandle } from "../../components/scratch/StagePreview";
 import SpritePicker from "../../components/scratch/SpritePicker";
 import PaintEditor from "../../components/scratch/PaintEditor";
 import CostumeImage from "../../components/scratch/CostumeImage";
-import { compileBlocks, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
+import { compileBlocks, compileStack, countLooseStacks, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
 import { costumesOf, pictureFromFile, resolveCostumes, type LibrarySprite } from "../../lib/scratch/spriteAssets";
 import type { StageCostume } from "../../lib/scratch/runtime";
 import { newRunId } from "../../lib/sandbox";
@@ -40,6 +40,8 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const [runId, setRunId] = useState("");
   const [code, setCode] = useState("");
   const [stageCostumes, setStageCostumes] = useState<StageCostume[][]>([]);
+  const [autostart, setAutostart] = useState(false); // false: the stage is just showing the sprites, ready for clicked blocks
+  const stage = useRef<StageHandle>(null);
   const [save, setSave] = useState<"saved" | "saving" | "error">("saved");
   const [view, setView] = useState<View>("blocks"); // phones show one at a time; desktop: blocks or costumes on the left
   const [showCode, setShowCode] = useState(false);
@@ -112,6 +114,25 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const compile = () => compileBlocks(snapshot());
   const isPhone = () => window.matchMedia("(max-width: 1023px)").matches;
 
+  // The stage is always on: every sprite is shown (not only after the flag), ready for clicked blocks.
+  // It is rebuilt when a sprite or one of its costumes changes.
+  const picturesKey = sprites.map((s) => `${s.id}:${s.start ?? 0}:${s.costumes.map((c) => `${c.id}${c.src.length}`).join(",")}`).join("|");
+  useEffect(() => {
+    let live = true;
+    resolveCostumes({ v: 3, sprites: sprites.map((s) => ({ ...s, blocks: null })) })
+      .then((pictures) => {
+        if (!live) return;
+        setStageCostumes(pictures);
+        setCode("");
+        setAutostart(false);
+        setRunId(newRunId());
+      })
+      .catch(() => undefined);
+    return () => { live = false; };
+    // only when a picture changes, not when a sprite is renamed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picturesKey]);
+
   const flag = async () => {
     try {
       const proj = snapshot();
@@ -119,13 +140,28 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
       const pictures = await resolveCostumes(proj);
       setCode(generated);
       setStageCostumes(pictures);
+      setAutostart(true);
       setRunId(newRunId());
       if (isPhone()) setView("stage");
+      if (countLooseStacks(proj) > 0) {
+        toast("Some blocks are not joined to a start block, so the 🏁 did not run them. Snap them under “when 🏁 clicked” — or just click a block to try it!", { icon: "💡", id: "loose-blocks", duration: 9000 });
+      }
     } catch {
       toast.error("Something is not right with the blocks. Check that they are joined to a 🏁 block.");
     }
   };
-  const stop = () => setRunId("");
+  const stop = () => stage.current?.stopAll();
+
+  // Click a block (or any block in a stack) and it runs right now on the stage, like Scratch.
+  const runBlock = (block: Blockly.Block) => {
+    if (isPhone()) return; // the stage is on another tab there: phones use the flag
+    try {
+      const js = compileStack(block, sprites.map((sp) => sp.id), Math.max(0, sprites.findIndex((sp) => sp.id === activeId)));
+      if (js) stage.current?.run(js);
+    } catch {
+      toast.error("That block could not run.", { id: "run-block" });
+    }
+  };
 
   const toggleCode = () => {
     if (!showCode) {
@@ -466,6 +502,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
                 readOnly={locked}
                 onChange={onChange}
                 onReady={(w) => { ws.current = w; }}
+                onRunBlock={runBlock}
                 height="100%"
               />
               {showCode && (
@@ -487,11 +524,11 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
             <button onClick={stop} className="w-11 h-11 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-red-50" aria-label="Stop" title="Stop">
               <span className="w-5 h-5 bg-[#ec5959] border-2 border-[#d94848]" style={{ clipPath: "polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)" }} aria-hidden="true" />
             </button>
-            <span className="ml-auto text-xs font-bold text-slate-500 hidden xl:block">Press the flag to run</span>
+            <span className="ml-auto text-xs font-bold text-slate-500 hidden xl:block">Click a block to try it · 🏁 runs it all</span>
           </div>
           {/* the stage keeps its 4:3 shape and never gets taller than the screen leaves room for */}
           <div className="w-full mx-auto shrink-0 lg:[width:min(100%,calc((100dvh-28rem)*1.3333))] lg:min-w-[14rem]">
-            <StagePreview code={code} runId={runId} costumes={stageCostumes} />
+            <StagePreview code={code} runId={runId} costumes={stageCostumes} autostart={autostart} handle={stage} />
           </div>
           {spritePanel}
         </div>

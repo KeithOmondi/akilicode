@@ -178,3 +178,37 @@ test('a costume name cannot break out of the page', () => {
   const doc = buildStageDoc({ code: '', token: 't', costumes: [[{ id: 'c1', name: '</script><img src=x onerror=alert(1)>', src: 'emoji:x' }]] });
   assert.equal((doc.match(/<\/script>/g) || []).length, 4);
 });
+
+test('the stage waits when asked not to start, runs a stack the page sends, and stops on request', async () => {
+  const { JSDOM } = await import('jsdom');
+  const token = 'tk';
+  const dom = new JSDOM(buildStageDoc({ code: "S.on('flag', async function () { S.move(500); });", token, autostart: false }), { runScripts: 'dangerously', pretendToBeVisual: true, beforeParse(w) { w.HTMLCanvasElement.prototype.getContext = () => null; } });
+  windows.push(dom.window);
+  await sleep(30);
+  const S = dom.window.S;
+  assert.equal(Math.round(S.state().x), 0); // the flag program did not start by itself
+  const send = (data, source = dom.window) => dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data, source }));
+  send({ __akili: token, type: 'run', code: '(async function (S) { S.move(30); })(S.forSprite(0));' });
+  await sleep(30);
+  assert.equal(Math.round(S.state().x), 30);
+  // a wrong token, or a sender that is not the page, is ignored
+  send({ __akili: 'other', type: 'run', code: 'S.move(99)' });
+  send({ __akili: token, type: 'run', code: 'S.move(99)' }, {});
+  await sleep(30);
+  assert.equal(Math.round(S.state().x), 30);
+  send({ __akili: token, type: 'stop' });
+  assert.equal(S.running, false);
+  send({ __akili: token, type: 'run', code: '(async function (S) { S.move(5); })(S.forSprite(0));' }); // clicking a block after Stop works again
+  await sleep(30);
+  assert.equal(S.running, true);
+  assert.equal(Math.round(S.state().x), 35);
+});
+
+test('sound effects: known names report their length, unknown names are silent, and no audio support is not an error', async () => {
+  const { S } = await stage('');
+  assert.ok(S.startSound('pop') > 0);
+  assert.ok(S.startSound('meow') > 0);
+  assert.equal(S.startSound('not-a-sound'), 0);
+  await S.playSound('not-a-sound'); // resolves straight away
+  assert.equal(S.audioState(), 'none'); // jsdom has no audio: nothing crashed
+});
