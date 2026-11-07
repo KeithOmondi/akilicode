@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import CodeMirror from "@uiw/react-codemirror";
+import CodeMirror, { EditorView, keymap } from "@uiw/react-codemirror";
+import { indentWithTab } from "@codemirror/commands";
 import { html as htmlLang } from "@codemirror/lang-html";
 import { css as cssLang } from "@codemirror/lang-css";
 import { javascript } from "@codemirror/lang-javascript";
-import { ArrowLeft, CheckCircle2, ClipboardList, Eye, Loader2, Play, Send, Undo2, Code2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardList, Eye, Loader2, Play, Send, Undo2, Code2, WrapText, Wand2 } from "lucide-react";
 import toast from "react-hot-toast";
 import CodePreview from "../../components/kids/CodePreview";
 import { newRunId } from "../../lib/sandbox";
 import { projectsApi, errorText, type Project } from "../../lib/projectsApi";
+import { EDITOR_THEMES, FONT_MAX, FONT_MIN, loadPrefs, savePrefs, themeById, type EditorPrefs } from "../../lib/editorTheme";
+import { formatCode } from "../../lib/formatCode";
 
 type Tab = "html" | "css" | "js";
-const TABS: { id: Tab; label: string; hint: string }[] = [
-  { id: "html", label: "HTML", hint: "The things on your page" },
-  { id: "css", label: "CSS", hint: "How it looks" },
-  { id: "js", label: "JavaScript", hint: "What it does" },
+const TABS: { id: Tab; file: string; hint: string; dot: string; name: string }[] = [
+  { id: "html", file: "index.html", name: "HTML", hint: "The things on your page", dot: "#e44d26" },
+  { id: "css", file: "style.css", name: "CSS", hint: "How it looks", dot: "#42a5f5" },
+  { id: "js", file: "script.js", name: "JavaScript", hint: "What it does", dot: "#f7df1e" },
 ];
 /** Phones get a shorter editor so the Run button is not hidden behind the tab bar. */
 const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
@@ -38,6 +41,14 @@ const KidEditor = () => {
   const [save, setSave] = useState<"saved" | "saving" | "error">("saved");
   const [busy, setBusy] = useState(false);
   const [confirmHandIn, setConfirmHandIn] = useState(false);
+  const [prefs, setPrefsState] = useState<EditorPrefs>(loadPrefs);
+  const [pos, setPos] = useState({ ln: 1, col: 1 });
+  const [tidying, setTidying] = useState(false);
+
+  const updatePrefs = (next: EditorPrefs) => {
+    setPrefsState(next);
+    savePrefs(next);
+  };
 
   const dirty = useRef(false);
   const latest = useRef({ code, title });
@@ -46,6 +57,7 @@ const KidEditor = () => {
   }, [code, title]);
 
   const locked = Boolean(project?.submitted_at);
+  const dark = themeById(prefs.theme).dark;
 
   // Load
   useEffect(() => {
@@ -114,6 +126,24 @@ const KidEditor = () => {
     dirty.current = true;
     setSave("saving");
     setCode((c) => ({ ...c, [tab]: value }));
+  };
+
+  /** Lay the current file out neatly, like Format Document in VS Code. */
+  const tidy = async () => {
+    setTidying(true);
+    try {
+      const out = await formatCode(tab, code[tab]);
+      if (out !== code[tab]) {
+        dirty.current = true;
+        setSave("saving");
+        setCode((c) => ({ ...c, [tab]: out }));
+      }
+      toast.success("Tidied up ✨");
+    } catch (e) {
+      toast.error(`Could not tidy this yet: ${(e as Error).message}`);
+    } finally {
+      setTidying(false);
+    }
   };
 
   const handIn = async () => {
@@ -216,29 +246,78 @@ const KidEditor = () => {
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* code */}
-        <div className={view === "page" ? "hidden lg:block" : ""}>
-          <div className="flex items-center gap-1 mb-2 overflow-x-auto" role="tablist" aria-label="Files">
-            {TABS.map((t) => (
-              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} title={t.hint}
-                className={`px-4 h-11 rounded-t-2xl font-black text-sm whitespace-nowrap ${tab === t.id ? "bg-white border-2 border-b-0 border-brand-100 text-brand-700" : "text-slate-500 hover:text-brand-700"}`}>
-                {t.label}
+        <div className={`min-w-0 ${view === "page" ? "hidden lg:block" : ""}`}>
+          {/* VS Code style: file tabs, a small toolbar, the editor, and a status bar */}
+          <div className="rounded-2xl overflow-hidden border-2" style={{ borderColor: dark ? "#3c3c3c" : "#d4d4d4" }}>
+            <div className="flex items-end gap-px overflow-x-auto" style={{ background: dark ? "#252526" : "#ececec" }} role="tablist" aria-label="Files">
+              {TABS.map((t) => (
+                <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} title={t.hint}
+                  className="px-4 h-10 text-[13px] font-semibold whitespace-nowrap flex items-center gap-2 border-t-2"
+                  style={tab === t.id
+                    ? { background: dark ? "#1e1e1e" : "#ffffff", color: dark ? "#ffffff" : "#1e1e1e", borderTopColor: "#007acc" }
+                    : { background: "transparent", color: dark ? "#9d9d9d" : "#616161", borderTopColor: "transparent" }}>
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: t.dot }} aria-hidden="true" />
+                  {t.file}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1.5 text-xs" style={{ background: dark ? "#333333" : "#f3f3f3", color: dark ? "#d4d4d4" : "#333333" }} role="toolbar" aria-label="Editor settings">
+              <label className="flex items-center gap-1.5">
+                <span className="sr-only">Colour theme</span>
+                <select
+                  value={prefs.theme}
+                  onChange={(e) => updatePrefs({ ...prefs, theme: e.target.value })}
+                  className="h-8 rounded-md px-2 font-semibold text-xs"
+                  style={{ background: dark ? "#3c3c3c" : "#ffffff", color: dark ? "#f0f0f0" : "#1e1e1e", border: "1px solid " + (dark ? "#555" : "#c8c8c8") }}
+                >
+                  <optgroup label="Dark">
+                    {EDITOR_THEMES.filter((t) => t.dark).map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Light">
+                    {EDITOR_THEMES.filter((t) => !t.dark).map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </optgroup>
+                </select>
+              </label>
+
+              <div className="flex items-center gap-1" role="group" aria-label="Text size">
+                <button onClick={() => updatePrefs({ ...prefs, fontSize: Math.max(FONT_MIN, prefs.fontSize - 1) })} disabled={prefs.fontSize <= FONT_MIN} aria-label="Smaller text" className="w-8 h-8 rounded-md font-black disabled:opacity-40 hover:bg-white/10">A−</button>
+                <span className="w-6 text-center font-semibold tabular-nums" aria-live="polite">{prefs.fontSize}</span>
+                <button onClick={() => updatePrefs({ ...prefs, fontSize: Math.min(FONT_MAX, prefs.fontSize + 1) })} disabled={prefs.fontSize >= FONT_MAX} aria-label="Bigger text" className="w-8 h-8 rounded-md font-black disabled:opacity-40 hover:bg-white/10">A+</button>
+              </div>
+
+              <button onClick={() => updatePrefs({ ...prefs, wrap: !prefs.wrap })} aria-pressed={prefs.wrap} title="Wrap long lines" className={`h-8 px-2 rounded-md flex items-center gap-1.5 font-semibold ${prefs.wrap ? "bg-[#007acc] text-white" : "hover:bg-white/10"}`}>
+                <WrapText size={15} aria-hidden="true" /> Wrap
               </button>
-            ))}
-            <span className="hidden sm:inline ml-auto text-xs text-slate-500 font-semibold pr-1">{TABS.find((t) => t.id === tab)?.hint}</span>
-          </div>
-          <div className="rounded-2xl rounded-tl-none border-2 border-brand-100 overflow-hidden bg-white">
+
+              <button onClick={tidy} disabled={locked || tidying} title="Lay this file out neatly" className="h-8 px-2 rounded-md flex items-center gap-1.5 font-semibold hover:bg-white/10 disabled:opacity-40">
+                {tidying ? <Loader2 className="animate-spin" size={15} /> : <Wand2 size={15} aria-hidden="true" />} Tidy
+              </button>
+            </div>
+
             <CodeMirror
               key={tab}
               value={code[tab]}
-              height={isPhone() ? "13rem" : "22rem"}
-              extensions={[...EXTENSIONS[tab]]}
+              height={isPhone() ? "13rem" : "24rem"}
+              maxWidth="100%"
+              theme={themeById(prefs.theme).extension}
+              extensions={[...EXTENSIONS[tab], keymap.of([indentWithTab]), ...(prefs.wrap ? [EditorView.lineWrapping] : [])]}
               editable={!locked}
               readOnly={locked}
               onChange={edit}
-              basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: true, autocompletion: true }}
-              style={{ fontSize: "15px" }}
+              onStatistics={(d) => setPos({ ln: d.line.number, col: d.selectionAsSingle.head - d.line.from + 1 })}
+              basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true, autocompletion: true, bracketMatching: true, closeBrackets: true, indentOnInput: true }}
+              style={{ fontSize: prefs.fontSize + "px" }}
               aria-label={`${tab.toUpperCase()} code`}
             />
+
+            <div className="flex items-center gap-x-4 gap-y-0.5 flex-wrap px-3 py-1 text-[11px] font-semibold text-white" style={{ background: "#007acc" }} aria-label="Editor status">
+              <span>Ln {pos.ln}, Col {pos.col}</span>
+              <span>Spaces: 2</span>
+              <span>{TABS.find((t) => t.id === tab)?.name}</span>
+              <span className="ml-auto">{themeById(prefs.theme).label}</span>
+              {locked && <span>Read only (handed in)</span>}
+            </div>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -271,7 +350,7 @@ const KidEditor = () => {
         </div>
 
         {/* page */}
-        <div className={view === "code" ? "hidden lg:block" : ""}>
+        <div className={`min-w-0 ${view === "code" ? "hidden lg:block" : ""}`}>
           <p className="mb-2 h-11 flex items-end text-sm font-black text-slate-600">My page</p>
           <CodePreview html={code.html} css={code.css} js={code.js} runId={runId} />
           <p className="mt-2 text-xs text-slate-500">For your safety your page cannot load things from the internet. Pictures must be written inside your code.</p>
