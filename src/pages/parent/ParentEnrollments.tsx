@@ -297,7 +297,7 @@ const ParentEnrollments = () => {
       attempts++;
       try {
         const res = await api.get(`/mpesa/status/${enrollmentId}`);
-        const { payment_status, enrollment_status } = res.data.data;
+        const { payment_status, enrollment_status, reason } = res.data.data;
 
         if (payment_status === "completed" && (enrollment_status === "active" || enrollment_status === "completed")) {
           clearInterval(pollRef.current!);
@@ -317,7 +317,7 @@ const ParentEnrollments = () => {
           clearInterval(pollRef.current!);
           pollRef.current = null;
           toast.dismiss("stk-push");
-          toast.error("Payment was cancelled or failed. Please try again.");
+          toast.error(reason || "The payment did not go through. Please try again.", { duration: 7000 });
           dispatch(getMyEnrollments());
         } else if (attempts >= maxAttempts) {
           clearInterval(pollRef.current!);
@@ -446,7 +446,7 @@ const ParentEnrollments = () => {
 
                   {e.status === "pending" && (
                     <div className="mt-3 p-3 bg-amber-50 rounded-xl flex items-center gap-2 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
-                      <CheckCircle2 size={14} /> Waiting for M-Pesa Confirmation
+                      <CheckCircle2 size={14} /> Not paid yet
                     </div>
                   )}
 
