@@ -27,6 +27,7 @@ import {
   AlertCircle,
   GraduationCap,
   HelpCircle,
+  ClipboardList,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type {
@@ -599,6 +600,18 @@ const KidCourseView = () => {
                       __html: sanitizeHtml(renderMarkdown(currentLesson.notes)),
                     }}
                   />
+                </div>
+              )}
+
+              {/* Assignment: something to do away from the screen. Shown to the child and read by the parent. */}
+              {currentLesson.assignment && (
+                <div className="mb-6 rounded-2xl border-2 border-amber-200 bg-amber-50 p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ClipboardList size={18} className="text-amber-600" />
+                    <span className="text-xs font-black text-amber-700 uppercase tracking-widest">Your assignment</span>
+                  </div>
+                  <p className="text-gray-800 text-[15px] leading-relaxed">{currentLesson.assignment}</p>
+                  <p className="mt-3 text-xs text-amber-800 font-semibold">Show it to a grown-up when you are done. 🎉</p>
                 </div>
               )}
 
