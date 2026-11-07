@@ -11,8 +11,6 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
-    "@mui/icons-material": "^9.0.1",
     "@reduxjs/toolkit": "^2.11.2",
     "@tailwindcss/vite": "^4.2.4",
     "axios": "^1.15.2",
@@ -27,8 +25,6 @@
     "react-icons": "^5.6.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.14.2",
-    "simple-icons": "^16.19.0",
-    "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {
@@ -39,7 +35,6 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/socket.io-client": "^1.4.36",
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^10.2.1",

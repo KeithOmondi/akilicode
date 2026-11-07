@@ -55,12 +55,10 @@ import BlogList from "./pages/BlogList";
 import BlogPost from "./pages/BlogPost";
 import LegalPage from "./pages/LegalPage";
 import KidCourseView from "./pages/kids/KidCourseView";
-//import KidInteractivePlayground from "./pages/kids/KidInteractivePlayground";
 import KidMyCourses from "./pages/kids/KidMyCourses";
 import KidLeaderboard from "./pages/kids/Kidleaderboard";
 import KidBadges from "./pages/kids/KidBadges";
 import KidCalendar from "./pages/kids/KidCalendar";
-import ComingSoonWrapper from "./pages/kids/Comingsoonwrapper";
 import ParentGuide from "./pages/ParentGuide";
 import ParentGateDialog from "./components/shared/ParentGateDialog";
 import NotFound from "./pages/NotFound";
@@ -198,12 +196,11 @@ const App = () => {
               path="/kid/course/:enrollmentId"
               element={<KidCourseView />}
             />
-            <Route path="/kid/games" element={<ComingSoonWrapper />} />
+            <Route path="/kid/games" element={<Navigate to="/kid/dashboard" replace />} />
             <Route path="/kid/achievements" element={<Navigate to="/kid/badges" replace />} />
             <Route path="/kid/leaderboard" element={<KidLeaderboard />} />
             <Route path="/kid/badges" element={<KidBadges />} />
             <Route path="/kid/calendar" element={<KidCalendar />} />
-            {/*<Route path="/kid/games" element={<ComingSoonWrapper />} /> */}
           </Route>
         </Route>
 

@@ -266,12 +266,12 @@ const KidCourseView = () => {
   }, [selectedLesson, enrollmentId, dispatch]);
 
   // Once the course has loaded, open the lesson the child asked for (or their next unfinished one).
-  useEffect(() => {
-    if (selectedLesson || !currentCourse?.modules) return;
+  // (Derived during render, as React recommends, instead of in an effect.)
+  if (!selectedLesson && currentCourse?.modules) {
     const all = currentCourse.modules.flatMap((m: ModuleWithLessons) => m.lessons);
     const target = all.find((l) => l.id === wantedLesson) ?? all.find((l) => !l.completed) ?? all[0];
     if (target) setSelectedLesson(target);
-  }, [currentCourse, selectedLesson, wantedLesson]);
+  }
 
   const handleSelectLesson = useCallback((lesson: Lesson) => {
     setSelectedLesson(lesson);
