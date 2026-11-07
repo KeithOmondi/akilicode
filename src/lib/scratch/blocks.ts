@@ -341,21 +341,25 @@ ${indent(javascriptGenerator.finish(body))}})(S.forSprite(${spriteIndex}));
 `;
 };
 
-/** How many stacks of blocks are not joined to a start block (so pressing the flag would never run them). */
-export const countLooseStacks = (raw: unknown): number => {
+/** A stack of blocks that is not under a start block (and is not a lone value block): the flag never runs it. */
+export const isLooseStack = (block: Blockly.Block): boolean => !HATS[block.type] && !block.outputConnection && !block.getParent();
+
+/** Which sprites have stacks of blocks that are not under a start block, and how many each. */
+export const looseStacks = (raw: unknown): { id: string; name: string; count: number }[] => {
   registerBlocks();
-  let loose = 0;
+  const found: { id: string; name: string; count: number }[] = [];
   for (const sp of normalizeProject(raw).sprites) {
     if (!sp.blocks) continue;
     const ws = new Blockly.Workspace();
     try {
       Blockly.serialization.workspaces.load(sp.blocks as never, ws);
-      for (const top of ws.getTopBlocks(false)) if (!HATS[top.type] && !top.outputConnection) loose++;
+      const count = ws.getTopBlocks(false).filter(isLooseStack).length;
+      if (count) found.push({ id: sp.id, name: sp.name, count });
     } finally {
       ws.dispose();
     }
   }
-  return loose;
+  return found;
 };
 
 /** The code for ONE sprite's blocks. Only blocks under a hat block (flag, key, click) run, like in Scratch. */

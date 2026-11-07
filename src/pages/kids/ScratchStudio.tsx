@@ -8,7 +8,7 @@ import StagePreview, { type StageHandle } from "../../components/scratch/StagePr
 import SpritePicker from "../../components/scratch/SpritePicker";
 import PaintEditor from "../../components/scratch/PaintEditor";
 import CostumeImage from "../../components/scratch/CostumeImage";
-import { compileBlocks, compileStack, countLooseStacks, FLAG_URI, HAT_ONLY, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
+import { compileBlocks, compileStack, FLAG_URI, isLooseStack, looseStacks, HAT_ONLY, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
 import { costumesOf, pictureFromFile, resolveCostumes, type LibrarySprite } from "../../lib/scratch/spriteAssets";
 import type { StageCostume } from "../../lib/scratch/runtime";
 import { newRunId } from "../../lib/sandbox";
@@ -63,6 +63,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const rebuild = (id: string) => setMount((m) => ({ n: m.n + 1, blocks: blocksOf.current[id] ?? null }));
 
   const ws = useRef<Blockly.WorkspaceSvg | null>(null);
+  const focusLoose = useRef(false); // after switching sprite, scroll to its loose blocks
   const dirty = useRef(false);
 
   const locked = Boolean(project.submitted_at);
@@ -143,14 +144,41 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
       setAutostart(true);
       setRunId(newRunId());
       if (isPhone()) setView("stage");
-      if (countLooseStacks(proj) > 0) {
-        toast("Some of your blocks are not under a start block, so the green flag skipped them. Open Events (the yellow circle), drag “when flag clicked” on top of your blocks — or just click a block to try it!", { icon: "💡", id: "loose-blocks", duration: 10000 });
+      const loose = looseStacks(proj);
+      if (loose.length) {
+        const where = loose.map((l) => `${l.name} (${l.count})`).join(", ");
+        toast(
+          (t) => (
+            <div className="text-sm">
+              <p className="font-bold mb-1">Some blocks are not under a start block, so the green flag skipped them.</p>
+              <p className="mb-2">Sprites with loose blocks: {where}. Drag “when flag clicked” (Events, the yellow circle) on top of them, or click a block to try it.</p>
+              <button onClick={() => { toast.dismiss(t.id); showLoose(loose[0].id); }} className="h-8 px-3 rounded-lg bg-[#855cd6] text-white font-bold">Show me</button>
+            </div>
+          ),
+          { icon: "💡", id: "loose-blocks", duration: 15000 }
+        );
       }
     } catch {
       toast.error("Something is not right with the blocks. Check that they are joined under a “when flag clicked” block.");
     }
   };
   const stop = () => stage.current?.stopAll();
+
+  /** Scroll to (and select) the first loose stack of the sprite on screen. */
+  const centerOnLoose = () => {
+    const w = ws.current;
+    const block = w?.getTopBlocks(true).find(isLooseStack);
+    if (w && block) {
+      w.centerOnBlock(block.id);
+      block.select();
+    }
+  };
+  const showLoose = (spriteId: string) => {
+    setView("blocks");
+    if (spriteId === activeId) return centerOnLoose();
+    focusLoose.current = true;
+    pick(spriteId);
+  };
 
   // Click a block (or any block in a stack) and it runs right now on the stage, like Scratch.
   const runBlock = (block: Blockly.Block) => {
@@ -501,7 +529,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
                 initialState={mount.blocks}
                 readOnly={locked}
                 onChange={onChange}
-                onReady={(w) => { ws.current = w; }}
+                onReady={(w) => { ws.current = w; if (focusLoose.current) { focusLoose.current = false; setTimeout(centerOnLoose, 100); } }}
                 onRunBlock={runBlock}
                 height="100%"
               />
