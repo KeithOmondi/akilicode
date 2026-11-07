@@ -63,7 +63,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const rebuild = (id: string) => setMount((m) => ({ n: m.n + 1, blocks: blocksOf.current[id] ?? null }));
 
   const ws = useRef<Blockly.WorkspaceSvg | null>(null);
-  const focusLoose = useRef(false); // after switching sprite, scroll to its loose blocks
+  const focusLoose = useRef<null | "show" | "fix">(null); // after switching sprite: scroll to its loose blocks, or give them a start block
   const dirty = useRef(false);
 
   const locked = Boolean(project.submitted_at);
@@ -152,7 +152,10 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
             <div className="text-sm">
               <p className="font-bold mb-1">Some blocks are not under a start block, so the green flag skipped them.</p>
               <p className="mb-2">Sprites with loose blocks: {where}. Drag “when flag clicked” (Events, the yellow circle) on top of them, or click a block to try it.</p>
-              <button onClick={() => { toast.dismiss(t.id); showLoose(loose[0].id); }} className="h-8 px-3 rounded-lg bg-[#855cd6] text-white font-bold">Show me</button>
+              <div className="flex gap-2">
+                <button onClick={() => { toast.dismiss(t.id); showLoose(loose[0].id, true); }} className="h-8 px-3 rounded-lg bg-[#855cd6] text-white font-bold">Add a start block for me</button>
+                <button onClick={() => { toast.dismiss(t.id); showLoose(loose[0].id); }} className="h-8 px-3 rounded-lg border border-[#855cd6] text-[#855cd6] font-bold">Show me</button>
+              </div>
             </div>
           ),
           { icon: "💡", id: "loose-blocks", duration: 15000 }
@@ -173,10 +176,25 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
       block.select();
     }
   };
-  const showLoose = (spriteId: string) => {
+  /** Put a "when flag clicked" block on top of every loose stack of the sprite on screen. */
+  const addStartBlocks = () => {
+    const w = ws.current;
+    if (!w) return;
+    const loose = w.getTopBlocks(true).filter(isLooseStack);
+    for (const block of loose) {
+      const hat = w.newBlock("ev_flag");
+      hat.initSvg();
+      hat.render();
+      const xy = block.getRelativeToSurfaceXY();
+      hat.moveBy(xy.x, xy.y - 60);
+      hat.nextConnection?.connect(block.previousConnection!);
+    }
+    if (loose.length) toast.success(loose.length === 1 ? "Added a start block. Press the green flag!" : "Added start blocks. Press the green flag!", { id: "start-added" });
+  };
+  const showLoose = (spriteId: string, fix = false) => {
     setView("blocks");
-    if (spriteId === activeId) return centerOnLoose();
-    focusLoose.current = true;
+    if (spriteId === activeId) return fix ? addStartBlocks() : centerOnLoose();
+    focusLoose.current = fix ? "fix" : "show";
     pick(spriteId);
   };
 
@@ -529,7 +547,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
                 initialState={mount.blocks}
                 readOnly={locked}
                 onChange={onChange}
-                onReady={(w) => { ws.current = w; if (focusLoose.current) { focusLoose.current = false; setTimeout(centerOnLoose, 100); } }}
+                onReady={(w) => { ws.current = w; const todo = focusLoose.current; if (todo) { focusLoose.current = null; setTimeout(todo === "fix" ? addStartBlocks : centerOnLoose, 100); } }}
                 onRunBlock={runBlock}
                 height="100%"
               />
