@@ -27,6 +27,7 @@ const THEME = Blockly.Theme.defineTheme("akili", {
     text_blocks: { colourPrimary: COLORS.operators },
     variable_blocks: { colourPrimary: COLORS.variables },
     variable_dynamic_blocks: { colourPrimary: COLORS.variables },
+    procedure_blocks: { colourPrimary: COLORS.myBlocks },
   },
   componentStyles: {
     workspaceBackgroundColour: "#f9f9f9",
@@ -76,6 +77,13 @@ const BlockWorkspace = ({ initialState, onChange, onReady, onRunBlock, readOnly 
       grid: { spacing: 28, length: 2, colour: "#d9d9d9", snap: true },
       move: { scrollbars: true, drag: true, wheel: true },
     });
+
+    // My Blocks: only the kind that does things (the "returns a value" kinds cannot wait or glide, so they are left out)
+    ws.registerToolboxCategoryCallback("PROCEDURE", (w: Blockly.WorkspaceSvg) =>
+      (Blockly.Procedures.flyoutCategory(w) as unknown as { type?: string; getAttribute?: (n: string) => string | null }[]).filter(
+        (item) => !/(defreturn|ifreturn|callreturn)$/.test(String(item.type ?? item.getAttribute?.("type") ?? ""))
+      ) as never
+    );
 
     if (initialState) {
       Blockly.Events.disable();
