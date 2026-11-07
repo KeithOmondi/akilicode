@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useAppDispatch } from "./store/hooks";
@@ -62,7 +62,8 @@ import KidCalendar from "./pages/kids/KidCalendar";
 import ParentGuide from "./pages/ParentGuide";
 import ParentGateDialog from "./components/shared/ParentGateDialog";
 import NotFound from "./pages/NotFound";
-import DesignSystem from "./pages/DesignSystem";
+// Dev-only style guide: not imported at all in production builds, so it is not in the bundle.
+const DesignSystem = import.meta.env.DEV ? lazy(() => import("./pages/DesignSystem")) : null;
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -130,7 +131,7 @@ const App = () => {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/kid/login" element={<KidLogin />} />
         <Route path="/parent-guide" element={<ParentGuide />} />
-        {import.meta.env.DEV && <Route path="/design-system" element={<DesignSystem />} />}
+        {DesignSystem && <Route path="/design-system" element={<Suspense fallback={null}><DesignSystem /></Suspense>} />}
 
         <Route element={<PublicLayout />}>
           <Route path="/blog" element={<BlogList />} />
