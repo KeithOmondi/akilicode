@@ -24,47 +24,54 @@ import ForgotPassword from "./components/auth/ForgotPassword";
 import ResetPassword from "./components/auth/ResetPassword";
 import VerifyEmail from "./components/auth/VerifyEmail";
 import Unauthorized from "./pages/Unauthorized";
-import KidLogin from "./components/auth/KidLogin";
+const KidLogin = lazy(() => import("./components/auth/KidLogin"));
 
 // --- ADMIN PAGES ---
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminEnrollments from "./pages/admin/AdminEnrollments";
-import AdminPayments from "./pages/admin/AdminPayments";
-import AdminCourses from "./pages/admin/AdminCourses";
-import AdminCourseDetail from "./pages/admin/Admincoursedetail";
-import AdminModuleDetail from "./pages/admin/Adminmoduledetail";
-import AdminLessonEditor from "./pages/admin/Adminlessoneditor";
-import AdminBlog from "./pages/admin/AdminBlog";
-import AdminBlogEditor from "./pages/admin/AdminBlogEditor";
-import AdminTestimonials from "./pages/admin/AdminTestimonials";
-import AdminPricing from "./pages/admin/AdminPricing";
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminEnrollments = lazy(() => import("./pages/admin/AdminEnrollments"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
+const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
+const AdminCourseDetail = lazy(() => import("./pages/admin/Admincoursedetail"));
+const AdminModuleDetail = lazy(() => import("./pages/admin/Adminmoduledetail"));
+const AdminLessonEditor = lazy(() => import("./pages/admin/Adminlessoneditor"));
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminBlogEditor = lazy(() => import("./pages/admin/AdminBlogEditor"));
+const AdminTestimonials = lazy(() => import("./pages/admin/AdminTestimonials"));
+const AdminPricing = lazy(() => import("./pages/admin/AdminPricing"));
 
 // --- PARENT PAGES ---
-import ParentDashboard from "./pages/parent/ParentDashboard";
-import MyKids from "./pages/parent/MyKids";
-import ParentSettings from "./pages/parent/ParentSettings";
-import ParentProgramsAndPayments from "./pages/parent/Parentprogramsandpayments ";
-import ParentCourses from "./pages/parent/ParentCourses";
-import ParentTestimonials from "./pages/parent/ParentTestimonials";
+const ParentDashboard = lazy(() => import("./pages/parent/ParentDashboard"));
+const MyKids = lazy(() => import("./pages/parent/MyKids"));
+const ParentSettings = lazy(() => import("./pages/parent/ParentSettings"));
+const ParentProgramsAndPayments = lazy(() => import("./pages/parent/ParentProgramsAndPayments"));
+const ParentCourses = lazy(() => import("./pages/parent/ParentCourses"));
+const ParentTestimonials = lazy(() => import("./pages/parent/ParentTestimonials"));
 
 // --- KID PAGES ---
-import KidDashboard from "./pages/kids/KidDashboard";
+const KidDashboard = lazy(() => import("./pages/kids/KidDashboard"));
 
 // --- OTHER PAGES ---
-import BlogList from "./pages/BlogList";
-import BlogPost from "./pages/BlogPost";
-import LegalPage from "./pages/LegalPage";
-import KidCourseView from "./pages/kids/KidCourseView";
-import KidMyCourses from "./pages/kids/KidMyCourses";
-import KidLeaderboard from "./pages/kids/Kidleaderboard";
-import KidBadges from "./pages/kids/KidBadges";
-import KidCalendar from "./pages/kids/KidCalendar";
-import ParentGuide from "./pages/ParentGuide";
+const BlogList = lazy(() => import("./pages/BlogList"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
+const KidCourseView = lazy(() => import("./pages/kids/KidCourseView"));
+const KidMyCourses = lazy(() => import("./pages/kids/KidMyCourses"));
+const KidLeaderboard = lazy(() => import("./pages/kids/Kidleaderboard"));
+const KidBadges = lazy(() => import("./pages/kids/KidBadges"));
+const KidCalendar = lazy(() => import("./pages/kids/KidCalendar"));
+const ParentGuide = lazy(() => import("./pages/ParentGuide"));
 import ParentGateDialog from "./components/shared/ParentGateDialog";
 import NotFound from "./pages/NotFound";
 // Dev-only style guide: not imported at all in production builds, so it is not in the bundle.
 const DesignSystem = import.meta.env.DEV ? lazy(() => import("./pages/DesignSystem")) : null;
+
+/** Shown for a moment while a page's code downloads. */
+const PageLoading = () => (
+  <div className="min-h-screen flex items-center justify-center bg-canvas" role="status" aria-label="Loading">
+    <div className="w-10 h-10 rounded-full border-4 border-brand-200 border-t-brand-600 animate-spin" />
+  </div>
+);
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -121,6 +128,7 @@ const App = () => {
         }}
       />
       <ParentGateDialog />
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         {/* ── Public Routes ── */}
         <Route path="/" element={<HomePage />} />
@@ -210,6 +218,7 @@ const App = () => {
         {/* ── Fallback ── */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </>
   );
 };

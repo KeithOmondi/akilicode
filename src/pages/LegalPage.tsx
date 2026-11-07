@@ -88,7 +88,7 @@ const LegalPage = () => {
             If you have any questions about our terms or privacy practices, please contact us.
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
-            <a href="mailto:legal@akilicode.com" className="flex items-center gap-2 text-purple-600 hover:text-purple-700">
+            <a href="mailto:akilicode2@gmail.com" className="flex items-center gap-2 text-purple-600 hover:text-purple-700">
               <Mail size={16} />
               akilicode2@gmail.com
             </a>
@@ -150,11 +150,9 @@ const TermsContent = () => {
           Our Services are offered on a subscription basis with monthly, termly, or annual payment options.
         </p>
         <ul className="list-disc list-inside text-gray-600 leading-relaxed mt-2 space-y-1">
-          <li><strong>Pricing:</strong> Monthly subscription is KES 4,000 per student</li>
-          <li><strong>Free Trial:</strong> 3-5 day free trial available for new students</li>
+          <li><strong>Pricing:</strong> Prices are in Kenya shillings (KES). They are shown on our pricing page and before every payment, and we may change them for future payments</li>
           <li><strong>Billing:</strong> Payments are processed securely via M-Pesa</li>
-          <li><strong>Cancellation:</strong> You may cancel anytime from your parent dashboard</li>
-          <li><strong>Refunds:</strong> 30-day money-back guarantee if you're not satisfied</li>
+          <li><strong>Cancellation and refunds:</strong> Message us if you want to stop or have a problem with a payment, and we will look at it with you</li>
         </ul>
       </section>
 
@@ -245,7 +243,7 @@ const TermsContent = () => {
           If you have any questions about these Terms, please contact us at:
         </p>
         <div className="mt-2 text-gray-600">
-          <p>Email: legal@akilicode.com</p>
+          <p>Email: akilicode2@gmail.com</p>
           <p>Phone: +254 705 806 889</p>
           <p>Address: Nairobi, Kenya</p>
         </div>
@@ -416,7 +414,7 @@ const PrivacyContent = () => {
         </p>
         <div className="mt-3 p-4 bg-gray-50 rounded-xl">
           <p className="font-semibold text-gray-800">AkiliCode Privacy Team</p>
-          <p className="text-gray-600">Email: privacy@akilicode.com</p>
+          <p className="text-gray-600">Email: akilicode2@gmail.com</p>
           <p className="text-gray-600">Phone: +254 705 806 889</p>
           <p className="text-gray-600">Address: Nairobi, Kenya</p>
         </div>
