@@ -29,7 +29,7 @@ interface EnrollWithPaymentPayload {
   start_date?:   string;
   payNow?:       boolean;
   phone?:        string;
-  /** How the parent pays: an M-Pesa prompt on their phone, or a card / mobile money page from Paystack. */
+  /** How the parent pays: an M-Pesa prompt on their phone, or a card payment page from Paystack. */
   method?:       PayMethod;
 }
 
@@ -142,7 +142,7 @@ const MethodSwitch = ({ value, onChange }: { value: PayMethod; onChange: (m: Pay
   return (
     <div className="flex gap-3" role="group" aria-label="How do you want to pay?">
       {option("mpesa", "M-Pesa", "A prompt on your phone")}
-      {option("card", "Card or other", "Secure page by Paystack")}
+      {option("card", "Card", "Visa or Mastercard, secure page")}
     </div>
   );
 };
@@ -198,7 +198,7 @@ const PayDialog = ({ course, kid, amount, paystackOn, busy, onClose, onMpesa, on
               <CreditCard className="text-purple-500" size={20} />
               <span className="font-bold">Pay on Paystack's secure page</span>
             </div>
-            <p className="text-xs text-purple-700/80">You will choose card or mobile money there, and come straight back here when you are done. We never see your card details.</p>
+            <p className="text-xs text-purple-700/80">You will enter your card there, and come straight back here when you are done. We never see your card details. To pay with M-Pesa, choose M-Pesa instead.</p>
           </div>
         )}
         <button type="submit" disabled={busy} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-200 transition-all">
@@ -356,7 +356,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
             <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
               <div className="flex items-center gap-3 mb-2">
                 <CreditCard className="text-purple-500" size={20} />
-                <span className="text-sm font-bold text-purple-900">Card or mobile money (Paystack)</span>
+                <span className="text-sm font-bold text-purple-900">Pay by card (Paystack)</span>
               </div>
               <p className="text-[11px] text-purple-700/80">After you press the button you will pay on Paystack's secure page, then come back here.</p>
             </div>
