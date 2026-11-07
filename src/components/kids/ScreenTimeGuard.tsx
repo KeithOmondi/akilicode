@@ -122,7 +122,7 @@ const ScreenTimeGuard = () => {
   if (status?.remaining_seconds != null && status.remaining_seconds <= 600) {
     const mins = Math.max(1, Math.ceil(status.remaining_seconds / 60));
     return (
-      <div role="status" className="fixed bottom-4 left-4 z-40 bg-white border-2 border-orange-300 text-orange-700 font-bold rounded-full px-4 py-2 shadow-lg text-sm">
+      <div role="status" className="fixed top-[66px] left-1/2 -translate-x-1/2 z-40 bg-white border-2 border-orange-300 text-orange-700 font-bold rounded-full px-3 py-0.5 shadow-md text-xs">
         ⏳ {t("screenTime.left", { count: mins })}
       </div>
     );

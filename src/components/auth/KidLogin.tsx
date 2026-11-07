@@ -64,7 +64,7 @@ const KidLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-purple-50 to-orange-100 px-4 overflow-hidden relative">
+    <div data-mood="kid" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-purple-50 to-orange-100 px-4 py-8 overflow-hidden relative">
       {/* Animated Background Blobs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
@@ -72,11 +72,6 @@ const KidLogin = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
       </div>
 
-      {/* Floating Decorative Emojis */}
-      <div className="absolute top-20 left-10 text-4xl animate-float pointer-events-none">🎮</div>
-      <div className="absolute bottom-20 right-10 text-4xl animate-float animation-delay-2000 pointer-events-none">🚀</div>
-      <div className="absolute top-1/3 right-20 text-3xl animate-float animation-delay-3000 pointer-events-none">⭐</div>
-      <div className="absolute bottom-1/3 left-20 text-3xl animate-float animation-delay-4000 pointer-events-none">🎨</div>
 
       <div className="max-w-md w-full relative z-10">
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border-2 border-purple-100">
@@ -86,12 +81,11 @@ const KidLogin = () => {
               <Gamepad2 className="text-white" size={40} />
             </div>
             <h1 className="text-3xl font-black bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
-              Kid's Portal
+              Let’s code!
             </h1>
-            <p className="text-gray-500 mt-2 font-medium flex items-center justify-center gap-1">
-              <Sparkles size={14} className="text-orange-500" />
-              Let's start coding!
-              <Sparkles size={14} className="text-purple-500" />
+            <p className="text-gray-500 mt-2 font-bold flex items-center justify-center gap-1">
+              <Sparkles size={14} className="text-orange-500" aria-hidden="true" />
+              Welcome back, explorer
             </p>
           </div>
 

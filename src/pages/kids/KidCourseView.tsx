@@ -1,7 +1,7 @@
 // src/components/kid/KidCourseView.tsx
 import { sanitizeHtml } from "../../lib/sanitize";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../store/store";
 import {
@@ -239,6 +239,8 @@ const KidCourseView = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [searchParams] = useSearchParams();
+  const wantedLesson = searchParams.get("lesson");
 
   // Auth guard
   useEffect(() => {
@@ -262,6 +264,14 @@ const KidCourseView = () => {
       dispatch(getLesson({ enrollmentId, lessonId: selectedLesson.id }));
     }
   }, [selectedLesson, enrollmentId, dispatch]);
+
+  // Once the course has loaded, open the lesson the child asked for (or their next unfinished one).
+  useEffect(() => {
+    if (selectedLesson || !currentCourse?.modules) return;
+    const all = currentCourse.modules.flatMap((m: ModuleWithLessons) => m.lessons);
+    const target = all.find((l) => l.id === wantedLesson) ?? all.find((l) => !l.completed) ?? all[0];
+    if (target) setSelectedLesson(target);
+  }, [currentCourse, selectedLesson, wantedLesson]);
 
   const handleSelectLesson = useCallback((lesson: Lesson) => {
     setSelectedLesson(lesson);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useAppDispatch } from "./store/hooks";
 import { refreshSession } from "./store/slices/authSlice";
@@ -57,7 +57,6 @@ import LegalPage from "./pages/LegalPage";
 import KidCourseView from "./pages/kids/KidCourseView";
 //import KidInteractivePlayground from "./pages/kids/KidInteractivePlayground";
 import KidMyCourses from "./pages/kids/KidMyCourses";
-import KidAchievement from "./pages/kids/KidAchievement";
 import KidLeaderboard from "./pages/kids/Kidleaderboard";
 import KidBadges from "./pages/kids/KidBadges";
 import KidCalendar from "./pages/kids/KidCalendar";
@@ -200,7 +199,7 @@ const App = () => {
               element={<KidCourseView />}
             />
             <Route path="/kid/games" element={<ComingSoonWrapper />} />
-            <Route path="/kid/achievements" element={<KidAchievement />} />
+            <Route path="/kid/achievements" element={<Navigate to="/kid/badges" replace />} />
             <Route path="/kid/leaderboard" element={<KidLeaderboard />} />
             <Route path="/kid/badges" element={<KidBadges />} />
             <Route path="/kid/calendar" element={<KidCalendar />} />

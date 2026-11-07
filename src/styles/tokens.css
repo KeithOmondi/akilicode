@@ -134,3 +134,38 @@ body { font-family: var(--ds-font); color: var(--color-ink-900); background: var
 
   .ds-page { max-width: 72rem; margin-inline: auto; padding-inline: 1rem; } /* 16px gutter at 360px */
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   KID MOOD — everything inside an element with data-mood="kid" is re-coloured
+   and made friendlier. Purple stays the main colour (matches the current logo);
+   the accents are warm and bright. Change these values to re-brand the kids' area.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-mood="kid"] {
+  --color-brand-50:  #f6f1ff;
+  --color-brand-100: #ebe1ff;
+  --color-brand-200: #d6c2ff;
+  --color-brand-500: #8b5cf6;
+  --color-brand-600: #7c3aed;   /* 5.7:1 on white */
+  --color-brand-700: #6d28d9;
+  --color-brand-900: #3b1a8c;
+  --color-canvas:    #faf7ff;
+  --ds-font: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+
+@layer components {
+  /* chunky, tappable "game" card */
+  .kid-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-brand-100);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 0 var(--color-brand-100);
+  }
+  .kid-card-press { transition: transform .08s, box-shadow .08s; }
+  .kid-card-press:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--color-brand-100); }
+  /* keeps the bottom tab bar clear of the phone's home indicator */
+  .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+  .scroll-snap-x { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+  .scroll-snap-x > * { scroll-snap-align: start; }
+  @keyframes kid-pop { 0% { transform: scale(.85); opacity: 0 } 70% { transform: scale(1.06) } 100% { transform: scale(1); opacity: 1 } }
+  .kid-pop { animation: kid-pop .35s ease-out both; }
+}
