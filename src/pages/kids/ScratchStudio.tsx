@@ -8,7 +8,7 @@ import StagePreview, { type StageHandle } from "../../components/scratch/StagePr
 import SpritePicker from "../../components/scratch/SpritePicker";
 import PaintEditor from "../../components/scratch/PaintEditor";
 import CostumeImage from "../../components/scratch/CostumeImage";
-import { compileBlocks, compileStack, countLooseStacks, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
+import { compileBlocks, compileStack, countLooseStacks, FLAG_URI, HAT_ONLY, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
 import { costumesOf, pictureFromFile, resolveCostumes, type LibrarySprite } from "../../lib/scratch/spriteAssets";
 import type { StageCostume } from "../../lib/scratch/runtime";
 import { newRunId } from "../../lib/sandbox";
@@ -144,10 +144,10 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
       setRunId(newRunId());
       if (isPhone()) setView("stage");
       if (countLooseStacks(proj) > 0) {
-        toast("Some blocks are not joined to a start block, so the 🏁 did not run them. Snap them under “when 🏁 clicked” — or just click a block to try it!", { icon: "💡", id: "loose-blocks", duration: 9000 });
+        toast("Some of your blocks are not under a start block, so the green flag skipped them. Open Events (the yellow circle), drag “when flag clicked” on top of your blocks — or just click a block to try it!", { icon: "💡", id: "loose-blocks", duration: 10000 });
       }
     } catch {
-      toast.error("Something is not right with the blocks. Check that they are joined to a 🏁 block.");
+      toast.error("Something is not right with the blocks. Check that they are joined under a “when flag clicked” block.");
     }
   };
   const stop = () => stage.current?.stopAll();
@@ -189,13 +189,13 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
     let k = sprites.length + 1;
     while (sprites.some((sp) => sp.id === `s${k}`)) k++;
     const id = `s${k}`;
-    blocksOf.current[id] = null;
+    blocksOf.current[id] = HAT_ONLY;
     setSprites((cur) => [...cur, { id, name, costumes, start: 0 }]);
     setActiveId(id);
     rebuild(id);
     setView((v) => (v === "costumes" ? v : "blocks"));
     touched();
-    toast(`${name} added. Give it some blocks! Start with a 🏁 block.`, { icon: "✨" });
+    toast(`${name} added. Snap blocks under “when flag clicked”, or click a block to try it.`, { icon: "✨" });
   };
   const removeSprite = () => {
     if (sprites.length < 2) return;
@@ -385,7 +385,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
             )}
           </div>
         )}
-        <p className="text-xs text-slate-500 max-w-sm text-center">The costume you pick here is the one your sprite wears when the 🏁 is pressed. Use the “switch costume” and “next costume” blocks to change it while the program runs.</p>
+        <p className="text-xs text-slate-500 max-w-sm text-center">The costume you pick here is the one your sprite wears when the green flag is pressed. Use the “switch costume” and “next costume” blocks to change it while the program runs.</p>
       </div>
     </div>
   );
@@ -518,13 +518,13 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
         {/* ── stage and sprites ── */}
         <div className={`min-w-0 min-h-0 p-3 flex flex-col gap-2.5 lg:overflow-y-auto ${view !== "stage" ? "hidden lg:flex" : ""}`}>
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={flag} className="w-11 h-11 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xl hover:bg-emerald-50" aria-label="Start: green flag" title="Start (green flag)">
-              🏁
+            <button onClick={flag} className="w-11 h-11 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-emerald-50" aria-label="Start: green flag" title="Start (green flag)">
+              <img src={FLAG_URI} alt="" className="w-7 h-7" draggable={false} />
             </button>
             <button onClick={stop} className="w-11 h-11 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-red-50" aria-label="Stop" title="Stop">
               <span className="w-5 h-5 bg-[#ec5959] border-2 border-[#d94848]" style={{ clipPath: "polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)" }} aria-hidden="true" />
             </button>
-            <span className="ml-auto text-xs font-bold text-slate-500 hidden xl:block">Click a block to try it · 🏁 runs it all</span>
+            <span className="ml-auto text-xs font-bold text-slate-500 hidden xl:block">Click a block to try it · the green flag runs it all</span>
           </div>
           {/* the stage keeps its 4:3 shape and never gets taller than the screen leaves room for */}
           <div className="w-full mx-auto shrink-0 lg:[width:min(100%,calc((100dvh-28rem)*1.3333))] lg:min-w-[14rem]">

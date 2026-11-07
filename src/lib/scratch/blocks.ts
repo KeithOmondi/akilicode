@@ -64,6 +64,10 @@ export const setCostumeChoices = (costumes: { id: string; name: string }[]) => {
 /** Sprite ids in order, while compiling (the stage knows sprites by number). */
 let compileIds: string[] = [];
 
+/** The green flag, as a picture for the "when flag clicked" block. */
+export const FLAG_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5 3v18" stroke="#3b7d3b" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M5.5 4.5c3-1.8 5.5 1.8 9 0 1.6-.8 3-.7 4.5 0v8c-1.5-.7-2.9-.8-4.5 0-3.5 1.8-6-1.8-9 0z" fill="#4cbf56" stroke="#2f8f3a" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+export const FLAG_URI = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(FLAG_SVG)}`;
+
 let registered = false;
 
 /** Set Blockly up once: language, block definitions and generators. Safe to call many times. */
@@ -87,7 +91,7 @@ export const registerBlocks = () => {
 
   Blockly.common.defineBlocksWithJsonArray([
     // events
-    { type: "ev_flag", message0: "when 🏁 clicked", nextStatement: null, colour: COLORS.events },
+    { type: "ev_flag", message0: "when %1 clicked", args0: [{ type: "field_image", src: FLAG_URI, width: 22, height: 22, alt: "green flag" }], nextStatement: null, colour: COLORS.events },
     { type: "ev_key", message0: "when %1 key pressed", args0: [{ type: "field_dropdown", name: "KEY", options: KEYS }], nextStatement: null, colour: COLORS.events },
     { type: "ev_click", message0: "when this sprite clicked", nextStatement: null, colour: COLORS.events },
 
@@ -276,6 +280,9 @@ const STARTER_BLOCKS = {
     ],
   },
 };
+
+/** A new sprite starts with just the "when flag clicked" block, ready for blocks to be snapped under it. */
+export const HAT_ONLY = { blocks: { languageVersion: 0, blocks: [{ type: "ev_flag", x: 30, y: 30 }] } };
 
 /** A new block project starts with something that already works. */
 export const STARTER_PROJECT: ProjectState = {

@@ -10,7 +10,7 @@ interface Props {
   runId: string;
   /** The pictures of every sprite (set together with runId). */
   costumes?: StageCostume[][];
-  /** Start the 🏁 programs when this run opens (default). False: just show the sprites, ready for clicked blocks. */
+  /** Start the flag programs when this run opens (default). False: just show the sprites, ready for clicked blocks. */
   autostart?: boolean;
   /** Lets the studio run a clicked stack of blocks on the live stage, or stop everything. */
   handle?: Ref<StageHandle>;
@@ -98,7 +98,7 @@ const StagePreview = ({ code, runId, costumes, autostart = true, handle }: Props
           <iframe ref={frame} key={runId} title="The stage" sandbox="allow-scripts" allow="autoplay" srcDoc={doc} className="w-full h-full bg-white" />
         ) : (
           <div className="h-full flex items-center justify-center text-slate-500 font-bold p-6 text-center">
-            Press the green <span className="mx-1.5 px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700">🏁 flag</span> to start.
+            Press the <span className="mx-1.5 px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700">green flag</span> to start.
           </div>
         )}
         {!full && (
