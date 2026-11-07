@@ -6,6 +6,10 @@ import { dateShort } from "../../components/admin/format";
 import CodePreview from "../../components/kids/CodePreview";
 import { newRunId } from "../../lib/sandbox";
 import { projectsApi, errorText, type HandedInProject } from "../../lib/projectsApi";
+import { resolveCostumes } from "../../lib/scratch/spriteAssets";
+import type { StageCostume } from "../../lib/scratch/runtime";
+import type { ProjectState } from "../../lib/scratch/blocks";
+import CostumeImage from "../../components/scratch/CostumeImage";
 
 // Block projects need Blockly, which is large: it is only downloaded when a block project is opened.
 const BlockWorkspace = lazy(() => import("../../components/scratch/BlockWorkspace"));
@@ -24,6 +28,8 @@ const AdminProjects = () => {
   const [saving, setSaving] = useState(false);
   const [codeTab, setCodeTab] = useState<"html" | "css" | "js">("html");
   const [blocksCode, setBlocksCode] = useState("");
+  const [blocksProject, setBlocksProject] = useState<ProjectState | null>(null);
+  const [stagePictures, setStagePictures] = useState<StageCostume[][]>([]);
   const [spriteIdx, setSpriteIdx] = useState(0);
 
   const load = (f: Filter) => {
@@ -52,18 +58,23 @@ const AdminProjects = () => {
     setCodeTab("html");
     setSpriteIdx(0);
     setBlocksCode("");
+    setBlocksProject(null);
     if (p.kind === "blocks") {
       // turn the child's blocks into the code the stage runs
-      import("../../lib/scratch/blocks").then((m) => { m.setSpriteChoices(m.normalizeProject(p.blocks).sprites); setBlocksCode(m.compileBlocks(p.blocks)); }).catch(() => toast.error("Could not read these blocks."));
+      import("../../lib/scratch/blocks").then(async (m) => {
+        const proj = m.normalizeProject(p.blocks);
+        m.setSpriteChoices(proj.sprites);
+        setBlocksProject(proj);
+        setBlocksCode(m.compileBlocks(proj));
+        setStagePictures(await resolveCostumes(proj));
+      }).catch(() => toast.error("Could not read these blocks."));
     }
   };
 
   const current = items?.find((p) => p.id === openId) ?? null;
-  // A block project is one or more sprites; old projects are a single workspace.
-  const sprites: { name: string; emoji: string; blocks: object | null }[] = Array.isArray((current?.blocks as { sprites?: unknown } | null)?.sprites)
-    ? ((current!.blocks as { sprites: { name: string; emoji: string; blocks: object | null }[] }).sprites)
-    : [{ name: "Cat", emoji: "🐱", blocks: (current?.blocks as object | null) ?? null }];
-  const sprite = sprites[Math.min(spriteIdx, sprites.length - 1)];
+  // A block project is one or more sprites (older ones were a single workspace; they are upgraded on open).
+  const sprites = blocksProject?.sprites ?? [];
+  const sprite = sprites[Math.min(spriteIdx, Math.max(0, sprites.length - 1))];
 
   const save = async () => {
     if (!current) return;
@@ -135,14 +146,14 @@ const AdminProjects = () => {
                       {sprites.length > 1 && (
                         <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label="Sprites">
                           {sprites.map((sp, i) => (
-                            <button key={i} onClick={() => setSpriteIdx(i)} aria-pressed={i === spriteIdx} className={`ds-btn ds-btn-sm ${i === spriteIdx ? "ds-btn-primary" : "ds-btn-secondary"}`}>{sp.emoji} {sp.name}</button>
+                            <button key={i} onClick={() => setSpriteIdx(i)} aria-pressed={i === spriteIdx} className={`ds-btn ds-btn-sm ${i === spriteIdx ? "ds-btn-primary" : "ds-btn-secondary"}`}><span className="w-5 h-5 inline-flex mr-1.5 align-middle"><CostumeImage src={sp.costumes[sp.start ?? 0].src} className="w-5 h-5 object-contain" /></span>{sp.name}</button>
                           ))}
                         </div>
                       )}
-                      <BlockWorkspace key={`${current.id}-${spriteIdx}`} initialState={sprite.blocks} readOnly height="26rem" />
+                      {sprite && <BlockWorkspace key={`${current.id}-${spriteIdx}`} initialState={sprite.blocks} readOnly height="26rem" />}
                     </div>
                     <div>
-                      <StagePreview code={blocksCode} runId={runId} />
+                      <StagePreview code={blocksCode} runId={runId} costumes={stagePictures} />
                       <button className="ds-btn ds-btn-secondary ds-btn-sm mt-2" onClick={() => setRunId(newRunId())}>Start again</button>
                     </div>
                   </Suspense>

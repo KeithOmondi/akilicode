@@ -27,8 +27,31 @@ export const RUNTIME_SOURCE = String.raw`
   var sprites = [];
   var shared = { running: true, bg: '#ffffff' };
   var START_X = [0, -140, 140, -70, 70, -190, 190];
-  function newSprite(i, costume) {
-    return { x: START_X[i % START_X.length], y: 0, dir: 90, size: 100, visible: true, costume: costume || '🐱', bubble: null, click: [] };
+  // Costumes come from the page (window.__COSTUMES__[spriteNumber] = [{ id, name, src }]). A src is either
+  // "emoji:<x>" (drawn as text) or a data: picture. Nothing is ever loaded from the network.
+  var defs = window.__COSTUMES__ || [];
+  function loadImages(list) {
+    return list.map(function (c) {
+      if (String(c.src).indexOf('data:') !== 0) return null;
+      var im = new Image();
+      im.src = c.src;
+      return im;
+    });
+  }
+  function newSprite(i, emoji) {
+    var list = (defs[i] && defs[i].length) ? defs[i] : [{ id: 'c1', name: 'cat', src: 'emoji:' + (emoji || '🐱') }];
+    var first = 0;
+    list.forEach(function (c, k) { if (c.current) first = k; });
+    return { x: START_X[i % START_X.length], y: 0, dir: 90, size: 100, visible: true, costumes: list, ci: first, imgs: loadImages(list), bubble: null, click: [] };
+  }
+  function costumeName(sp) {
+    var c = sp.costumes[sp.ci] || { name: '', src: '' };
+    return String(c.src).indexOf('emoji:') === 0 ? String(c.src).slice(6) : c.name;
+  }
+  function publicState(sp) {
+    var c = JSON.parse(JSON.stringify(sp, function (k, v) { return (k === 'click' || k === 'imgs' || k === 'costumes') ? undefined : v; }));
+    c.costume = costumeName(sp);
+    return c;
   }
   sprites.push(newSprite(0, '🐱'));
   var handlers = { flag: [], keys: {} };
@@ -58,9 +81,13 @@ export const RUNTIME_SOURCE = String.raw`
         handlers.flag.forEach(function (fn) { run(fn); });
       },
       stop: function () { shared.running = false; },
-      forSprite: function (i, costume) {
+      forSprite: function (i, emoji) {
         while (sprites.length <= i) sprites.push(newSprite(sprites.length));
-        if (costume) sprites[i].costume = String(costume);
+        if (emoji && !(defs[i] && defs[i].length)) {
+          sprites[i].costumes = [{ id: 'c1', name: 'costume', src: 'emoji:' + String(emoji) }];
+          sprites[i].imgs = [null];
+          sprites[i].ci = 0;
+        }
         return makeApi(sprites[i]);
       },
 
@@ -96,7 +123,17 @@ export const RUNTIME_SOURCE = String.raw`
       changeSize: function (d) { sprite.size = clamp(sprite.size + num(d), 10, 500); },
       show: function () { sprite.visible = true; },
       hide: function () { sprite.visible = false; },
-      costume: function (c) { sprite.costume = String(c); },
+      // by costume id or name; an emoji that is not one of the sprite's costumes (old projects) is drawn as text
+      costume: function (c) {
+        c = String(c);
+        for (var k = 0; k < sprite.costumes.length; k++) {
+          if (sprite.costumes[k].id === c || sprite.costumes[k].name === c) { sprite.ci = k; return; }
+        }
+        sprite.costumes.push({ id: 'x' + sprite.costumes.length, name: c, src: 'emoji:' + c });
+        sprite.imgs.push(null);
+        sprite.ci = sprite.costumes.length - 1;
+      },
+      nextCostume: function () { sprite.ci = (sprite.ci + 1) % sprite.costumes.length; },
       background: function (c) { shared.bg = String(c); },
 
       // -- sound
@@ -135,21 +172,21 @@ export const RUNTIME_SOURCE = String.raw`
       touching: function (i) {
         var other = sprites[i];
         if (!other || other === sprite || !other.visible || !sprite.visible) return false;
-        var reach = 32 * (sprite.size + other.size) / 100;
+        var reach = 40 * (sprite.size + other.size) / 100;
         return Math.abs(sprite.x - other.x) <= reach && Math.abs(sprite.y - other.y) <= reach;
       },
       keyDown: function (k) { return !!keys[k]; },
       x: function () { return Math.round(sprite.x); },
       y: function () { return Math.round(sprite.y); },
       direction: function () { return Math.round(sprite.dir); },
-      state: function () { var s = JSON.parse(JSON.stringify(sprite)); delete s.click; s.bg = shared.bg; return s; }
+      state: function () { var s = publicState(sprite); s.bg = shared.bg; return s; }
     };
     Object.defineProperty(api, 'running', { get: function () { return shared.running; } });
     return api;
   }
 
   var S = makeApi(sprites[0]);
-  S.states = function () { return sprites.map(function (s) { var c = JSON.parse(JSON.stringify(s)); delete c.click; return c; }); };
+  S.states = function () { return sprites.map(publicState); };
   window.S = S;
 
   function run(fn) {
@@ -178,7 +215,7 @@ export const RUNTIME_SOURCE = String.raw`
       var sx = (e.clientX - r.left - offX) / scale - W / 2, sy = H / 2 - (e.clientY - r.top - offY) / scale;
       // the sprite in front (drawn last) that was hit gets the click
       for (var i = sprites.length - 1; i >= 0; i--) {
-        var sp = sprites[i], reach = 32 * sp.size / 100;
+        var sp = sprites[i], reach = 40 * sp.size / 100;
         if (sp.visible && Math.abs(sx - sp.x) <= reach && Math.abs(sy - sp.y) <= reach) {
           sp.click.forEach(function (fn) { run(fn); });
           break;
@@ -205,11 +242,20 @@ export const RUNTIME_SOURCE = String.raw`
       sprites.forEach(function (sprite) {
         if (!sprite.visible) return;
         var px = W / 2 + sprite.x, py = H / 2 - sprite.y, px2 = 64 * sprite.size / 100;
+        var cos = sprite.costumes[sprite.ci], img = sprite.imgs[sprite.ci];
         ctx.save();
         ctx.translate(px, py);
         ctx.rotate((sprite.dir - 90) * Math.PI / 180);
-        ctx.font = px2 + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(sprite.costume, 0, 0);
+        if (img) {
+          // a picture: fitted into a square, keeping its shape
+          if (img.complete && img.naturalWidth) {
+            var box = 80 * sprite.size / 100, k = Math.min(box / img.naturalWidth, box / img.naturalHeight);
+            ctx.drawImage(img, -img.naturalWidth * k / 2, -img.naturalHeight * k / 2, img.naturalWidth * k, img.naturalHeight * k);
+          }
+        } else if (cos) {
+          ctx.font = px2 + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(costumeName(sprite), 0, 0);
+        }
         ctx.restore();
         if (sprite.bubble) bubbleBox(sprite.bubble, px, py - px2 / 2);
       });
@@ -225,20 +271,24 @@ export const RUNTIME_SOURCE = String.raw`
 
 const escapeScript = (code: string) => code.replace(/<\/script/gi, "<\\/script");
 
+export interface StageCostume { id: string; name: string; src: string; /** the costume the sprite starts with */ current?: boolean }
 export interface StageParts {
   /** The JavaScript generated from the blocks. */
   code: string;
   /** Random per run: the parent ignores messages that do not carry it. */
   token: string;
+  /** The costumes of every sprite, in sprite order; each picture is already a data: address. */
+  costumes?: StageCostume[][];
 }
 
 /** The complete document for the stage iframe's srcdoc. */
-export const buildStageDoc = ({ code, token }: StageParts): string =>
+export const buildStageDoc = ({ code, token, costumes = [] }: StageParts): string =>
   '<!doctype html><html><head><meta charset="utf-8">' +
   `<meta http-equiv="Content-Security-Policy" content="${PREVIEW_CSP}">` +
   '<meta name="viewport" content="width=device-width, initial-scale=1">' +
   "<style>html,body{margin:0;height:100%;overflow:hidden;background:#fff}canvas{display:block;width:100%;height:100%;outline:none}</style>" +
   '</head><body><canvas id="stage" width="480" height="360" tabindex="0" aria-label="Stage"></canvas>' +
+  `<script>window.__COSTUMES__ = ${JSON.stringify(costumes).replace(/</g, "\\u003c")};</script>` +
   `<script>${RUNTIME_SOURCE.replace("__TOKEN__", () => JSON.stringify(token))}</script>` +
   `<script>${escapeScript(code)}</script>` +
   "<script>if (window.S) window.S.start();</script></body></html>";

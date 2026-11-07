@@ -1,22 +1,37 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Blockly from "blockly/core";
-import { ArrowLeft, CheckCircle2, ClipboardList, Code2, Eye, Loader2, Plus, Send, Trash2, Undo2, X } from "lucide-react";
+import { ArrowLeft, Brush, CheckCircle2, ClipboardList, Code2, Eye, Image as ImageIcon, Loader2, Plus, Send, Trash2, Undo2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import BlockWorkspace from "../../components/scratch/BlockWorkspace";
 import StagePreview from "../../components/scratch/StagePreview";
-import { compileBlocks, normalizeProject, MAX_SPRITES, SPRITE_PICTURES, setSpriteChoices, type SpriteData } from "../../lib/scratch/blocks";
+import SpritePicker from "../../components/scratch/SpritePicker";
+import PaintEditor from "../../components/scratch/PaintEditor";
+import CostumeImage from "../../components/scratch/CostumeImage";
+import { compileBlocks, normalizeProject, MAX_COSTUMES, MAX_SPRITES, setCostumeChoices, setSpriteChoices, type Costume, type ProjectState, type SpriteData } from "../../lib/scratch/blocks";
+import { costumesOf, pictureFromFile, resolveCostumes, type LibrarySprite } from "../../lib/scratch/spriteAssets";
+import type { StageCostume } from "../../lib/scratch/runtime";
 import { newRunId } from "../../lib/sandbox";
 import { projectsApi, errorText, type Project } from "../../lib/projectsApi";
 
 /**
  * The block editor ("Scratch" for our learners), laid out like Scratch itself and sized to fit the screen:
- * a purple menu bar, the block palette and coding area on the left, and on the right the stage with its flag and
- * stop buttons and the list of sprites. Each sprite has its own blocks.
+ * a purple menu bar, the block palette and coding area (or the costumes) on the left, and on the right the stage
+ * with its flag and stop buttons and the list of sprites. Each sprite has its own costumes and its own blocks.
  * Saved automatically. Assignment projects can be handed in; once handed in they are read-only until taken back.
  */
 const PURPLE = "#855cd6";
-const PICTURE_NAMES = ["Cat", "Dog", "Rabbit", "Frog", "Unicorn", "Turtle", "Robot", "Rocket", "Alien", "Ball", "Apple", "Star", "Fish", "Lion", "Car", "Astronaut"];
+
+type SpriteMeta = Omit<SpriteData, "blocks">;
+type View = "blocks" | "costumes" | "stage";
+/** What the paint editor is doing: a new sprite, a new costume, or changing an existing costume. */
+type Painting = { for: "sprite" } | { for: "costume" } | { for: "edit"; costumeId: string; src: string };
+
+const nextCostumeId = (list: Costume[]) => {
+  let k = list.length + 1;
+  while (list.some((c) => c.id === `c${k}`)) k++;
+  return `c${k}`;
+};
 
 const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const navigate = useNavigate();
@@ -24,18 +39,21 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const [title, setTitle] = useState(initial.title);
   const [runId, setRunId] = useState("");
   const [code, setCode] = useState("");
+  const [stageCostumes, setStageCostumes] = useState<StageCostume[][]>([]);
   const [save, setSave] = useState<"saved" | "saving" | "error">("saved");
-  const [view, setView] = useState<"blocks" | "stage">("blocks"); // phones show one at a time
+  const [view, setView] = useState<View>("blocks"); // phones show one at a time; desktop: blocks or costumes on the left
   const [showCode, setShowCode] = useState(false);
   const [showTask, setShowTask] = useState(false);
   const [taskSeen, setTaskSeen] = useState(false); // until it is opened once, the Assignment button stands out
   const [busy, setBusy] = useState(false);
   const [confirmHandIn, setConfirmHandIn] = useState(false);
   const [changes, setChanges] = useState(0);
+  const [picker, setPicker] = useState<null | "sprite" | "costume">(null);
+  const [painting, setPainting] = useState<Painting | null>(null);
 
-  // The sprites (name + picture) live in state; each sprite's blocks live in a ref so typing never re-renders.
+  // The sprites (names, costumes) live in state; each sprite's blocks live in a ref so typing never re-renders.
   const [first] = useState(() => normalizeProject(initial.blocks));
-  const [sprites, setSprites] = useState<Omit<SpriteData, "blocks">[]>(first.sprites.map(({ id, name, emoji }) => ({ id, name, emoji })));
+  const [sprites, setSprites] = useState<SpriteMeta[]>(first.sprites.map((s) => ({ id: s.id, name: s.name, costumes: s.costumes, start: s.start })));
   const [activeId, setActiveId] = useState(first.sprites[0].id);
   const blocksOf = useRef<Record<string, object | null>>(Object.fromEntries(first.sprites.map((s) => [s.id, s.blocks])));
   // The block editor is rebuilt (n changes) when we switch sprite or lock/unlock; it starts from `blocks`.
@@ -48,13 +66,16 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   const locked = Boolean(project.submitted_at);
   const handedIn = locked;
   const marked = Boolean(project.reviewed_at);
+  const active = sprites.find((s) => s.id === activeId) ?? sprites[0];
 
-  setSpriteChoices(sprites); // the "touching ..." block lists these
+  // The "touching ..." and "switch costume to ..." blocks list these.
+  setSpriteChoices(sprites);
+  setCostumeChoices(active.costumes);
 
   /** Read the blocks on screen into the saved copy, then return the whole project. */
-  const snapshot = () => {
+  const snapshot = (): ProjectState => {
     if (ws.current && !locked) blocksOf.current[activeId] = Blockly.serialization.workspaces.save(ws.current);
-    return { v: 2, sprites: sprites.map((s) => ({ ...s, blocks: blocksOf.current[s.id] ?? null })) };
+    return { v: 3, sprites: sprites.map((s) => ({ ...s, blocks: blocksOf.current[s.id] ?? null })) };
   };
   // The autosave sends the newest snapshot; keep a ref so the timer never uses an old one.
   const snapshotRef = useRef(snapshot);
@@ -80,20 +101,26 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
         await projectsApi.save(project.id, { title: title.trim() || "My blocks", blocks: snapshotRef.current() });
         dirty.current = false;
         setSave("saved");
-      } catch {
+      } catch (e) {
         setSave("error");
+        toast.error(errorText(e), { id: "scratch-save" });
       }
     }, 1200);
     return () => clearTimeout(t);
   }, [changes, title, locked, project.id]);
 
   const compile = () => compileBlocks(snapshot());
+  const isPhone = () => window.matchMedia("(max-width: 1023px)").matches;
 
-  const flag = () => {
+  const flag = async () => {
     try {
-      setCode(compile());
+      const proj = snapshot();
+      const generated = compileBlocks(proj);
+      const pictures = await resolveCostumes(proj);
+      setCode(generated);
+      setStageCostumes(pictures);
       setRunId(newRunId());
-      setView("stage");
+      if (isPhone()) setView("stage");
     } catch {
       toast.error("Something is not right with the blocks. Check that they are joined to a 🏁 block.");
     }
@@ -118,20 +145,19 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
     setActiveId(id);
     rebuild(id);
   };
-  const [adding, setAdding] = useState(false);
-  const addSprite = (i: number) => {
+  const makeSprite = (baseName: string, costumes: Costume[]) => {
+    if (sprites.length >= MAX_SPRITES) return toast.error(`You can have ${MAX_SPRITES} sprites.`);
     snapshot();
-    const base = PICTURE_NAMES[i];
-    let name = base;
-    for (let n = 2; sprites.some((s) => s.name === name); n++) name = `${base}${n}`;
+    let name = baseName;
+    for (let n = 2; sprites.some((s) => s.name === name); n++) name = `${baseName}${n}`;
     let k = sprites.length + 1;
     while (sprites.some((sp) => sp.id === `s${k}`)) k++;
     const id = `s${k}`;
     blocksOf.current[id] = null;
-    setSprites((cur) => [...cur, { id, name, emoji: SPRITE_PICTURES[i] }]);
+    setSprites((cur) => [...cur, { id, name, costumes, start: 0 }]);
     setActiveId(id);
     rebuild(id);
-    setAdding(false);
+    setView((v) => (v === "costumes" ? v : "blocks"));
     touched();
     toast(`${name} added. Give it some blocks! Start with a 🏁 block.`, { icon: "✨" });
   };
@@ -144,9 +170,65 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
     rebuild(left[0].id);
     touched();
   };
-  const rename = (name: string) => {
+  const renameSprite = (name: string) => {
     setSprites((cur) => cur.map((s) => (s.id === activeId ? { ...s, name: name.slice(0, 20) } : s)));
     touched();
+  };
+
+  // ── costumes ──
+  const changeActive = (fn: (s: SpriteMeta) => SpriteMeta) => {
+    setSprites((cur) => cur.map((s) => (s.id === activeId ? fn(s) : s)));
+    touched();
+  };
+  const addCostumes = (pictures: { name: string; src: string }[]) => {
+    if (active.costumes.length + pictures.length > MAX_COSTUMES) return toast.error(`A sprite can have ${MAX_COSTUMES} costumes.`);
+    changeActive((s) => {
+      const list = [...s.costumes];
+      for (const p of pictures) list.push({ id: nextCostumeId(list), name: p.name.slice(0, 30), src: p.src });
+      return { ...s, costumes: list, start: list.length - 1 };
+    });
+  };
+  const pickCostumeFromLibrary = (entry: LibrarySprite) => {
+    setPicker(null);
+    const list = costumesOf(entry);
+    addCostumes(list.map((c) => ({ name: c.name, src: c.src })));
+    setView("costumes");
+  };
+  const deleteCostume = (id: string) => {
+    if (active.costumes.length < 2) return;
+    changeActive((s) => {
+      const list = s.costumes.filter((c) => c.id !== id);
+      return { ...s, costumes: list, start: Math.min(s.start ?? 0, list.length - 1) };
+    });
+  };
+  const renameCostume = (id: string, name: string) => changeActive((s) => ({ ...s, costumes: s.costumes.map((c) => (c.id === id ? { ...c, name: name.slice(0, 30) } : c)) }));
+  const chooseCostume = (index: number) => changeActive((s) => ({ ...s, start: index }));
+
+  const onPainted = (picture: string) => {
+    const p = painting;
+    setPainting(null);
+    setPicker(null);
+    if (!p) return;
+    if (p.for === "sprite") makeSprite("My sprite", [{ id: "c1", name: "My sprite", src: picture }]);
+    else if (p.for === "costume") {
+      addCostumes([{ name: `costume${active.costumes.length + 1}`, src: picture }]);
+      setView("costumes");
+    } else changeActive((s) => ({ ...s, costumes: s.costumes.map((c) => (c.id === p.costumeId ? { ...c, src: picture } : c)) }));
+  };
+  const onUploaded = async (file: File) => {
+    const mode = picker;
+    try {
+      const picture = await pictureFromFile(file);
+      setPicker(null);
+      const name = file.name.replace(/\.[^.]+$/, "").slice(0, 20) || "My picture";
+      if (mode === "sprite") makeSprite(name, [{ id: "c1", name, src: picture }]);
+      else {
+        addCostumes([{ name, src: picture }]);
+        setView("costumes");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not use that picture.");
+    }
   };
 
   const handIn = async () => {
@@ -180,7 +262,12 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
   };
 
   const barButton = "h-9 px-3 rounded-lg text-sm font-bold flex items-center gap-1.5 text-white hover:bg-white/15 disabled:opacity-60";
-  const active = sprites.find((s) => s.id === activeId) ?? sprites[0];
+  const startCostume = active.costumes[active.start ?? 0] ?? active.costumes[0];
+  const canAddSprite = !locked && sprites.length < MAX_SPRITES;
+  const costumesView = view === "costumes";
+
+  const tabClass = (on: boolean) =>
+    `h-9 px-4 rounded-t-lg font-bold text-sm flex items-center gap-2 border-t-4 ${on ? "bg-white" : "bg-transparent text-slate-500 border-transparent hover:bg-white/60"}`;
 
   const spritePanel = (
     <div className="rounded-xl bg-white border border-slate-200 p-2.5 min-h-0 flex flex-col gap-2">
@@ -189,7 +276,7 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
         <input
           value={active.name}
           disabled={locked}
-          onChange={(e) => rename(e.target.value)}
+          onChange={(e) => renameSprite(e.target.value)}
           aria-label="Name of this sprite"
           className="min-w-0 flex-1 h-8 px-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-800 disabled:bg-slate-50"
         />
@@ -207,28 +294,63 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
             aria-pressed={s.id === activeId}
             aria-label={`Sprite ${s.name}`}
             title={s.name}
-            className={`w-12 h-12 rounded-lg text-2xl flex items-center justify-center bg-[#e9eef2] border-2 ${s.id === activeId ? "border-[#855cd6]" : "border-transparent hover:border-[#c9b6f0]"}`}
+            className={`w-14 h-14 rounded-lg p-1 flex items-center justify-center bg-[#e9eef2] border-2 ${s.id === activeId ? "border-[#855cd6]" : "border-transparent hover:border-[#c9b6f0]"}`}
           >
-            {s.emoji}
+            <CostumeImage src={(s.costumes[s.start ?? 0] ?? s.costumes[0]).src} />
           </button>
         ))}
-        {!locked && sprites.length < MAX_SPRITES && (
-          <button onClick={() => setAdding((v) => !v)} aria-expanded={adding} aria-label="Add a sprite" title="Add a sprite"
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-sm" style={{ background: PURPLE }}>
+        {canAddSprite && (
+          <button onClick={() => setPicker("sprite")} aria-label="Add a sprite" title="Add a sprite"
+            className="w-14 h-14 rounded-lg flex items-center justify-center text-white shadow-sm" style={{ background: PURPLE }}>
+            <Plus size={24} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const costumesPanel = (
+    <div className="flex-1 min-h-0 flex bg-[#f9f9f9]">
+      <div className="w-28 sm:w-32 shrink-0 overflow-y-auto bg-white border-r border-slate-200 p-2 flex flex-col gap-2" role="list" aria-label="Costumes">
+        {active.costumes.map((c, i) => {
+          const on = i === (active.start ?? 0);
+          return (
+            <button key={c.id} role="listitem" onClick={() => chooseCostume(i)} aria-pressed={on}
+              className={`relative rounded-lg p-1.5 border-2 flex flex-col items-center gap-1 ${on ? "border-[#855cd6] bg-[#f4efff]" : "border-slate-200 bg-white hover:border-[#c9b6f0]"}`}>
+              <span className="absolute top-1 left-1.5 text-[10px] font-bold text-slate-500">{i + 1}</span>
+              <span className="w-16 h-16 flex items-center justify-center"><CostumeImage src={c.src} /></span>
+              <span className="text-[11px] font-semibold text-slate-600 truncate max-w-full">{c.name}</span>
+            </button>
+          );
+        })}
+        {!locked && active.costumes.length < MAX_COSTUMES && (
+          <button onClick={() => setPicker("costume")} aria-label="Add a costume" title="Add a costume" className="h-12 rounded-lg text-white flex items-center justify-center shadow-sm" style={{ background: PURPLE }}>
             <Plus size={22} aria-hidden="true" />
           </button>
         )}
       </div>
-      {adding && (
-        <div className="rounded-lg bg-[#f4efff] p-2" role="group" aria-label="Choose a picture for the new sprite">
-          <p className="text-xs font-bold text-slate-600 mb-1.5">Pick a sprite</p>
-          <div className="grid grid-cols-8 gap-1">
-            {SPRITE_PICTURES.map((p, i) => (
-              <button key={p} onClick={() => addSprite(i)} aria-label={`Add ${PICTURE_NAMES[i]}`} title={PICTURE_NAMES[i]} className="h-9 rounded-md text-xl bg-white hover:bg-[#e3d8fb]">{p}</button>
-            ))}
-          </div>
+      <div className="flex-1 min-w-0 p-4 flex flex-col items-center gap-3 overflow-y-auto">
+        <div className="w-full max-w-sm aspect-[4/3] rounded-xl border-2 flex items-center justify-center p-6" style={{ borderColor: "#cfc3ee", backgroundImage: "conic-gradient(#f0f0f0 25%, #fff 0 50%, #f0f0f0 0 75%, #fff 0)", backgroundSize: "20px 20px" }}>
+          <div className="w-full h-full flex items-center justify-center [&>img]:max-h-full"><CostumeImage src={startCostume.src} /></div>
         </div>
-      )}
+        <label className="w-full max-w-sm flex items-center gap-2 text-sm font-bold text-slate-600">
+          Costume name
+          <input value={startCostume.name} disabled={locked} onChange={(e) => renameCostume(startCostume.id, e.target.value)} className="flex-1 min-w-0 h-9 px-2 rounded-lg border border-slate-200 font-bold text-slate-800 disabled:bg-slate-50" />
+        </label>
+        {!locked && (
+          <div className="w-full max-w-sm flex flex-wrap gap-2">
+            <button onClick={() => setPainting({ for: "edit", costumeId: startCostume.id, src: startCostume.src })} className="h-10 px-4 rounded-lg bg-white border-2 border-[#855cd6] text-[#855cd6] font-bold flex items-center gap-2 hover:bg-[#f4efff]">
+              <Brush size={16} aria-hidden="true" /> Edit in paint
+            </button>
+            {active.costumes.length > 1 && (
+              <button onClick={() => deleteCostume(startCostume.id)} className="h-10 px-4 rounded-lg bg-white border-2 border-red-200 text-red-600 font-bold flex items-center gap-2 hover:bg-red-50">
+                <Trash2 size={16} aria-hidden="true" /> Delete
+              </button>
+            )}
+          </div>
+        )}
+        <p className="text-xs text-slate-500 max-w-sm text-center">The costume you pick here is the one your sprite wears when the 🏁 is pressed. Use the “switch costume” and “next costume” blocks to change it while the program runs.</p>
+      </div>
     </div>
   );
 
@@ -301,55 +423,63 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
         </section>
       )}
 
-      {/* phone: blocks or stage */}
-      <div className="lg:hidden grid grid-cols-2 bg-white border-b border-slate-200 shrink-0" role="tablist" aria-label="Blocks or stage">
-        {([["blocks", "Code", Code2], ["stage", "Stage", Eye]] as const).map(([v, label, Icon]) => (
+      {/* phone: code, costumes or stage */}
+      <div className="lg:hidden grid grid-cols-3 bg-white border-b border-slate-200 shrink-0" role="tablist" aria-label="Code, costumes or stage">
+        {([["blocks", "Code", Code2], ["costumes", "Costumes", ImageIcon], ["stage", "Stage", Eye]] as const).map(([v, label, Icon]) => (
           <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
-            className={`h-11 font-bold flex items-center justify-center gap-2 border-b-4 ${view === v ? "text-[#855cd6] border-[#855cd6]" : "text-slate-500 border-transparent"}`}>
-            <Icon size={18} aria-hidden="true" /> {label}
+            className={`h-11 font-bold flex items-center justify-center gap-1.5 text-sm border-b-4 ${view === v ? "text-[#855cd6] border-[#855cd6]" : "text-slate-500 border-transparent"}`}>
+            <Icon size={17} aria-hidden="true" /> {label}
           </button>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,27rem)] lg:flex-1 lg:min-h-0" style={{ background: "#e5f0ff" }}>
-        {/* ── code area ── */}
+        {/* ── code / costumes area ── */}
         <div className={`min-w-0 min-h-0 bg-white flex flex-col ${view === "stage" ? "hidden lg:flex" : ""}`}>
-          <div className="hidden lg:flex h-10 items-end bg-[#e5f0ff] px-2 shrink-0">
-            <span className="h-9 px-5 rounded-t-lg bg-white font-bold text-sm flex items-center gap-2 border-t-4" style={{ color: PURPLE, borderColor: PURPLE }}>
+          <div className="hidden lg:flex h-10 items-end bg-[#e5f0ff] px-2 shrink-0 gap-1" role="tablist" aria-label="Code or costumes">
+            <button role="tab" aria-selected={!costumesView} onClick={() => setView("blocks")} className={tabClass(!costumesView)} style={!costumesView ? { color: PURPLE, borderColor: PURPLE } : undefined}>
               <Code2 size={16} aria-hidden="true" /> Code
-            </span>
-            <span className="ml-3 mb-2 text-xs font-bold text-slate-500">{active.emoji} {active.name}</span>
+            </button>
+            <button role="tab" aria-selected={costumesView} onClick={() => setView("costumes")} className={tabClass(costumesView)} style={costumesView ? { color: PURPLE, borderColor: PURPLE } : undefined}>
+              <ImageIcon size={16} aria-hidden="true" /> Costumes
+            </button>
+            <span className="ml-3 mb-2 text-xs font-bold text-slate-500 flex items-center gap-1.5"><span className="w-4 h-4 inline-flex"><CostumeImage src={startCostume.src} className="w-4 h-4 object-contain" /></span> {active.name}</span>
           </div>
           {/* phones: pick the sprite right above its blocks */}
           <div className="lg:hidden flex items-center gap-2 px-2 py-1.5 bg-[#f4efff] overflow-x-auto shrink-0" aria-label="Sprites">
             {sprites.map((s) => (
               <button key={s.id} onClick={() => pick(s.id)} aria-pressed={s.id === activeId} aria-label={`Sprite ${s.name}`}
-                className={`w-10 h-10 shrink-0 rounded-lg text-xl flex items-center justify-center bg-white border-2 ${s.id === activeId ? "border-[#855cd6]" : "border-transparent"}`}>{s.emoji}</button>
+                className={`w-11 h-11 shrink-0 rounded-lg p-1 flex items-center justify-center bg-white border-2 ${s.id === activeId ? "border-[#855cd6]" : "border-transparent"}`}><CostumeImage src={(s.costumes[s.start ?? 0] ?? s.costumes[0]).src} /></button>
             ))}
-            {!locked && sprites.length < MAX_SPRITES && (
-              <button onClick={() => { setView("stage"); setAdding(true); }} aria-label="Add a sprite" className="w-10 h-10 shrink-0 rounded-lg flex items-center justify-center text-white" style={{ background: PURPLE }}><Plus size={20} aria-hidden="true" /></button>
+            {canAddSprite && (
+              <button onClick={() => setPicker("sprite")} aria-label="Add a sprite" className="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center text-white" style={{ background: PURPLE }}><Plus size={20} aria-hidden="true" /></button>
             )}
           </div>
-          <div className="relative h-[min(30rem,60vh)] lg:h-auto lg:flex-1 lg:min-h-0">
-            <BlockWorkspace
-              key={mount.n}
-              initialState={mount.blocks}
-              readOnly={locked}
-              onChange={onChange}
-              onReady={(w) => { ws.current = w; }}
-              height="100%"
-            />
-            {showCode && (
-              <div className="absolute inset-x-0 bottom-0 z-20 max-h-[45%] flex flex-col bg-ink-900 text-slate-100 shadow-2xl">
-                <p className="px-4 py-2 bg-black/30 text-xs font-black uppercase tracking-widest text-slate-300 shrink-0">All your blocks as JavaScript</p>
-                <pre className="p-3 text-[12px] leading-relaxed overflow-auto font-mono whitespace-pre-wrap break-words">{code || "(no blocks yet)"}</pre>
-              </div>
-            )}
-          </div>
+
+          {costumesView ? (
+            <div className="h-[min(30rem,60vh)] lg:h-auto lg:flex-1 lg:min-h-0 flex">{costumesPanel}</div>
+          ) : (
+            <div className="relative h-[min(30rem,60vh)] lg:h-auto lg:flex-1 lg:min-h-0">
+              <BlockWorkspace
+                key={mount.n}
+                initialState={mount.blocks}
+                readOnly={locked}
+                onChange={onChange}
+                onReady={(w) => { ws.current = w; }}
+                height="100%"
+              />
+              {showCode && (
+                <div className="absolute inset-x-0 bottom-0 z-20 max-h-[45%] flex flex-col bg-ink-900 text-slate-100 shadow-2xl">
+                  <p className="px-4 py-2 bg-black/30 text-xs font-black uppercase tracking-widest text-slate-300 shrink-0">All your blocks as JavaScript</p>
+                  <pre className="p-3 text-[12px] leading-relaxed overflow-auto font-mono whitespace-pre-wrap break-words">{code || "(no blocks yet)"}</pre>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── stage and sprites ── */}
-        <div className={`min-w-0 min-h-0 p-3 flex flex-col gap-2.5 lg:overflow-y-auto ${view === "blocks" ? "hidden lg:flex" : ""}`}>
+        <div className={`min-w-0 min-h-0 p-3 flex flex-col gap-2.5 lg:overflow-y-auto ${view !== "stage" ? "hidden lg:flex" : ""}`}>
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={flag} className="w-11 h-11 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xl hover:bg-emerald-50" aria-label="Start: green flag" title="Start (green flag)">
               🏁
@@ -361,11 +491,26 @@ const ScratchStudio = ({ project: initial }: { project: Project }) => {
           </div>
           {/* the stage keeps its 4:3 shape and never gets taller than the screen leaves room for */}
           <div className="w-full mx-auto shrink-0 lg:[width:min(100%,calc((100dvh-28rem)*1.3333))] lg:min-w-[14rem]">
-            <StagePreview code={code} runId={runId} />
+            <StagePreview code={code} runId={runId} costumes={stageCostumes} />
           </div>
           {spritePanel}
         </div>
       </div>
+
+      {picker && !painting && (
+        <SpritePicker
+          mode={picker}
+          onClose={() => setPicker(null)}
+          onPick={(entry) => {
+            if (picker === "costume") return pickCostumeFromLibrary(entry);
+            setPicker(null);
+            makeSprite(entry.name, costumesOf(entry));
+          }}
+          onPaint={() => setPainting({ for: picker === "sprite" ? "sprite" : "costume" })}
+          onUpload={onUploaded}
+        />
+      )}
+      {painting && <PaintEditor initialSrc={painting.for === "edit" ? painting.src : undefined} onSave={onPainted} onCancel={() => setPainting(null)} />}
     </div>
   );
 };

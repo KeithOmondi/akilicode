@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
-import { buildStageDoc } from "../../lib/scratch/runtime";
+import { buildStageDoc, type StageCostume } from "../../lib/scratch/runtime";
 import { readBridgeMessage } from "../../lib/sandbox";
 
 interface Props {
@@ -8,13 +8,15 @@ interface Props {
   code: string;
   /** New value = start again. Empty = the stage is stopped and blank. */
   runId: string;
+  /** The pictures of every sprite (set together with runId). */
+  costumes?: StageCostume[][];
 }
 
 /**
  * The stage. It runs in a locked-down iframe (no same-origin, no network: see lib/sandbox.ts),
  * keeps a 4:3 shape, and can go full screen without restarting.
  */
-const StagePreview = ({ code, runId }: Props) => {
+const StagePreview = ({ code, runId, costumes }: Props) => {
   const [full, setFull] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [seenRun, setSeenRun] = useState(runId);
@@ -27,7 +29,7 @@ const StagePreview = ({ code, runId }: Props) => {
   }
 
   const doc = useMemo(
-    () => (runId ? buildStageDoc({ code, token: runId }) : ""),
+    () => (runId ? buildStageDoc({ code, token: runId, costumes }) : ""),
     // A new run rebuilds the stage; editing blocks alone does not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [runId]

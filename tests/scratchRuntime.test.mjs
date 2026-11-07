@@ -114,7 +114,7 @@ test('a token from another page is not believed', () => {
 test('</script> inside generated code cannot break out of the page', async () => {
   const { window } = await stage("S.on('flag', async function () { S.say('</script><img src=x onerror=alert(1)>'); });", { wait: 80 });
   assert.equal(window.document.querySelectorAll('img').length, 0);
-  assert.equal(window.document.querySelectorAll('script').length, 3); // runtime, program, start
+  assert.equal(window.document.querySelectorAll('script').length, 4); // costumes, runtime, program, start
 });
 
 test('several sprites: each has its own position and blocks, and they can tell when they touch', async () => {
@@ -146,4 +146,35 @@ test('clicking a sprite runs that sprite\'s click blocks only', async () => {
   const all = S.states();
   assert.equal(all[1].bubble, 'dog');
   assert.equal(all[0].bubble, null);
+});
+
+test('costumes: switch by id or name, next costume wraps round, pictures are loaded from the page only', async () => {
+  const costumes = [[
+    { id: 'c1', name: 'Cat', src: 'data:image/png;base64,iVBORw0KGgo=' },
+    { id: 'c2', name: 'Happy cat', src: 'data:image/png;base64,iVBORw0KGgo=' },
+    { id: 'c3', name: 'Sleepy', src: 'emoji:😴' },
+  ]];
+  const token = 'tk';
+  const { JSDOM } = await import('jsdom');
+  const dom = new JSDOM(buildStageDoc({ code: '', token, costumes }), { runScripts: 'dangerously', pretendToBeVisual: true, beforeParse(w) { w.HTMLCanvasElement.prototype.getContext = () => null; } });
+  windows.push(dom.window);
+  await sleep(30);
+  const S = dom.window.S;
+  assert.equal(S.state().costume, 'Cat');
+  S.nextCostume();
+  assert.equal(S.state().costume, 'Happy cat');
+  S.costume('c3');
+  assert.equal(S.state().costume, '😴');
+  S.nextCostume(); // wraps to the first
+  assert.equal(S.state().costume, 'Cat');
+  S.costume('Happy cat'); // by name
+  assert.equal(S.state().costume, 'Happy cat');
+  S.costume('🐶'); // an old project asks for an emoji that is not a costume: still shown
+  assert.equal(S.state().costume, '🐶');
+  assert.equal(S.states().length, 1);
+});
+
+test('a costume name cannot break out of the page', () => {
+  const doc = buildStageDoc({ code: '', token: 't', costumes: [[{ id: 'c1', name: '</script><img src=x onerror=alert(1)>', src: 'emoji:x' }]] });
+  assert.equal((doc.match(/<\/script>/g) || []).length, 4);
 });

@@ -1,0 +1,7 @@
+Sprite pictures
+===============
+The pictures in this folder (everything *.svg) are from Twemoji
+(https://github.com/jdecked/twemoji), graphics copyright Twitter, Inc. and other contributors,
+licensed under CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+They are used unchanged. The sprite picker in the block editor shows this credit.
+The catalogue (index.json) and the grouping into categories were made for AKILI.

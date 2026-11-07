@@ -47,8 +47,13 @@ const HATS: Record<string, (b: Blockly.Block) => string> = {
 
 /** The sprites of the project being edited (the "touching" block lists them). Set by the studio. */
 let spriteChoices: [string, string][] = [];
-export const setSpriteChoices = (sprites: { id: string; name: string; emoji: string }[]) => {
-  spriteChoices = sprites.map((sp) => [`${sp.emoji} ${sp.name}`, sp.id]);
+export const setSpriteChoices = (sprites: { id: string; name: string }[]) => {
+  spriteChoices = sprites.map((sp) => [sp.name, sp.id]);
+};
+/** The costumes of the sprite being edited ("switch costume to ..." lists them). Set by the studio. */
+let costumeChoices: [string, string][] = [];
+export const setCostumeChoices = (costumes: { id: string; name: string }[]) => {
+  costumeChoices = costumes.map((c) => [c.name, c.id]);
 };
 /** Sprite ids in order, while compiling (the stage knows sprites by number). */
 let compileIds: string[] = [];
@@ -90,6 +95,8 @@ export const registerBlocks = () => {
     { type: "lo_change_size", message0: "change size by %1", args0: [num("N")], ...stack, colour: COLORS.looks },
     { type: "lo_show", message0: "show", ...stack, colour: COLORS.looks },
     { type: "lo_hide", message0: "hide", ...stack, colour: COLORS.looks },
+    { type: "lo_costume2", message0: "switch costume to %1", args0: [{ type: "field_dropdown", name: "C", options: () => (costumeChoices.length ? costumeChoices : [["(no costumes)", "none"]]) }], ...stack, colour: COLORS.looks },
+    { type: "lo_next_costume", message0: "next costume", ...stack, colour: COLORS.looks },
     { type: "lo_costume", message0: "switch costume to %1", args0: [{ type: "field_dropdown", name: "C", options: COSTUMES }], ...stack, colour: COLORS.looks },
     { type: "lo_background", message0: "switch backdrop to %1", args0: [{ type: "field_dropdown", name: "C", options: BACKDROPS }], ...stack, colour: COLORS.looks },
 
@@ -147,6 +154,8 @@ export const registerBlocks = () => {
   simple("lo_change_size", (b) => `S.changeSize(${value(b, "N")});`);
   simple("lo_show", () => "S.show();");
   simple("lo_hide", () => "S.hide();");
+  simple("lo_costume2", (b) => `S.costume(${JSON.stringify(b.getFieldValue("C"))});`);
+  simple("lo_next_costume", () => "S.nextCostume();");
   simple("lo_costume", (b) => `S.costume(${JSON.stringify(b.getFieldValue("C"))});`);
   simple("lo_background", (b) => `S.background(${JSON.stringify(b.getFieldValue("C"))});`);
   simple("so_note", (b) => `await S.note(${Number(b.getFieldValue("NOTE")) || 261.63}, ${value(b, "BEATS", "1")});`);
@@ -194,7 +203,7 @@ export const TOOLBOX = {
     {
       kind: "category", name: "Looks", colour: COLORS.looks, contents: [
         blk("lo_say", { MSG: t("Hello!") }), blk("lo_say_for", { MSG: t("Hello!"), SECS: n(2) }),
-        blk("lo_costume"), blk("lo_background"), blk("lo_set_size", { N: n(100) }), blk("lo_change_size", { N: n(10) }), blk("lo_show"), blk("lo_hide"),
+        blk("lo_costume2"), blk("lo_next_costume"), blk("lo_background"), blk("lo_set_size", { N: n(100) }), blk("lo_change_size", { N: n(10) }), blk("lo_show"), blk("lo_hide"),
       ],
     },
     { kind: "category", name: "Sound", colour: COLORS.sound, contents: [blk("so_note", { BEATS: n(1) })] },
@@ -216,13 +225,20 @@ export const TOOLBOX = {
   ],
 } as const;
 
-/** One sprite: a name, a picture (an emoji) and its own blocks. */
-export interface SpriteData { id: string; name: string; emoji: string; blocks: object | null }
-/** A saved block project. (Older projects were just one Blockly workspace; those become a single "Cat" sprite.) */
-export interface ProjectState { v: 2; sprites: SpriteData[] }
+/**
+ * A costume is one picture of a sprite. `src` says where the picture comes from:
+ *   "lib:<code>"  a picture from our sprite library (public/sprites/<code>.svg)
+ *   "emoji:<x>"   an emoji drawn as text (older projects)
+ *   "data:image/..." a picture the child painted or uploaded (stored inside the project)
+ */
+export interface Costume { id: string; name: string; src: string }
+/** One sprite: a name, its costumes (the first is shown when the flag is pressed) and its own blocks. */
+export interface SpriteData { id: string; name: string; costumes: Costume[]; /** which costume shows first (default 0) */ start?: number; blocks: object | null }
+/** A saved block project. Older projects (a single workspace, or sprites with one emoji) are upgraded on load. */
+export interface ProjectState { v: 3; sprites: SpriteData[] }
 
-export const SPRITE_PICTURES = ["🐱", "🐶", "🐰", "🐸", "🦄", "🐢", "🤖", "🚀", "👾", "⚽", "🍎", "⭐", "🐠", "🦁", "🚗", "🧑‍🚀"];
-export const MAX_SPRITES = 6;
+export const MAX_SPRITES = 8;
+export const MAX_COSTUMES = 12;
 
 const STARTER_BLOCKS = {
   blocks: {
@@ -243,24 +259,40 @@ const STARTER_BLOCKS = {
 };
 
 /** A new block project starts with something that already works. */
-export const STARTER_PROJECT: ProjectState = { v: 2, sprites: [{ id: "s1", name: "Cat", emoji: "🐱", blocks: STARTER_BLOCKS }] };
+export const STARTER_PROJECT: ProjectState = {
+  v: 3,
+  sprites: [{ id: "s1", name: "Cat", costumes: [{ id: "c1", name: "Cat", src: "lib:1f431" }, { id: "c2", name: "Happy cat", src: "lib:1f63a" }], blocks: STARTER_BLOCKS }],
+};
 /** Kept for old callers: the first sprite's starter blocks. */
 export const STARTER_STATE = STARTER_BLOCKS;
+
+const emojiName = (emoji: string) => COSTUMES.find(([, v]) => v === emoji)?.[0].replace(/^\S+\s*/, "") ?? "costume";
 
 /** Accepts anything that was ever saved (nothing, an old single workspace, or a project) and returns a project. */
 export const normalizeProject = (raw: unknown): ProjectState => {
   const r = raw as { sprites?: unknown } | null | undefined;
   if (r && Array.isArray(r.sprites) && r.sprites.length) {
     const seen = new Set<string>();
-    const sprites = (r.sprites as Partial<SpriteData>[]).slice(0, MAX_SPRITES).map((sp, i) => {
+    const sprites = (r.sprites as (Partial<SpriteData> & { emoji?: string })[]).slice(0, MAX_SPRITES).map((sp, i) => {
       let id = typeof sp.id === "string" && sp.id ? sp.id : `s${i + 1}`;
       while (seen.has(id)) id += "x";
       seen.add(id);
-      return { id, name: String(sp.name || `Sprite${i + 1}`).slice(0, 20), emoji: String(sp.emoji || "🐱"), blocks: (sp.blocks as object | null) ?? null };
+      let costumes: Costume[] = Array.isArray(sp.costumes)
+        ? sp.costumes.slice(0, MAX_COSTUMES).filter((c) => c && typeof c.src === "string").map((c, k) => ({ id: String(c.id || `c${k + 1}`), name: String(c.name || `costume${k + 1}`).slice(0, 30), src: c.src }))
+        : [];
+      if (!costumes.length) {
+        // an older sprite: one emoji
+        const emoji = String(sp.emoji || "🐱");
+        costumes = [{ id: "c1", name: emojiName(emoji), src: `emoji:${emoji}` }];
+      }
+      const start = Number.isInteger(sp.start) && (sp.start as number) >= 0 && (sp.start as number) < costumes.length ? (sp.start as number) : 0;
+      return { id, name: String(sp.name || `Sprite${i + 1}`).slice(0, 20), costumes, start, blocks: (sp.blocks as object | null) ?? null };
     });
-    return { v: 2, sprites };
+    return { v: 3, sprites };
   }
-  if (r && typeof r === "object" && "blocks" in r) return { v: 2, sprites: [{ id: "s1", name: "Cat", emoji: "🐱", blocks: raw as object }] };
+  if (r && typeof r === "object" && "blocks" in r) {
+    return { v: 3, sprites: [{ id: "s1", name: "Cat", costumes: [{ id: "c1", name: "cat", src: "emoji:🐱" }], blocks: raw as object }] };
+  }
   return STARTER_PROJECT;
 };
 
@@ -294,7 +326,7 @@ export const compileBlocks = (raw: unknown): string => {
   const project = normalizeProject(raw);
   compileIds = project.sprites.map((sp) => sp.id);
   return project.sprites
-    .map((sp, i) => `(function (S) {\n${indent(compileWorkspace(sp.blocks))}})(S.forSprite(${i}, ${JSON.stringify(sp.emoji)}));\n`)
+    .map((sp, i) => `(function (S) {\n${indent(compileWorkspace(sp.blocks))}})(S.forSprite(${i}));\n`)
     .join("\n");
 };
 
