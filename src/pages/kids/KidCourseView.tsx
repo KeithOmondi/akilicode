@@ -1,6 +1,6 @@
 // src/components/kid/KidCourseView.tsx
 import { sanitizeHtml } from "../../lib/sanitize";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../store/store";
@@ -69,6 +69,11 @@ const Quiz = ({ lessonId, enrollmentId, onComplete }: QuizProps) => {
 
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (submitted) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [submitted]);
 
   // Fetch questions when the component mounts
   useEffect(() => {
@@ -88,16 +93,17 @@ const Quiz = ({ lessonId, enrollmentId, onComplete }: QuizProps) => {
       selectedIndex,
     }));
     try {
-      await dispatch(
+      const result = await dispatch(
         submitLessonQuiz({
           lessonId,
           enrollmentId,
           answers: answerArray,
         })
       ).unwrap();
+      // Show the result and LEAVE it on screen. The lesson is refreshed only when the child presses
+      // "Continue" (below); refreshing now rebuilt this box and the result vanished before it could be read.
       setSubmitted(true);
-      toast.success("Quiz submitted!");
-      onComplete(); // notify parent to refresh lesson status
+      if (result.passed) toast.success("Great job! You passed. 🎉");
     } catch {
       toast.error("Failed to submit quiz. Please try again.");
     }
@@ -113,8 +119,9 @@ const Quiz = ({ lessonId, enrollmentId, onComplete }: QuizProps) => {
 
   if (submitted && quizResult) {
     const passed = quizResult.passed;
+    const percent = Math.round(quizResult.percentage);
     return (
-      <div className="bg-white rounded-2xl border shadow-sm p-6 text-center">
+      <div ref={resultRef} role="status" aria-live="polite" className="bg-white rounded-2xl border shadow-sm p-6 text-center">
         {passed ? (
           <>
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -122,12 +129,17 @@ const Quiz = ({ lessonId, enrollmentId, onComplete }: QuizProps) => {
             </div>
             <h3 className="text-xl font-black text-gray-800 mb-2">Great job!</h3>
             <p className="text-gray-600 mb-2">
-              You scored {quizResult.score} / {quizResult.total} (
-              {quizResult.percentage}%)
+              You scored {quizResult.score} / {quizResult.total} ({percent}%)
             </p>
             <p className="text-green-600 font-bold text-sm">
               {quizResult.lessonCompleted ? `Lesson completed! 🎉${quizResult.pointsEarned ? ` +${quizResult.pointsEarned} stars` : ''}` : 'Well done! 🎉'}
             </p>
+            <button
+              onClick={onComplete}
+              className="mt-4 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm"
+            >
+              Continue
+            </button>
           </>
         ) : (
           <>
@@ -136,8 +148,7 @@ const Quiz = ({ lessonId, enrollmentId, onComplete }: QuizProps) => {
             </div>
             <h3 className="text-xl font-black text-gray-800 mb-2">Not yet</h3>
             <p className="text-gray-600 mb-2">
-              You scored {quizResult.score} / {quizResult.total} (
-              {quizResult.percentage}%)
+              You scored {quizResult.score} / {quizResult.total} ({percent}%)
             </p>
             <p className="text-orange-600 font-bold text-sm">
               You need at least 70% to pass. Review the notes and try again.
