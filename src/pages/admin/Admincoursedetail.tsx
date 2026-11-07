@@ -22,6 +22,8 @@ import {
   resetCourseState,
 } from "../../store/slices/courseSlice";
 import type { Module } from "../../interfaces/course.interface";
+import api from "../../api/api";
+import AgeGroupPicker from "../../components/admin/AgeGroupPicker";
 
 // ─── Shared Styles (improved contrast) ───────────────────────────────────────
 
@@ -233,6 +235,41 @@ const AddModuleModal = (props: AddModuleModalProps) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+/** Who the course is for and where it sits in the learning path. Saved straight away with its own button. */
+const CourseSettings = ({ courseId, initialGroups, initialOrder }: { courseId: string; initialGroups: string[]; initialOrder: number }) => {
+  const [groups, setGroups] = useState<string[]>(initialGroups);
+  const [order, setOrder] = useState(String(initialOrder));
+  const [saving, setSaving] = useState(false);
+  const changed = JSON.stringify([...groups].sort()) !== JSON.stringify([...initialGroups].sort()) || Number(order) !== initialOrder;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.patch(`/courses/${courseId}`, { age_groups: groups, path_order: Number(order) || 0 });
+      toast.success("Course settings saved");
+    } catch {
+      toast.error("Could not save the course settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="bg-white border border-ink-200 rounded-2xl p-5 mb-6" aria-label="Course settings">
+      <div className="grid md:grid-cols-[1fr_14rem] gap-6">
+        <AgeGroupPicker label="Which age groups is this course for?" value={groups} onChange={setGroups} />
+        <label className="text-sm font-semibold text-ink-700">Place in the path
+          <input type="number" min={0} max={100} value={order} onChange={(e) => setOrder(e.target.value)} className="adm-input w-full mt-2" />
+          <span className="block text-xs font-normal text-ink-500 mt-1">1 = start here. Parents see courses in this order.</span>
+        </label>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <button onClick={save} disabled={!changed || saving} className="ds-btn ds-btn-primary ds-btn-sm">{saving ? "Saving…" : "Save settings"}</button>
+      </div>
+    </section>
+  );
+};
+
 const AdminCourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
@@ -369,6 +406,13 @@ const AdminCourseDetail = () => {
           <span>ADD MODULE</span>
         </button>
       </div>
+
+      <CourseSettings
+        key={course.id}
+        courseId={course.id}
+        initialGroups={course.age_groups ?? []}
+        initialOrder={course.path_order ?? 0}
+      />
 
       <div className="grid grid-cols-3 gap-4 mb-10">
         {[

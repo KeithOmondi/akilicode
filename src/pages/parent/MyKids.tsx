@@ -20,6 +20,8 @@ import ConsentPanel, { type ConsentValue } from "../../components/parent/Consent
 import ChildSettingsModal from "../../components/parent/ChildSettingsModal";
 import KidActionsMenu from "../../components/parent/KidActionsMenu";
 
+import { AGE_GROUPS, ageGroupOf, groupById, groupLabel } from "../../lib/ageGroups";
+
 const MyKids = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { kids, loading } = useSelector((s: RootState) => s.kid);
@@ -28,7 +30,10 @@ const MyKids = () => {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const [groupChoice, setGroupChoice] = useState(""); // empty = follow the age
   const [grade, setGrade] = useState("");
+  // The group follows the age until the parent picks one themselves.
+  const group = groupChoice || (age && Number(age) >= 3 && Number(age) <= 19 ? ageGroupOf(Number(age)) : "");
   const [consent, setConsent] = useState<ConsentValue | null>(null);
   const [settingsKid, setSettingsKid] = useState<IKid | null>(null);
   const settingsKidNow = settingsKid ? kids.find((k) => k.id === settingsKid.id) ?? settingsKid : null;
@@ -55,12 +60,12 @@ const MyKids = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!consent) return;
-    dispatch(registerKid({ name, age: Number(age), grade: grade || undefined, consent }))
+    dispatch(registerKid({ name, age: Number(age), age_group: (group || undefined) as never, grade: grade || undefined, consent }))
       .unwrap()
       .then(() => {
         toast.success("Great! Your explorer is registered.");
         setShowForm(false);
-        setName(""); setAge(""); setGrade("");
+        setName(""); setAge(""); setGroupChoice(""); setGrade("");
       })
       .catch((err: string) => toast.error(err));
   };
@@ -157,6 +162,20 @@ const MyKids = () => {
                       className="w-full bg-purple-50 border-none rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label htmlFor="kid-group" className="text-sm font-bold text-purple-900 ml-1">Learning group</label>
+                  <select
+                    id="kid-group" required value={group} onChange={(e) => setGroupChoice(e.target.value)}
+                    className="w-full bg-purple-50 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none"
+                  >
+                    <option value="" disabled>Choose a group (we pick it from the age)</option>
+                    {AGE_GROUPS.map((g) => <option key={g.id} value={g.id}>{g.emoji} Ages {g.range} · {g.name}</option>)}
+                  </select>
+                  <p className="text-xs text-purple-900/70 ml-1" aria-live="polite">
+                    {groupById(group)?.start ?? "Their lessons are chosen from this group, and you can change it later."}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -293,7 +312,7 @@ const MyKids = () => {
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2 text-gray-600 font-medium">
                           <Calendar size={16} className="text-orange-400" />
-                          {kid.age} Years
+                          {kid.age} Years{kid.age_group ? <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{groupLabel(kid.age_group)}</span> : null}
                         </div>
                        </td>
                       <td className="px-6 py-5">

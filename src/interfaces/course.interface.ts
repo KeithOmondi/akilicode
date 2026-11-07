@@ -10,6 +10,10 @@ export interface Course {
   category: string;
   image_url?: string;
   is_active: boolean;
+  /** Groups this course is for; empty or missing = everyone */
+  age_groups?: string[] | null;
+  /** Place in the learning path (1 = start here) */
+  path_order?: number;
   created_at: string;
 }
 
@@ -32,7 +36,8 @@ export interface Lesson {
   id: string;
   module_id: string;
   title: string;
-  lesson_type?: 'notes' | 'coding' | 'scratch';  // Backward compatibility
+  lesson_type?: 'notes' | 'coding' | 'scratch';  // notes = reading + quiz, coding = HTML/CSS/JS editor, scratch = block coding
+  age_groups?: string[] | null; // empty or missing = every group
   notes?: string;               // Markdown content (lesson text)
   assignment?: string | null;   // Optional coding task description (plain text)
   language?: LessonLanguage;    // For reference only – no code execution

@@ -129,7 +129,10 @@ interface EnrollModalProps {
   onSubmit: (payload: EnrollWithPaymentPayload) => Promise<void>;
 }
 
+import { groupLabel, isForGroup } from "../../lib/ageGroups";
+
 const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalProps) => {
+  const kidGroup = (kidIdValue: string) => kids.find((k) => k.id === kidIdValue)?.age_group ?? null;
   const [kidId,        setKidId]        = useState("");
   const [courseId,     setCourseId]     = useState("");
   const [feeAmount,    setFeeAmount]    = useState("");
@@ -197,9 +200,19 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
               <BookOpen className="absolute left-3 top-3 text-purple-300" size={16} />
               <select required value={courseId} onChange={(e) => handleCourseChange(e.target.value)} className={inputCls}>
                 <option value="">Select a course</option>
-                {courses.filter((c) => c.is_active).map((c) => (
-                  <option key={c.id} value={c.id}>{c.title}</option>
-                ))}
+                {(() => {
+                  const active = courses.filter((c) => c.is_active).sort((a, b) => (a.path_order ?? 0) - (b.path_order ?? 0) || a.title.localeCompare(b.title));
+                  const group = kidGroup(kidId);
+                  const mine = active.filter((c) => isForGroup(c.age_groups, group));
+                  const others = active.filter((c) => !isForGroup(c.age_groups, group));
+                  const opt = (c: (typeof active)[number]) => <option key={c.id} value={c.id}>{c.path_order ? `${c.path_order}. ` : ""}{c.title}</option>;
+                  return group ? (
+                    <>
+                      <optgroup label={`Best for ${groupLabel(group)}`}>{mine.map(opt)}</optgroup>
+                      {others.length > 0 && <optgroup label="For other ages">{others.map(opt)}</optgroup>}
+                    </>
+                  ) : active.map(opt);
+                })()}
               </select>
             </div>
           </div>

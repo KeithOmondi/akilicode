@@ -1,4 +1,5 @@
 import { sanitizeHtml } from "../../lib/sanitize";
+import AgeGroupPicker from "../../components/admin/AgeGroupPicker";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,6 +20,7 @@ import {
   Edit3,
   X,
   CheckCircle2,
+  Settings,
 } from "lucide-react";
 import type { AppDispatch, RootState } from "../../store/store";
 import {
@@ -264,7 +266,7 @@ const QuestionModal = ({ open, onClose, onSubmit, initialData, submitting, nextO
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-type ActiveTab = "notes" | "assignment" | "questions";
+type ActiveTab = "notes" | "assignment" | "questions" | "settings";
 
 const AdminLessonEditor = () => {
   const { courseId, moduleId, lessonId } = useParams<{
@@ -280,6 +282,8 @@ const AdminLessonEditor = () => {
 
   const [notes, setNotes] = useState("");
   const [assignment, setAssignment] = useState("");
+  const [lessonType, setLessonType] = useState<"notes" | "coding" | "scratch">("notes");
+  const [ageGroups, setAgeGroups] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>("notes");
   const [previewNotes, setPreviewNotes] = useState(false);
   const [previewAssignment, setPreviewAssignment] = useState(false);
@@ -316,6 +320,8 @@ const AdminLessonEditor = () => {
       lastSeenLessonId.current = currentLesson.id;
       setNotes(currentLesson.notes ?? "");
       setAssignment(currentLesson.assignment ?? "");
+      setLessonType(currentLesson.lesson_type ?? "notes");
+      setAgeGroups(currentLesson.age_groups ?? []);
       setDirty(false);
     }
   }, [currentLesson]);
@@ -331,7 +337,7 @@ const AdminLessonEditor = () => {
     setSaving(true);
     try {
       await dispatch(
-        updateLesson({ lessonId: safeLessonId, data: { notes: notes || undefined, assignment: assignment || undefined } })
+        updateLesson({ lessonId: safeLessonId, data: { notes: notes || undefined, assignment: assignment || undefined, lesson_type: lessonType, age_groups: ageGroups } })
       ).unwrap();
       toast.success("Lesson saved!");
       setDirty(false);
@@ -340,7 +346,7 @@ const AdminLessonEditor = () => {
     } finally {
       setSaving(false);
     }
-  }, [dispatch, safeLessonId, notes, assignment]);
+  }, [dispatch, safeLessonId, notes, assignment, lessonType, ageGroups]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -357,6 +363,8 @@ const AdminLessonEditor = () => {
     if (!currentLesson) return;
     setNotes(currentLesson.notes ?? "");
     setAssignment(currentLesson.assignment ?? "");
+    setLessonType(currentLesson.lesson_type ?? "notes");
+    setAgeGroups(currentLesson.age_groups ?? []);
     setDirty(false);
     toast("Reset to last saved version", { icon: "↩️" });
   }, [currentLesson]);
@@ -477,7 +485,31 @@ const AdminLessonEditor = () => {
           <TabButton active={activeTab === "notes"} onClick={() => setActiveTab("notes")} icon={FileText} label="Notes" />
           <TabButton active={activeTab === "assignment"} onClick={() => setActiveTab("assignment")} icon={ClipboardList} label="Assignment" />
           <TabButton active={activeTab === "questions"} onClick={() => setActiveTab("questions")} icon={HelpCircle} label="Questions" />
+          <TabButton active={activeTab === "settings"} onClick={() => setActiveTab("settings")} icon={Settings} label="Who and how" />
         </div>
+
+        {/* Who and how: age groups and the kind of lesson */}
+        {activeTab === "settings" && (
+          <div className="flex flex-col gap-6 max-w-2xl">
+            <AgeGroupPicker
+              label="Which age groups see this lesson?"
+              value={ageGroups}
+              onChange={(next) => { setAgeGroups(next); setDirty(true); }}
+            />
+            <label className="text-sm font-semibold text-ink-700">What kind of lesson is it?
+              <select
+                value={lessonType}
+                onChange={(e) => { setLessonType(e.target.value as "notes" | "coding" | "scratch"); setDirty(true); }}
+                className="adm-input w-full mt-2"
+              >
+                <option value="notes">Notes and quiz (the assignment is offline or in the web editor)</option>
+                <option value="coding">Web coding (the assignment opens the HTML, CSS and JavaScript editor)</option>
+                <option value="scratch">Block coding (the assignment opens the Scratch-style block editor)</option>
+              </select>
+            </label>
+            <p className="text-xs text-ink-500">Remember to press Save (or Ctrl+S).</p>
+          </div>
+        )}
 
         {/* Notes Tab */}
         {activeTab === "notes" && (

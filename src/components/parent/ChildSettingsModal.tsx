@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Clock, Download, KeyRound, Loader2, ShieldCheck, Trash2, Trophy } from "lucide-react";
+import { Clock, Download, KeyRound, Loader2, ShieldCheck, Trash2, Trophy, Layers } from "lucide-react";
+import { AGE_GROUPS, groupById } from "../../lib/ageGroups";
 import api from "../../api/api";
 import { useAppDispatch } from "../../store/hooks";
 import { getMyKids } from "../../store/slices/kidSlice";
@@ -95,6 +96,12 @@ const ChildSettingsModal = ({ kid, onClose }: { kid: IKid; onClose: () => void }
     a.click();
     URL.revokeObjectURL(url);
   });
+  const [group, setGroup] = useState<string>(kid.age_group ?? "");
+  const saveGroup = () => run("group", async () => {
+    await api.patch(`/kids/${kid.id}`, { age_group: group });
+    await dispatch(getMyKids());
+    toast.success("Learning group saved. Their lessons now match it.");
+  });
   const [confirmName, setConfirmName] = useState("");
   const [showDelete, setShowDelete] = useState(false);
   const remove = () => run("delete", async () => {
@@ -117,6 +124,19 @@ const ChildSettingsModal = ({ kid, onClose }: { kid: IKid; onClose: () => void }
             </button>
           </Section>
         )}
+
+        <Section icon={<Layers size={18} />} title="Learning group">
+          <p className="text-sm text-gray-600 mb-3">The lessons {kid.name} sees depend on this group. {groupById(group)?.start}</p>
+          <div className="flex flex-wrap gap-2 items-center">
+            <label className="sr-only" htmlFor="child-group">Learning group</label>
+            <select id="child-group" value={group} onChange={(e) => setGroup(e.target.value)} className="border-2 border-purple-100 rounded-xl px-3 py-2.5 bg-white font-semibold text-sm">
+              {AGE_GROUPS.map((g) => <option key={g.id} value={g.id}>{g.emoji} Ages {g.range} · {g.name}</option>)}
+            </select>
+            <button className={`${btn} bg-purple-600 text-white`} onClick={saveGroup} disabled={busy !== null || !group || group === kid.age_group}>
+              {busy === "group" ? <Loader2 className="animate-spin" size={16} /> : "Save"}
+            </button>
+          </div>
+        </Section>
 
         <Section icon={<KeyRound size={18} />} title={t("child.pinTitle")}>
           {kid.pin_reset_required && <p className="bg-orange-50 text-orange-800 font-bold rounded-xl p-3 mb-3 text-sm">{t("child.pinMustChange")}</p>}

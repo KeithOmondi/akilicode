@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import AgeGroupPicker from "../../components/admin/AgeGroupPicker";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -29,6 +30,8 @@ interface CourseFormData {
   duration: string;
   image_url: string;
   is_active: boolean;
+  age_groups: string[];
+  path_order: string;
 }
 
 const INITIAL_FORM: CourseFormData = {
@@ -39,6 +42,8 @@ const INITIAL_FORM: CourseFormData = {
   duration: "",
   image_url: "",
   is_active: true,
+  age_groups: [],
+  path_order: "",
 };
 
 const CATEGORY_OPTIONS = [
@@ -273,6 +278,12 @@ const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCourseModalP
             </Field>
           </div>
 
+          <AgeGroupPicker label="Which age groups is this course for?" value={form.age_groups} onChange={(next) => setForm((prev) => ({ ...prev, age_groups: next }))} />
+
+          <Field label="Place in the learning path (1 = start here)">
+            <input type="number" min={0} max={100} placeholder="e.g. 1 for the first course" value={form.path_order} onChange={set("path_order")} className={inputClass} />
+          </Field>
+
           <Field label="Thumbnail URL">
             <div className="relative">
               <Upload size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-500" />
@@ -347,7 +358,7 @@ const AdminCourses = () => {
   const handleCreateCourse = async (formData: CourseFormData) => {
     setSubmitting(true);
     try {
-      await dispatch(createCourse({ ...formData, price: Number(formData.price) })).unwrap();
+      await dispatch(createCourse({ ...formData, price: Number(formData.price), path_order: formData.path_order === "" ? 0 : Number(formData.path_order) })).unwrap();
       toast.success("Course published successfully!");
     } catch (err) {
       toast.error(typeof err === "string" ? err : "Failed to create course");

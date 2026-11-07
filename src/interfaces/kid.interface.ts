@@ -4,6 +4,8 @@ export interface IKid {
   name: string;
   role: 'kid';
   age: number;
+  /** '4-6' | '7-9' | '10-12' | '13-15' | '16-18': decides which lessons the child sees */
+  age_group?: string | null;
   grade?: string;
   avatar?: string;
   username?: string;
@@ -46,6 +48,7 @@ export interface KidState {
 export interface RegisterKidPayload {
   name: string;
   age: number;
+  age_group?: string;
   grade?: string;
   avatar?: string;
   /** The parent's consent: what they accepted, and in which version of the text. */
