@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import {
@@ -13,9 +14,12 @@ import { getAllCourses } from "../../store/slices/courseSlice";
 import { initiateStkPush, clearCheckoutRequest } from "../../store/slices/paymentSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import api from "../../api/api";
+import { errorMessage, fetchPaystackEnabled, startPaystack, verifyPaystack } from "../../lib/paystackApi";
+import { paystackReferenceFromSearch } from "../../lib/paystackUrl";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type BillingCycle = "monthly" | "termly" | "once-off";
+type PayMethod = "mpesa" | "card";
 
 interface EnrollWithPaymentPayload {
   kid_id:        string;
@@ -25,6 +29,8 @@ interface EnrollWithPaymentPayload {
   start_date?:   string;
   payNow?:       boolean;
   phone?:        string;
+  /** How the parent pays: an M-Pesa prompt on their phone, or a card / mobile money page from Paystack. */
+  method?:       PayMethod;
 }
 
 interface BackendError {
@@ -120,24 +126,109 @@ const ModalOverlay = ({ onClose, children }: { onClose: () => void; children: Re
   </div>
 );
 
+// ─── Choose how to pay ────────────────────────────────────────────────────────
+const MethodSwitch = ({ value, onChange }: { value: PayMethod; onChange: (m: PayMethod) => void }) => {
+  const option = (m: PayMethod, title: string, hint: string) => (
+    <button
+      type="button"
+      onClick={() => onChange(m)}
+      aria-pressed={value === m}
+      className={`flex-1 text-left rounded-2xl border-2 px-4 py-3 transition-all ${value === m ? "border-orange-500 bg-orange-50" : "border-purple-100 bg-white hover:border-purple-200"}`}
+    >
+      <span className="block text-sm font-black text-purple-900">{title}</span>
+      <span className="block text-[11px] text-gray-500 mt-0.5">{hint}</span>
+    </button>
+  );
+  return (
+    <div className="flex gap-3" role="group" aria-label="How do you want to pay?">
+      {option("mpesa", "M-Pesa", "A prompt on your phone")}
+      {option("card", "Card or other", "Secure page by Paystack")}
+    </div>
+  );
+};
+
+// ─── Pay for an enrollment that is still unpaid ──────────────────────────────
+interface PayDialogProps {
+  course: string;
+  kid: string;
+  amount: number;
+  paystackOn: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onMpesa: (phone: string) => void;
+  onCard: () => void;
+}
+const PayDialog = ({ course, kid, amount, paystackOn, busy, onClose, onMpesa, onCard }: PayDialogProps) => {
+  const [method, setMethod] = useState<PayMethod>("mpesa");
+  const [phone, setPhone] = useState("");
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (method === "card") return onCard();
+    if (!/^254\d{9}$/.test(phone)) return void toast.error("Enter a valid M-Pesa number (254...)");
+    onMpesa(phone);
+  };
+  return (
+    <ModalOverlay onClose={onClose}>
+      <div className="px-6 py-5 border-b border-purple-50 flex items-center justify-between bg-gradient-to-r from-purple-700 to-purple-800">
+        <div>
+          <h2 className="text-lg font-black text-white">Pay KES {amount.toLocaleString()}</h2>
+          <p className="text-xs text-purple-200 mt-0.5">{kid} · {course}</p>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors" aria-label="Close">
+          <X size={18} />
+        </button>
+      </div>
+      <form onSubmit={submit} className="px-6 py-6 space-y-4">
+        {paystackOn && <MethodSwitch value={method} onChange={setMethod} />}
+        {method === "mpesa" ? (
+          <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+            <div className="flex items-center gap-3 mb-3">
+              <Wallet className="text-orange-500" size={20} />
+              <span className="text-sm font-bold text-orange-900">M-Pesa number</span>
+            </div>
+            <input
+              type="tel" required placeholder="2547XXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)}
+              className="w-full bg-white border-2 border-orange-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-orange-500 transition-all"
+            />
+            <p className="text-[10px] text-orange-600/70 mt-2 italic">A prompt will be sent to this phone.</p>
+          </div>
+        ) : (
+          <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 text-sm text-purple-900">
+            <div className="flex items-center gap-3 mb-2">
+              <CreditCard className="text-purple-500" size={20} />
+              <span className="font-bold">Pay on Paystack's secure page</span>
+            </div>
+            <p className="text-xs text-purple-700/80">You will choose card or mobile money there, and come straight back here when you are done. We never see your card details.</p>
+          </div>
+        )}
+        <button type="submit" disabled={busy} className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-200 transition-all">
+          {busy ? "One moment…" : method === "card" ? "Continue to secure payment" : "Send M-Pesa prompt"}
+        </button>
+      </form>
+    </ModalOverlay>
+  );
+};
+
 // ─── Enroll Modal ─────────────────────────────────────────────────────────────
 interface EnrollModalProps {
   onClose:  () => void;
   kids:     RootState["kid"]["kids"];
   courses:  RootState["course"]["courses"];
   loading:  boolean;
+  paystackOn: boolean;
   onSubmit: (payload: EnrollWithPaymentPayload) => Promise<void>;
 }
 
 import { groupLabel, isForGroup } from "../../lib/ageGroups";
 
-const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalProps) => {
+const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: EnrollModalProps) => {
   const kidGroup = (kidIdValue: string) => kids.find((k) => k.id === kidIdValue)?.age_group ?? null;
   const [kidId,        setKidId]        = useState("");
   const [courseId,     setCourseId]     = useState("");
   const [feeAmount,    setFeeAmount]    = useState("");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [phone,        setPhone]        = useState("");
+  const [method,       setMethod]       = useState<PayMethod>("mpesa");
 
   const inputCls = "w-full bg-purple-50/50 border-2 border-transparent rounded-xl pl-11 pr-4 py-3 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none appearance-none transition-all text-sm font-medium text-gray-800 placeholder:text-gray-400";
   const labelCls = "block text-[11px] font-black text-purple-900 uppercase tracking-wider mb-1.5";
@@ -152,7 +243,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
     e.preventDefault();
     if (!kidId) { toast.error("Please select a student"); return; }
     if (!courseId) { toast.error("Please select a course"); return; }
-    if (!phone || !/^254\d{9}$/.test(phone)) {
+    if (method === "mpesa" && (!phone || !/^254\d{9}$/.test(phone))) {
       toast.error("Enter a valid M-Pesa number (254...)");
       return;
     }
@@ -162,7 +253,8 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
       fee_amount:    Number(feeAmount),
       billing_cycle: billingCycle, // already BillingCycle — no cast needed
       payNow:        true,
-      phone,
+      phone:         method === "mpesa" ? phone : undefined,
+      method,
     });
   };
 
@@ -240,24 +332,35 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
             </div>
           </div>
 
-          {/* M-Pesa */}
-          <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
-            <div className="flex items-center gap-3 mb-3">
-              <Wallet className="text-orange-500" size={20} />
-              <span className="text-sm font-bold text-orange-900">M-Pesa Activation</span>
+          {/* How to pay */}
+          {paystackOn && <MethodSwitch value={method} onChange={setMethod} />}
+          {method === "mpesa" ? (
+            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+              <div className="flex items-center gap-3 mb-3">
+                <Wallet className="text-orange-500" size={20} />
+                <span className="text-sm font-bold text-orange-900">M-Pesa Activation</span>
+              </div>
+              <input
+                type="tel"
+                required
+                placeholder="2547XXXXXXXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full bg-white border-2 border-orange-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-orange-500 transition-all"
+              />
+              <p className="text-[10px] text-orange-600/70 mt-2 italic">
+                A prompt will be sent to this phone to activate the enrollment.
+              </p>
             </div>
-            <input
-              type="tel"
-              required
-              placeholder="2547XXXXXXXX"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-white border-2 border-orange-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-orange-500 transition-all"
-            />
-            <p className="text-[10px] text-orange-600/70 mt-2 italic">
-              A prompt will be sent to this phone to activate the enrollment.
-            </p>
-          </div>
+          ) : (
+            <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
+              <div className="flex items-center gap-3 mb-2">
+                <CreditCard className="text-purple-500" size={20} />
+                <span className="text-sm font-bold text-purple-900">Card or mobile money (Paystack)</span>
+              </div>
+              <p className="text-[11px] text-purple-700/80">After you press the button you will pay on Paystack's secure page, then come back here.</p>
+            </div>
+          )}
         </div>
 
         <button
@@ -265,7 +368,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, onSubmit }: EnrollModalP
           disabled={loading}
           className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-200 transition-all flex items-center justify-center gap-2"
         >
-          {loading ? "Processing..." : "Enroll & Pay Now"}
+          {loading ? "Processing..." : method === "card" ? "Enroll & Continue to Payment" : "Enroll & Pay Now"}
         </button>
       </form>
     </ModalOverlay>
@@ -281,12 +384,18 @@ const ParentEnrollments = () => {
   const { loading: payLoading, checkoutRequestId } = useSelector((s: RootState) => s.payment);
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [paystackOn, setPaystackOn] = useState(false);
+  const [payFor, setPayFor] = useState<null | { id: string; course: string; kid: string; amount: number }>(null);
+  const [payBusy, setPayBusy] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     dispatch(getMyEnrollments());
     dispatch(getMyKids());
     dispatch(getAllCourses());
+    void fetchPaystackEnabled().then(setPaystackOn);
   }, [dispatch]);
 
   useEffect(() => {
@@ -366,12 +475,67 @@ const ParentEnrollments = () => {
     next();
   };
 
+  /** Send the parent to Paystack's secure page for this enrollment. */
+  const goToPaystack = async (enrollmentId: string) => {
+    toast.loading("Opening the secure payment page…", { id: "ps-open" });
+    try {
+      const url = await startPaystack(enrollmentId);
+      window.location.assign(url); // the page is replaced: no need to dismiss the message
+    } catch (err) {
+      toast.dismiss("ps-open");
+      toast.error(errorMessage(err, "Could not open the payment page. Please try again."), { duration: 7000 });
+      setPayBusy(false);
+    }
+  };
+
+  /** Back from Paystack (?reference=...): ask the server what really happened, a few times, then tell the parent. */
+  const returnHandled = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  useEffect(() => {
+    const reference = paystackReferenceFromSearch(location.search);
+    if (!reference || returnHandled.current) return;
+    returnHandled.current = true;
+    navigate("/parent/programs", { replace: true }); // tidy the address bar
+    toast.loading("Confirming your payment…", { id: "ps-verify" });
+    (async () => {
+      for (let attempt = 0; attempt < 6 && mounted.current; attempt++) {
+        try {
+          const r = await verifyPaystack(reference);
+          if (r.payment_status === "completed") {
+            toast.success("Payment received. Enrollment is now active.", { id: "ps-verify" });
+            dispatch(getMyEnrollments());
+            return;
+          }
+          if (r.payment_status === "review") {
+            toast("We received your payment and are checking it. This usually takes a short while.", { id: "ps-verify", icon: "🔎", duration: 8000 });
+            dispatch(getMyEnrollments());
+            return;
+          }
+          if (r.payment_status === "failed" || r.payment_status === "expired") {
+            toast.error(r.reason || "The payment did not go through. Please try again.", { id: "ps-verify", duration: 7000 });
+            dispatch(getMyEnrollments());
+            return;
+          }
+        } catch {
+          /* a hiccup: try again */
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+      if (mounted.current) toast("Not confirmed yet. If you have paid, press “Check payment” on the card in a moment.", { id: "ps-verify", icon: "⏳", duration: 9000 });
+      dispatch(getMyEnrollments());
+    })();
+  }, [location.search, navigate, dispatch]);
+
   const [checking, setChecking] = useState<string | null>(null);
   const checkNow = async (enrollmentId: string) => {
     setChecking(enrollmentId);
     const done = await checkPayment(enrollmentId);
     setChecking(null);
-    if (!done) toast("Still waiting for M-Pesa. Finish the prompt on your phone, then check again.", { icon: "⏳" });
+    if (!done) toast("Still waiting for the payment to be confirmed. If you are paying by M-Pesa, finish the prompt on your phone, then check again.", { icon: "⏳" });
   };
 
   // When the page opens, quietly settle any enrollment that was paid while we were away.
@@ -382,6 +546,23 @@ const ParentEnrollments = () => {
     enrollments.filter((en) => en.status === "pending").forEach((en) => { void checkPayment(en.id); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enrollments]);
+
+  const payExistingMpesa = async (enrollmentId: string, phone: string, amount: number) => {
+    setPayBusy(true);
+    try {
+      await dispatch(initiateStkPush({ enrollment_id: enrollmentId, phone, amount })).unwrap();
+      toast.success("M-Pesa prompt sent! Complete payment on your phone.");
+      setPayFor(null);
+      startPolling(enrollmentId);
+    } catch (payErr: unknown) {
+      let msg = "Payment failed to initialize";
+      if (typeof payErr === "string") msg = payErr;
+      else if (payErr && typeof payErr === "object" && "message" in payErr) msg = (payErr as BackendError).message || msg;
+      toast.error(msg);
+    } finally {
+      setPayBusy(false);
+    }
+  };
 
   const handleEnroll = async (payload: EnrollWithPaymentPayload) => {
     try {
@@ -394,6 +575,12 @@ const ParentEnrollments = () => {
       })).unwrap();
 
       dispatch(getMyEnrollments());
+
+      if (payload.method === "card") {
+        setShowEnrollModal(false);
+        await goToPaystack(enrollment.id);
+        return;
+      }
 
       if (payload.phone) {
         try {
@@ -494,15 +681,23 @@ const ParentEnrollments = () => {
                   )}
 
                   {e.status === "pending" && (
-                    <div className="mt-3 p-3 bg-amber-50 rounded-xl flex items-center gap-2 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
+                    <div className="mt-3 p-3 bg-amber-50 rounded-xl flex flex-wrap items-center gap-2 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
                       <CheckCircle2 size={14} /> Not paid yet
-                      <button
-                        onClick={() => checkNow(e.id)}
-                        disabled={checking === e.id}
-                        className="ml-auto px-3 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 normal-case tracking-normal text-xs font-bold disabled:opacity-60"
-                      >
-                        {checking === e.id ? "Checking…" : "Check payment"}
-                      </button>
+                      <div className="ml-auto flex gap-2">
+                        <button
+                          onClick={() => setPayFor({ id: e.id, course: e.course_name, kid: e.kid_name ?? "", amount: Number(e.fee_amount) })}
+                          className="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white normal-case tracking-normal text-xs font-black whitespace-nowrap"
+                        >
+                          Pay now
+                        </button>
+                        <button
+                          onClick={() => checkNow(e.id)}
+                          disabled={checking === e.id}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 normal-case tracking-normal text-xs font-bold disabled:opacity-60 whitespace-nowrap"
+                        >
+                          {checking === e.id ? "Checking…" : "Check payment"}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -526,7 +721,21 @@ const ParentEnrollments = () => {
           kids={kids}
           courses={courses}
           loading={isLoading}
+          paystackOn={paystackOn}
           onSubmit={handleEnroll}
+        />
+      )}
+
+      {payFor && (
+        <PayDialog
+          course={payFor.course}
+          kid={payFor.kid}
+          amount={payFor.amount}
+          paystackOn={paystackOn}
+          busy={payBusy}
+          onClose={() => setPayFor(null)}
+          onMpesa={(phone) => void payExistingMpesa(payFor.id, phone, payFor.amount)}
+          onCard={() => { setPayBusy(true); void goToPaystack(payFor.id); }}
         />
       )}
     </div>
