@@ -24,6 +24,7 @@ const AdminProjects = () => {
   const [saving, setSaving] = useState(false);
   const [codeTab, setCodeTab] = useState<"html" | "css" | "js">("html");
   const [blocksCode, setBlocksCode] = useState("");
+  const [spriteIdx, setSpriteIdx] = useState(0);
 
   const load = (f: Filter) => {
     setItems(null);
@@ -49,14 +50,20 @@ const AdminProjects = () => {
     setMarks(p.marks === null ? "" : String(p.marks));
     setFeedback(p.feedback ?? "");
     setCodeTab("html");
+    setSpriteIdx(0);
     setBlocksCode("");
     if (p.kind === "blocks") {
       // turn the child's blocks into the code the stage runs
-      import("../../lib/scratch/blocks").then((m) => setBlocksCode(m.compileBlocks(p.blocks))).catch(() => toast.error("Could not read these blocks."));
+      import("../../lib/scratch/blocks").then((m) => { m.setSpriteChoices(m.normalizeProject(p.blocks).sprites); setBlocksCode(m.compileBlocks(p.blocks)); }).catch(() => toast.error("Could not read these blocks."));
     }
   };
 
   const current = items?.find((p) => p.id === openId) ?? null;
+  // A block project is one or more sprites; old projects are a single workspace.
+  const sprites: { name: string; emoji: string; blocks: object | null }[] = Array.isArray((current?.blocks as { sprites?: unknown } | null)?.sprites)
+    ? ((current!.blocks as { sprites: { name: string; emoji: string; blocks: object | null }[] }).sprites)
+    : [{ name: "Cat", emoji: "🐱", blocks: (current?.blocks as object | null) ?? null }];
+  const sprite = sprites[Math.min(spriteIdx, sprites.length - 1)];
 
   const save = async () => {
     if (!current) return;
@@ -124,7 +131,16 @@ const AdminProjects = () => {
               {current.kind === "blocks" ? (
                 <div className="grid xl:grid-cols-2 gap-4">
                   <Suspense fallback={<div className="adm-card p-10 flex justify-center"><Loader2 className="animate-spin text-brand-600" /></div>}>
-                    <BlockWorkspace key={current.id} initialState={current.blocks} readOnly height="26rem" />
+                    <div>
+                      {sprites.length > 1 && (
+                        <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label="Sprites">
+                          {sprites.map((sp, i) => (
+                            <button key={i} onClick={() => setSpriteIdx(i)} aria-pressed={i === spriteIdx} className={`ds-btn ds-btn-sm ${i === spriteIdx ? "ds-btn-primary" : "ds-btn-secondary"}`}>{sp.emoji} {sp.name}</button>
+                          ))}
+                        </div>
+                      )}
+                      <BlockWorkspace key={`${current.id}-${spriteIdx}`} initialState={sprite.blocks} readOnly height="26rem" />
+                    </div>
                     <div>
                       <StagePreview code={blocksCode} runId={runId} />
                       <button className="ds-btn ds-btn-secondary ds-btn-sm mt-2" onClick={() => setRunId(newRunId())}>Start again</button>

@@ -190,9 +190,9 @@
 /* Block editor: Scratch-style palette on desktop (coloured circle above each name); phones keep the row of categories */
 @media (min-width: 1024px) {
   .scratch-ws .blocklyToolboxDiv { width: 64px; background: #fff; border-right: 1px solid #ddd; padding: 0; }
-  .scratch-ws .blocklyToolboxCategory { border-left: 0 !important; height: auto; margin: 0; padding: 6px 0 4px !important; display: flex; justify-content: center; }
+  .scratch-ws .blocklyToolboxCategory { border-left: 0 !important; height: auto; margin: 0; padding: 3px 0 2px !important; display: flex; justify-content: center; }
   .scratch-ws .blocklyTreeRowContentContainer { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .scratch-ws .blocklyToolboxCategoryIcon { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.15); background: var(--cat, #999); display: inline-block !important; visibility: visible !important; background-image: none !important; }
+  .scratch-ws .blocklyToolboxCategoryIcon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, 0.15); background: var(--cat, #999); display: inline-block !important; visibility: visible !important; background-image: none !important; }
   .scratch-ws .blocklyToolboxCategoryLabel { font-size: 11px; font-weight: 700; color: #575e75; line-height: 1.1; }
   .scratch-ws .blocklyToolboxCategoryContainer:nth-child(1) { --cat: #4c97ff; }
   .scratch-ws .blocklyToolboxCategoryContainer:nth-child(2) { --cat: #9966ff; }

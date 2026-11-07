@@ -116,3 +116,34 @@ test('</script> inside generated code cannot break out of the page', async () =>
   assert.equal(window.document.querySelectorAll('img').length, 0);
   assert.equal(window.document.querySelectorAll('script').length, 3); // runtime, program, start
 });
+
+test('several sprites: each has its own position and blocks, and they can tell when they touch', async () => {
+  const code = `
+    (function (S) { S.on('flag', async function () { S.goTo(0, 0); S.move(20); }); })(S.forSprite(0, "🐱"));
+    (function (S) { S.on('flag', async function () { S.goTo(30, 0); S.say(S.touching(0) ? 'bump' : 'far'); }); })(S.forSprite(1, "🐶"));
+    (function (S) { S.on('flag', async function () { S.goTo(-200, 100); }); })(S.forSprite(2, "🐰"));`;
+  const { S } = await stage(code);
+  const all = S.states();
+  assert.equal(all.length, 3);
+  assert.equal(all.map((s) => s.costume).join(' '), '🐱 🐶 🐰');
+  assert.equal(Math.round(all[0].x), 20); // moved only the cat
+  assert.equal(Math.round(all[1].x), 30);
+  assert.equal(all[1].bubble, 'bump'); // 10 apart: touching
+  assert.equal(Math.round(all[2].y), 100);
+});
+
+test('clicking a sprite runs that sprite\'s click blocks only', async () => {
+  const code = `
+    (function (S) { S.on('click', async function () { S.say('cat'); }); })(S.forSprite(0, "🐱"));
+    (function (S) { S.on('click', async function () { S.say('dog'); }); })(S.forSprite(1, "🐶"));`;
+  const { window, S } = await stage(code);
+  const canvas = window.document.getElementById('stage');
+  canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 480, height: 360 });
+  canvas.focus = () => {};
+  // sprite 1 starts at x = -140: its centre on screen is (240 - 140, 180)
+  canvas.dispatchEvent(new window.MouseEvent('mousedown', { clientX: 100, clientY: 180 }));
+  await sleep(30);
+  const all = S.states();
+  assert.equal(all[1].bubble, 'dog');
+  assert.equal(all[0].bubble, null);
+});

@@ -45,6 +45,14 @@ const HATS: Record<string, (b: Blockly.Block) => string> = {
   ev_key: (b) => `key:${b.getFieldValue("KEY")}`,
 };
 
+/** The sprites of the project being edited (the "touching" block lists them). Set by the studio. */
+let spriteChoices: [string, string][] = [];
+export const setSpriteChoices = (sprites: { id: string; name: string; emoji: string }[]) => {
+  spriteChoices = sprites.map((sp) => [`${sp.emoji} ${sp.name}`, sp.id]);
+};
+/** Sprite ids in order, while compiling (the stage knows sprites by number). */
+let compileIds: string[] = [];
+
 let registered = false;
 
 /** Set Blockly up once: language, block definitions and generators. Safe to call many times. */
@@ -100,6 +108,7 @@ export const registerBlocks = () => {
     // sensing
     { type: "se_touching_edge", message0: "touching edge?", output: "Boolean", colour: COLORS.sensing },
     { type: "se_key_pressed", message0: "key %1 pressed?", args0: [{ type: "field_dropdown", name: "KEY", options: KEYS }], output: "Boolean", colour: COLORS.sensing },
+    { type: "se_touching", message0: "touching %1 ?", args0: [{ type: "field_dropdown", name: "WHO", options: () => (spriteChoices.length ? spriteChoices : [["(no sprites)", "none"]]) }], output: "Boolean", colour: COLORS.sensing },
     { type: "se_x", message0: "x position", output: "Number", colour: COLORS.sensing },
     { type: "se_y", message0: "y position", output: "Number", colour: COLORS.sensing },
     { type: "se_direction", message0: "direction", output: "Number", colour: COLORS.sensing },
@@ -155,6 +164,10 @@ export const registerBlocks = () => {
   g.forBlock["co_if_else"] = (b, gen) => `if (${value(b, "COND", "false")}) {\n${gen.statementToCode(b, "DO")}} else {\n${gen.statementToCode(b, "ELSE")}}\n`;
 
   g.forBlock["se_touching_edge"] = () => ["S.touchingEdge()", Order.FUNCTION_CALL];
+  g.forBlock["se_touching"] = (b) => {
+    const i = compileIds.indexOf(String(b.getFieldValue("WHO")));
+    return [i < 0 ? "false" : `S.touching(${i})`, Order.FUNCTION_CALL];
+  };
   g.forBlock["se_key_pressed"] = (b) => [`S.keyDown(${JSON.stringify(b.getFieldValue("KEY"))})`, Order.FUNCTION_CALL];
   g.forBlock["se_x"] = () => ["S.x()", Order.FUNCTION_CALL];
   g.forBlock["se_y"] = () => ["S.y()", Order.FUNCTION_CALL];
@@ -191,7 +204,7 @@ export const TOOLBOX = {
         blk("co_wait", { SECS: n(1) }), blk("co_repeat", { N: n(10) }), blk("co_forever"), blk("co_if"), blk("co_if_else"), blk("co_repeat_until"), blk("co_stop"),
       ],
     },
-    { kind: "category", name: "Sensing", colour: COLORS.sensing, contents: [blk("se_touching_edge"), blk("se_key_pressed")] },
+    { kind: "category", name: "Sensing", colour: COLORS.sensing, contents: [blk("se_touching"), blk("se_touching_edge"), blk("se_key_pressed")] },
     {
       kind: "category", name: "Operators", colour: COLORS.operators, contents: [
         blk("math_arithmetic", { A: n(1), B: n(1) }), blk("math_random_int", { FROM: n(1), TO: n(10) }),
@@ -203,8 +216,15 @@ export const TOOLBOX = {
   ],
 } as const;
 
-/** A new block project starts with something that already works. */
-export const STARTER_STATE = {
+/** One sprite: a name, a picture (an emoji) and its own blocks. */
+export interface SpriteData { id: string; name: string; emoji: string; blocks: object | null }
+/** A saved block project. (Older projects were just one Blockly workspace; those become a single "Cat" sprite.) */
+export interface ProjectState { v: 2; sprites: SpriteData[] }
+
+export const SPRITE_PICTURES = ["🐱", "🐶", "🐰", "🐸", "🦄", "🐢", "🤖", "🚀", "👾", "⚽", "🍎", "⭐", "🐠", "🦁", "🚗", "🧑‍🚀"];
+export const MAX_SPRITES = 6;
+
+const STARTER_BLOCKS = {
   blocks: {
     languageVersion: 0,
     blocks: [
@@ -222,14 +242,32 @@ export const STARTER_STATE = {
   },
 };
 
+/** A new block project starts with something that already works. */
+export const STARTER_PROJECT: ProjectState = { v: 2, sprites: [{ id: "s1", name: "Cat", emoji: "🐱", blocks: STARTER_BLOCKS }] };
+/** Kept for old callers: the first sprite's starter blocks. */
+export const STARTER_STATE = STARTER_BLOCKS;
+
+/** Accepts anything that was ever saved (nothing, an old single workspace, or a project) and returns a project. */
+export const normalizeProject = (raw: unknown): ProjectState => {
+  const r = raw as { sprites?: unknown } | null | undefined;
+  if (r && Array.isArray(r.sprites) && r.sprites.length) {
+    const seen = new Set<string>();
+    const sprites = (r.sprites as Partial<SpriteData>[]).slice(0, MAX_SPRITES).map((sp, i) => {
+      let id = typeof sp.id === "string" && sp.id ? sp.id : `s${i + 1}`;
+      while (seen.has(id)) id += "x";
+      seen.add(id);
+      return { id, name: String(sp.name || `Sprite${i + 1}`).slice(0, 20), emoji: String(sp.emoji || "🐱"), blocks: (sp.blocks as object | null) ?? null };
+    });
+    return { v: 2, sprites };
+  }
+  if (r && typeof r === "object" && "blocks" in r) return { v: 2, sprites: [{ id: "s1", name: "Cat", emoji: "🐱", blocks: raw as object }] };
+  return STARTER_PROJECT;
+};
+
 const indent = (code: string) => code.replace(/^(?=.)/gm, "  ");
 
-/**
- * Turn a saved workspace into the code the stage runs. Only blocks that hang under a hat block (when flag
- * clicked, key pressed, sprite clicked) run, like in Scratch: loose blocks do nothing.
- */
-export const compileBlocks = (state: object | null | undefined): string => {
-  registerBlocks();
+/** The code for ONE sprite's blocks. Only blocks under a hat block (flag, key, click) run, like in Scratch. */
+const compileWorkspace = (state: object | null | undefined): string => {
   const ws = new Blockly.Workspace();
   try {
     if (state) Blockly.serialization.workspaces.load(state as never, ws);
@@ -240,7 +278,9 @@ export const compileBlocks = (state: object | null | undefined): string => {
       if (!event) continue;
       const next = top.getNextBlock();
       const body = next ? (javascriptGenerator.blockToCode(next) as string) : "";
-      handlers += `S.on(${JSON.stringify(event)}, async function () {\n${indent(body)}});\n`;
+      handlers += `S.on(${JSON.stringify(event)}, async function () {
+${indent(body)}});
+`;
     }
     return javascriptGenerator.finish(handlers);
   } finally {
@@ -248,5 +288,16 @@ export const compileBlocks = (state: object | null | undefined): string => {
   }
 };
 
+/** Turn a saved project (or an old single workspace) into the code the stage runs: one block of code per sprite. */
+export const compileBlocks = (raw: unknown): string => {
+  registerBlocks();
+  const project = normalizeProject(raw);
+  compileIds = project.sprites.map((sp) => sp.id);
+  return project.sprites
+    .map((sp, i) => `(function (S) {\n${indent(compileWorkspace(sp.blocks))}})(S.forSprite(${i}, ${JSON.stringify(sp.emoji)}));\n`)
+    .join("\n");
+};
+
 /** How many blocks are in a saved project (for "is there anything here?" checks). */
-export const countBlocks = (state: { blocks?: { blocks?: unknown[] } } | null | undefined): number => state?.blocks?.blocks?.length ?? 0;
+export const countBlocks = (raw: unknown): number =>
+  normalizeProject(raw).sprites.reduce((sum, sp) => sum + ((sp.blocks as { blocks?: { blocks?: unknown[] } } | null)?.blocks?.blocks?.length ?? 0), 0);

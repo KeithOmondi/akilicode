@@ -23,8 +23,15 @@ export const RUNTIME_SOURCE = String.raw`
     try { parent.postMessage({ __akili: TOKEN, type: type, text: String(text).slice(0, 500), line: null }, '*'); } catch (e) {}
   }
 
-  var sprite = { x: 0, y: 0, dir: 90, size: 100, visible: true, costume: '🐱', bubble: null, bg: '#ffffff' };
-  var handlers = { flag: [], click: [], keys: {} };
+  // One entry per sprite. Sprite 0 always exists (the cat); more are created by S.forSprite(i, costume).
+  var sprites = [];
+  var shared = { running: true, bg: '#ffffff' };
+  var START_X = [0, -140, 140, -70, 70, -190, 190];
+  function newSprite(i, costume) {
+    return { x: START_X[i % START_X.length], y: 0, dir: 90, size: 100, visible: true, costume: costume || '🐱', bubble: null, click: [] };
+  }
+  sprites.push(newSprite(0, '🐱'));
+  var handlers = { flag: [], keys: {} };
   var keys = {};
   var audio = null;
   var started = false;
@@ -33,99 +40,116 @@ export const RUNTIME_SOURCE = String.raw`
   function num(v) { v = Number(v); return isFinite(v) ? v : 0; }
   function norm(d) { return ((d % 360) + 360) % 360; }
   var halfW = W / 2 - EDGE, halfH = H / 2 - EDGE;
-  function inside() { sprite.x = clamp(sprite.x, -W / 2, W / 2); sprite.y = clamp(sprite.y, -H / 2, H / 2); }
   var NEVER = new Promise(function () {});
 
-  var S = {
-    running: true,
+  // The commands one sprite understands. Every sprite gets its own set, tied to its own position and costume.
+  function makeApi(sprite) {
+    function inside() { sprite.x = clamp(sprite.x, -W / 2, W / 2); sprite.y = clamp(sprite.y, -H / 2, H / 2); }
+    var api = {
+      // -- events
+      on: function (ev, fn) {
+        if (ev === 'flag') handlers.flag.push(fn);
+        else if (ev === 'click') sprite.click.push(fn);
+        else if (ev.indexOf('key:') === 0) { var k = ev.slice(4); (handlers.keys[k] = handlers.keys[k] || []).push(fn); }
+      },
+      start: function () {
+        if (started) return;
+        started = true;
+        handlers.flag.forEach(function (fn) { run(fn); });
+      },
+      stop: function () { shared.running = false; },
+      forSprite: function (i, costume) {
+        while (sprites.length <= i) sprites.push(newSprite(sprites.length));
+        if (costume) sprites[i].costume = String(costume);
+        return makeApi(sprites[i]);
+      },
 
-    // -- events
-    on: function (ev, fn) {
-      if (ev === 'flag') handlers.flag.push(fn);
-      else if (ev === 'click') handlers.click.push(fn);
-      else if (ev.indexOf('key:') === 0) { var k = ev.slice(4); (handlers.keys[k] = handlers.keys[k] || []).push(fn); }
-    },
-    start: function () {
-      if (started) return;
-      started = true;
-      handlers.flag.forEach(function (fn) { run(fn); });
-    },
-    stop: function () { S.running = false; },
+      // -- motion
+      move: function (n) {
+        var rad = (90 - sprite.dir) * Math.PI / 180;
+        sprite.x += num(n) * Math.cos(rad);
+        sprite.y += num(n) * Math.sin(rad);
+        inside();
+      },
+      turn: function (d) { sprite.dir = norm(sprite.dir + num(d)); },
+      pointDir: function (d) { sprite.dir = norm(num(d)); },
+      goTo: function (x, y) { sprite.x = num(x); sprite.y = num(y); inside(); },
+      setX: function (x) { sprite.x = num(x); inside(); },
+      setY: function (y) { sprite.y = num(y); inside(); },
+      changeX: function (d) { sprite.x += num(d); inside(); },
+      changeY: function (d) { sprite.y += num(d); inside(); },
+      bounce: function () {
+        if (sprite.x > halfW) { sprite.x = halfW; sprite.dir = norm(360 - sprite.dir); }
+        else if (sprite.x < -halfW) { sprite.x = -halfW; sprite.dir = norm(360 - sprite.dir); }
+        if (sprite.y > halfH) { sprite.y = halfH; sprite.dir = norm(180 - sprite.dir); }
+        else if (sprite.y < -halfH) { sprite.y = -halfH; sprite.dir = norm(180 - sprite.dir); }
+      },
 
-    // -- motion
-    move: function (n) {
-      var rad = (90 - sprite.dir) * Math.PI / 180;
-      sprite.x += num(n) * Math.cos(rad);
-      sprite.y += num(n) * Math.sin(rad);
-      inside();
-    },
-    turn: function (d) { sprite.dir = norm(sprite.dir + num(d)); },
-    pointDir: function (d) { sprite.dir = norm(num(d)); },
-    goTo: function (x, y) { sprite.x = num(x); sprite.y = num(y); inside(); },
-    setX: function (x) { sprite.x = num(x); inside(); },
-    setY: function (y) { sprite.y = num(y); inside(); },
-    changeX: function (d) { sprite.x += num(d); inside(); },
-    changeY: function (d) { sprite.y += num(d); inside(); },
-    bounce: function () {
-      if (sprite.x > halfW) { sprite.x = halfW; sprite.dir = norm(360 - sprite.dir); }
-      else if (sprite.x < -halfW) { sprite.x = -halfW; sprite.dir = norm(360 - sprite.dir); }
-      if (sprite.y > halfH) { sprite.y = halfH; sprite.dir = norm(180 - sprite.dir); }
-      else if (sprite.y < -halfH) { sprite.y = -halfH; sprite.dir = norm(180 - sprite.dir); }
-    },
+      // -- looks
+      say: function (m) { sprite.bubble = (m === undefined || m === null || m === '') ? null : String(m); },
+      sayFor: function (m, secs) {
+        var text = (m === undefined || m === null) ? '' : String(m);
+        sprite.bubble = text || null;
+        return api.wait(secs).then(function () { if (sprite.bubble === (text || null)) sprite.bubble = null; });
+      },
+      setSize: function (p) { sprite.size = clamp(num(p), 10, 500); },
+      changeSize: function (d) { sprite.size = clamp(sprite.size + num(d), 10, 500); },
+      show: function () { sprite.visible = true; },
+      hide: function () { sprite.visible = false; },
+      costume: function (c) { sprite.costume = String(c); },
+      background: function (c) { shared.bg = String(c); },
 
-    // -- looks
-    say: function (m) { sprite.bubble = (m === undefined || m === null || m === '') ? null : String(m); },
-    sayFor: function (m, secs) {
-      var text = (m === undefined || m === null) ? '' : String(m);
-      sprite.bubble = text || null;
-      return S.wait(secs).then(function () { if (sprite.bubble === (text || null)) sprite.bubble = null; });
-    },
-    setSize: function (p) { sprite.size = clamp(num(p), 10, 500); },
-    changeSize: function (d) { sprite.size = clamp(sprite.size + num(d), 10, 500); },
-    show: function () { sprite.visible = true; },
-    hide: function () { sprite.visible = false; },
-    costume: function (c) { sprite.costume = String(c); },
-    background: function (c) { sprite.bg = String(c); },
+      // -- sound
+      note: function (freq, beats) {
+        try {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            audio = audio || new AC();
+            if (audio.resume) audio.resume();
+            var osc = audio.createOscillator(), gain = audio.createGain(), secs = Math.max(0.05, num(beats) * 0.4);
+            osc.frequency.value = num(freq) || 261.63;
+            gain.gain.value = 0.15;
+            osc.connect(gain); gain.connect(audio.destination);
+            osc.start(); osc.stop(audio.currentTime + secs);
+          }
+        } catch (e) {}
+        return api.wait(num(beats) * 0.4);
+      },
 
-    // -- sound
-    note: function (freq, beats) {
-      try {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) {
-          audio = audio || new AC();
-          if (audio.resume) audio.resume();
-          var osc = audio.createOscillator(), gain = audio.createGain(), secs = Math.max(0.05, num(beats) * 0.4);
-          osc.frequency.value = num(freq) || 261.63;
-          gain.gain.value = 0.15;
-          osc.connect(gain); gain.connect(audio.destination);
-          osc.start(); osc.stop(audio.currentTime + secs);
-        }
-      } catch (e) {}
-      return S.wait(num(beats) * 0.4);
-    },
+      // -- control
+      wait: function (secs) {
+        return new Promise(function (resolve) {
+          setTimeout(function () { if (shared.running) resolve(); }, Math.max(0, num(secs)) * 1000);
+        });
+      },
+      // One frame. A loop awaits this every time round, so loops animate and can never freeze the page.
+      tick: function () {
+        if (!shared.running) return NEVER;
+        return new Promise(function (resolve) {
+          requestAnimationFrame(function () { if (shared.running) resolve(); });
+        });
+      },
 
-    // -- control
-    wait: function (secs) {
-      return new Promise(function (resolve) {
-        setTimeout(function () { if (S.running) resolve(); }, Math.max(0, num(secs)) * 1000);
-      });
-    },
-    // One frame. A loop awaits this every time round, so loops animate and can never freeze the page.
-    tick: function () {
-      if (!S.running) return NEVER;
-      return new Promise(function (resolve) {
-        requestAnimationFrame(function () { if (S.running) resolve(); });
-      });
-    },
+      // -- sensing and maths
+      touchingEdge: function () { return Math.abs(sprite.x) >= halfW || Math.abs(sprite.y) >= halfH; },
+      touching: function (i) {
+        var other = sprites[i];
+        if (!other || other === sprite || !other.visible || !sprite.visible) return false;
+        var reach = 32 * (sprite.size + other.size) / 100;
+        return Math.abs(sprite.x - other.x) <= reach && Math.abs(sprite.y - other.y) <= reach;
+      },
+      keyDown: function (k) { return !!keys[k]; },
+      x: function () { return Math.round(sprite.x); },
+      y: function () { return Math.round(sprite.y); },
+      direction: function () { return Math.round(sprite.dir); },
+      state: function () { var s = JSON.parse(JSON.stringify(sprite)); delete s.click; s.bg = shared.bg; return s; }
+    };
+    Object.defineProperty(api, 'running', { get: function () { return shared.running; } });
+    return api;
+  }
 
-    // -- sensing and maths
-    touchingEdge: function () { return Math.abs(sprite.x) >= halfW || Math.abs(sprite.y) >= halfH; },
-    keyDown: function (k) { return !!keys[k]; },
-    x: function () { return Math.round(sprite.x); },
-    y: function () { return Math.round(sprite.y); },
-    direction: function () { return Math.round(sprite.dir); },
-    state: function () { return JSON.parse(JSON.stringify(sprite)); }
-  };
+  var S = makeApi(sprites[0]);
+  S.states = function () { return sprites.map(function (s) { var c = JSON.parse(JSON.stringify(s)); delete c.click; return c; }); };
   window.S = S;
 
   function run(fn) {
@@ -152,9 +176,13 @@ export const RUNTIME_SOURCE = String.raw`
       var scale = Math.min(r.width / W, r.height / H) || 1;
       var offX = (r.width - W * scale) / 2, offY = (r.height - H * scale) / 2;
       var sx = (e.clientX - r.left - offX) / scale - W / 2, sy = H / 2 - (e.clientY - r.top - offY) / scale;
-      var reach = 32 * sprite.size / 100;
-      if (sprite.visible && Math.abs(sx - sprite.x) <= reach && Math.abs(sy - sprite.y) <= reach) {
-        handlers.click.forEach(function (fn) { run(fn); });
+      // the sprite in front (drawn last) that was hit gets the click
+      for (var i = sprites.length - 1; i >= 0; i--) {
+        var sp = sprites[i], reach = 32 * sp.size / 100;
+        if (sp.visible && Math.abs(sx - sp.x) <= reach && Math.abs(sy - sp.y) <= reach) {
+          sp.click.forEach(function (fn) { run(fn); });
+          break;
+        }
       }
     });
   }
@@ -173,8 +201,9 @@ export const RUNTIME_SOURCE = String.raw`
   }
   function draw() {
     if (ctx) {
-      ctx.fillStyle = sprite.bg; ctx.fillRect(0, 0, W, H);
-      if (sprite.visible) {
+      ctx.fillStyle = shared.bg; ctx.fillRect(0, 0, W, H);
+      sprites.forEach(function (sprite) {
+        if (!sprite.visible) return;
         var px = W / 2 + sprite.x, py = H / 2 - sprite.y, px2 = 64 * sprite.size / 100;
         ctx.save();
         ctx.translate(px, py);
@@ -183,7 +212,7 @@ export const RUNTIME_SOURCE = String.raw`
         ctx.fillText(sprite.costume, 0, 0);
         ctx.restore();
         if (sprite.bubble) bubbleBox(sprite.bubble, px, py - px2 / 2);
-      }
+      });
     }
     requestAnimationFrame(draw);
   }
