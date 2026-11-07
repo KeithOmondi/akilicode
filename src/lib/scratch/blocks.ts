@@ -36,8 +36,9 @@ const BACKDROPS: [string, string][] = [
 ];
 /** Sound effects the stage can make (it builds them from tones and noise, so there are no files to load). */
 const SOUND_EFFECTS: [string, string][] = [
-  ["🫧 pop", "pop"], ["🐱 meow", "meow"], ["🐶 woof", "woof"], ["🪙 coin", "coin"], ["🚀 laser", "laser"], ["⬆️ jump", "jump"],
-  ["🥁 drum", "drum"], ["👏 clap", "clap"], ["🔔 bell", "bell"], ["🪀 boing", "boing"], ["🎉 win", "win"], ["😢 lose", "lose"],
+  // plain names: Blockly measures emoji badly, and the dropdown then overlaps the words next to it
+  ["pop", "pop"], ["meow", "meow"], ["woof", "woof"], ["coin", "coin"], ["laser", "laser"], ["jump", "jump"],
+  ["drum", "drum"], ["clap", "clap"], ["bell", "bell"], ["boing", "boing"], ["win", "win"], ["lose", "lose"],
 ];
 const NOTES: [string, string][] = [
   ["C", "261.63"], ["D", "293.66"], ["E", "329.63"], ["F", "349.23"], ["G", "392"], ["A", "440"], ["B", "493.88"], ["high C", "523.25"],

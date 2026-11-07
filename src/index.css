@@ -208,3 +208,6 @@
   .scratch-ws .blocklyToolboxSelected .blocklyToolboxCategoryLabel { color: #575e75 !important; }
 
 }
+
+/* The palette's scrollbar must disappear with the palette (it used to stay behind as a grey bar in the coding area). */
+.scratch-ws .injectionDiv:not(:has(.blocklyFlyout:not([style*="display: none"]))) .blocklyFlyoutScrollbar { display: none; }
