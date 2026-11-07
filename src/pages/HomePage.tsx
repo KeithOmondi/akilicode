@@ -1,30 +1,34 @@
-import AboutUs from "../components/Layout/AboutUs"
-import FAQ from "../components/Layout/FAQ"
-import Footer from "../components/Layout/Footer"
-import Header from "../components/Layout/Header"
-import Hero from "../components/Layout/Hero"
-import HowItWorks from "../components/Layout/HowItWorks"
-import Pricing from "../components/Layout/Pricing"
-import Testimonials from "../components/Layout/Testimonials"
-import WhatWeOffer from "../components/Layout/WhatWeOffer"
-import WhyAkiliCode from "../components/Layout/WhyAkiliCode"
+import { useEffect } from "react";
+import Header from "../components/Layout/Header";
+import Footer from "../components/Layout/Footer";
+import Hero from "../components/landing/Hero";
+import { HowItWorks, Ages, Safety, FinalCta } from "../components/landing/Sections";
+import PricingSection from "../components/landing/PricingSection";
+import { Testimonials, Faq } from "../components/landing/TestimonialsFaq";
 
-
+/** The public front page. Order = the questions a parent asks, in the order they ask them. */
 const HomePage = () => {
-  return (
-    <div>
-        <Header />
-        <Hero />
-        <WhatWeOffer />
-        <AboutUs />
-        <HowItWorks />
-        <WhyAkiliCode />
-        <Pricing />
-        <Testimonials />
-        <FAQ />
-        <Footer />
-    </div>
-  )
-}
+  useEffect(() => {
+    document.title = "AkiliCode | Coding adventures for children aged 4 to 18";
+  }, []);
 
-export default HomePage
+  return (
+    <>
+      <a href="#main" className="skip-link">Skip to main content</a>
+      <Header />
+      <main id="main">
+        <Hero />
+        <HowItWorks />
+        <Ages />
+        <Safety />
+        <PricingSection />
+        <Testimonials />
+        <Faq />
+        <FinalCta />
+      </main>
+      <Footer />
+    </>
+  );
+};
+
+export default HomePage;
