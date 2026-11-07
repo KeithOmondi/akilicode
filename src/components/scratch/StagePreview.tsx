@@ -77,10 +77,11 @@ const StagePreview = ({ code, runId, costumes, autostart = true, handle }: Props
     };
   }, [full]);
 
-  // Give the stage the keyboard as soon as it starts, so arrow keys work without an extra click.
+  // Give the stage the keyboard when a program is started with the flag, so arrow keys work without an extra click.
+  // (Not when the stage is only being redrawn: that must never take the keyboard away from a number being typed.)
   useEffect(() => {
-    if (runId) frame.current?.focus();
-  }, [runId]);
+    if (runId && autostart) frame.current?.focus();
+  }, [runId, autostart]);
 
   return (
     <div className={full ? "fixed inset-0 z-[70] bg-canvas p-3 sm:p-5 flex flex-col gap-3" : "flex flex-col gap-3"} role={full ? "dialog" : undefined} aria-modal={full ? true : undefined} aria-label={full ? "The stage, full screen" : undefined}>

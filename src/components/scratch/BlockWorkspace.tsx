@@ -92,6 +92,8 @@ const BlockWorkspace = ({ initialState, onChange, onReady, onRunBlock, readOnly 
     let dragged = false;
     const el = host.current;
     const onDown = (e: PointerEvent) => {
+      // working in the block editor takes the keyboard back from the stage (which may have it after a run)
+      if (document.activeElement instanceof HTMLIFrameElement) document.activeElement.blur();
       press = { x: e.clientX, y: e.clientY, t: Date.now() };
       dragged = false;
     };
