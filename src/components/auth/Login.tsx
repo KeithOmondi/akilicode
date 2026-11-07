@@ -30,13 +30,7 @@ const Login = () => {
     }
   }, [isAuthenticated, user, navigate, location.state]);
 
-  // ── Error Handling ─────────────────────────────────────────────────────
-  useEffect(() => {
-    if (error) {
-      const message = typeof error === "string" ? error : "Login failed. Please try again.";
-      toast.error(message);
-    }
-  }, [error]);
+  // Login errors are shown once, inline under the form (not also as a toast).
 
   // ── Cleanup on unmount only ────────────────────────────────────────────
   useEffect(() => {
