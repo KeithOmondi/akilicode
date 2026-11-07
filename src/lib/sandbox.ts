@@ -68,6 +68,35 @@ const bridge = (token: string, lineOffset: number) => `
     var line = e.lineno ? Math.max(1, e.lineno - OFFSET) : null;
     send('error', e.message || 'Something went wrong', line);
   });
+  // Links. A page with menu links such as <a href="#about"> must scroll to that part of the page. Left alone, the
+  // browser would try to load OUR editor page inside the preview. Links that leave the page cannot work (the page is
+  // sealed off from the internet), so explain that instead of showing a broken screen.
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (href === null) return;
+    e.preventDefault();
+    if (href.charAt(0) === '#') {
+      var id = href.slice(1);
+      try { id = decodeURIComponent(id); } catch (err) {}
+      var target = id ? (document.getElementById(id) || document.getElementsByName(id)[0]) : document.body;
+      if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else if (!id) window.scrollTo(0, 0);
+      else send('warn', 'There is nothing with id="' + id + '" on your page, so the link has nowhere to go.');
+    } else if (href && href.indexOf('javascript:') !== 0) {
+      send('warn', 'Links to other pages and websites do not open inside the editor. To make a menu, link to parts of your own page, like href="#about".');
+    }
+  }, true);
+
+  // Files cannot be loaded here: the HTML, CSS and JavaScript all live in the three tabs.
+  document.addEventListener('DOMContentLoaded', function () {
+    var css = document.querySelectorAll('link[rel~="stylesheet"][href]');
+    var js = document.querySelectorAll('script[src]');
+    if (css.length) send('warn', 'Your page asks for a CSS file (' + css[0].getAttribute('href') + '). Here, put your CSS in the CSS tab instead, it is added for you.');
+    if (js.length) send('warn', 'Your page asks for a JavaScript file (' + js[0].getAttribute('src') + '). Here, put your JavaScript in the JavaScript tab instead.');
+  });
+
   window.addEventListener('unhandledrejection', function (e) {
     send('error', (e.reason && e.reason.message) || String(e.reason));
   });

@@ -58,3 +58,55 @@ test('the reported line number matches the child\'s own code', () => {
   const m = doc.match(/OFFSET = (\d+)/);
   assert.equal(at - Number(m[1]), 1);
 });
+
+const load = async (html, js = '') => {
+  const token = 'tk';
+  const doc = buildPreviewDoc({ html, css: '', js, token });
+  const messages = [];
+  const scrolled = [];
+  const dom = new JSDOM(doc, {
+    runScripts: 'dangerously',
+    beforeParse(window) {
+      window.Element.prototype.scrollIntoView = function () { scrolled.push(this.id || this.tagName); };
+      window.addEventListener('message', (e) => { const m = readBridgeMessage(e.data, token); if (m) messages.push(m); });
+    },
+  });
+  await new Promise((r) => setTimeout(r, 30));
+  return { window: dom.window, messages, scrolled };
+};
+const click = (window, el) => {
+  const ev = new window.MouseEvent('click', { bubbles: true, cancelable: true });
+  el.dispatchEvent(ev);
+  return ev.defaultPrevented;
+};
+
+test('a menu link like href="#about" scrolls to that part of the page instead of navigating', async () => {
+  const { window, scrolled, messages } = await load('<a id="go" href="#about"><b id="inner">About</b></a><section id="about">x</section>');
+  const prevented = click(window, window.document.getElementById('inner')); // clicking a child of the link still works
+  assert.equal(prevented, true);
+  assert.deepEqual(scrolled, ['about']);
+  assert.equal(messages.length, 0);
+});
+
+test('a link to nowhere explains itself; a bare # goes to the top', async () => {
+  const { window, messages } = await load('<a id="bad" href="#missing">x</a>');
+  click(window, window.document.getElementById('bad'));
+  await new Promise((r) => setTimeout(r, 20));
+  assert.match(messages[0].text, /nothing with id="missing"/);
+});
+
+test('links to other pages or websites do not navigate, and a friendly message appears', async () => {
+  const { window, messages } = await load('<a id="x" href="https://example.com">x</a><a id="y" href="other.html">y</a>');
+  assert.equal(click(window, window.document.getElementById('x')), true);
+  assert.equal(click(window, window.document.getElementById('y')), true);
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(messages.filter((m) => m.type === 'warn').length, 2);
+  assert.match(messages[0].text, /href="#about"/);
+});
+
+test('asking for style.css or a script file explains that the CSS and JavaScript tabs are used instead', async () => {
+  const { messages } = await load('<link rel="stylesheet" href="style.css"><script src="app.js"></script><p>hi</p>');
+  const texts = messages.map((m) => m.text).join(' | ');
+  assert.match(texts, /CSS tab/);
+  assert.match(texts, /JavaScript tab/);
+});
