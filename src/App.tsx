@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { useAppDispatch } from "./store/hooks";
-import { refreshSession } from "./store/slices/authSlice";
-import { getKidMe } from "./store/slices/kidSlice";
-import { setAccessToken } from "./api/api";
+import { refreshSession, sessionEnded } from "./store/slices/authSlice";
+import { getKidMe, logoutKid } from "./store/slices/kidSlice";
+import { setAccessToken, setKidAccessToken } from "./api/api";
 
 // --- GUARDS ---
 import ProtectedRoute from "./routes/protectedRoutes";
@@ -85,6 +85,7 @@ const App = () => {
   useEffect(() => {
     // Only run this logic once on mount
     if (sessionChecked.current) return;
+    sessionChecked.current = true; // claim it now, so a second run of this effect cannot start another check
 
     const initializeAuth = async () => {
       const path = window.location.pathname;
@@ -95,7 +96,7 @@ const App = () => {
         if (isKidPath) {
           const kidToken = localStorage.getItem("kid_accessToken");
           if (kidToken && !isLoginPage) {
-            setAccessToken(kidToken);
+            setKidAccessToken(kidToken);
             await dispatch(getKidMe()).unwrap();
           }
         } else {
@@ -106,12 +107,24 @@ const App = () => {
       } catch {
         setAccessToken(null);
       } finally {
-        sessionChecked.current = true;
         setIsInitializing(false);
       }
     };
 
     initializeAuth();
+  }, [dispatch]);
+
+  // The token could not be renewed (the session is really over). Do not reload: clear the person's state and the
+  // route guards send them to the sign-in page, remembering where they were so they return to it afterwards.
+  useEffect(() => {
+    const onEnded = (e: Event) => {
+      const kind = (e as CustomEvent<{ kind: "parent" | "kid" }>).detail?.kind;
+      if (kind === "kid") dispatch(logoutKid());
+      else dispatch(sessionEnded());
+      toast("You were signed out. Please sign in to carry on.", { id: "session-ended", icon: "🔒" });
+    };
+    window.addEventListener("akili:session-ended", onEnded);
+    return () => window.removeEventListener("akili:session-ended", onEnded);
   }, [dispatch]);
 
   // Prevent ProtectedRoutes from redirecting before session check finishes

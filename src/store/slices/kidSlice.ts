@@ -10,7 +10,7 @@ import type {
   UpdateKidLoginPayload,
   KidLoginPayload,
 } from "../../interfaces/kid.interface";
-import api, { setAccessToken } from "../../api/api";
+import api, { setKidAccessToken } from "../../api/api";
 
 const initialState: KidState = {
   kids: [],
@@ -162,8 +162,7 @@ export const kidLogin = createAsyncThunk<IKid, KidLoginPayload>(
       if (accessToken) {
         // 1. Persist for page refreshes
         // kidLogin thunk
-localStorage.setItem("kid_accessToken", accessToken); // 👈 was "accessToken"
-setAccessToken(accessToken);
+setKidAccessToken(accessToken);
       }
       
 
@@ -185,8 +184,7 @@ export const kidPickerLogin = createAsyncThunk<IKid, { kid_id: string; pin: stri
       const res = await api.post<{ accessToken: string } & KidResponse>("/kids/picker/login", data);
       const { accessToken } = res.data;
       if (accessToken) {
-        localStorage.setItem("kid_accessToken", accessToken);
-        setAccessToken(accessToken);
+        setKidAccessToken(accessToken);
       }
       return res.data.data.kid;
     } catch (err) {
@@ -216,8 +214,9 @@ const kidSlice = createSlice({
     logoutKid: (state) => {
       state.currentKid = null;
       state.kids = [];
-      localStorage.removeItem("kid_accessToken");
-      setAccessToken(null); // Clear in-memory token on logout
+      setKidAccessToken(null);
+      // Forget the session on the server too (best effort: the child is leaving either way).
+      void api.post("/kids/logout").catch(() => undefined);
     },
   },
   extraReducers: (builder) => {
@@ -310,8 +309,7 @@ const kidSlice = createSlice({
           if (action.type.includes("getKidMe")) {
             state.currentKid = null;
             // Clear tokens if session restore fails
-            localStorage.removeItem("kid_accessToken");
-            setAccessToken(null);
+            setKidAccessToken(null);
           }
         }
       );

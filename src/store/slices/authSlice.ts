@@ -66,13 +66,21 @@ export const login = createAsyncThunk<AuthResponse, object>(
 export const refreshSession = createAsyncThunk<AuthResponse, void>(
   "auth/refresh",
   async (_, thunkAPI) => {
-    try {
-      const res = await api.get<AuthResponse>("/auth/refresh");
-      return res.data;
-    } catch (err) {
-      const error = err as AxiosError<{ message: string }>;
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Session expired");
+    // A server that is waking up (or a bad connection) is not the same as an ended session:
+    // try a few times before deciding the person is signed out.
+    let lastError: AxiosError<{ message: string }> | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await api.get<AuthResponse>("/auth/refresh");
+        return res.data;
+      } catch (err) {
+        lastError = err as AxiosError<{ message: string }>;
+        const status = lastError.response?.status;
+        if (status && status < 500) break; // 401 etc.: a real answer, do not retry
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      }
     }
+    return thunkAPI.rejectWithValue(lastError?.response?.data?.message || "Session expired");
   }
 );
 
@@ -137,6 +145,11 @@ const authSlice = createSlice({
     resetAuthState: (state) => {
       state.error = null;
       state.message = null;
+    },
+    /** The session ended (token could not be renewed): clear the person, the route guards do the rest. */
+    sessionEnded: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
     },
     /** After the parent edits their own details (name). */
     userUpdated: (state, action: PayloadAction<Partial<NonNullable<typeof state.user>>>) => {
@@ -232,5 +245,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { resetAuthState, sessionStarted, userUpdated } = authSlice.actions;
+export const { resetAuthState, sessionStarted, userUpdated, sessionEnded } = authSlice.actions;
 export default authSlice.reducer;
