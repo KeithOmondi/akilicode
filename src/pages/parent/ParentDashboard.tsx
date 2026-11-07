@@ -14,6 +14,7 @@ import {
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
+import { SITE } from "../../config/site";
 import type { AppDispatch, RootState } from "../../store/store";
 import { getMyEnrollments } from "../../store/slices/enrollmentSlice";
 import { getMyKids } from "../../store/slices/kidSlice";
@@ -430,9 +431,9 @@ const ParentDashboard = () => {
 
             <div className="bg-white border border-slate-100 rounded-[32px] p-6 text-center">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Need Help?</p>
-              <button className="text-sm font-black text-slate-900 underline decoration-orange-500 decoration-2 underline-offset-4">
-                Contact Academic Advisor
-              </button>
+              <a href={SITE.whatsappHref} className="text-sm font-black text-slate-900 underline decoration-orange-500 decoration-2 underline-offset-4">
+                Message us on WhatsApp
+              </a>
             </div>
           </div>
 

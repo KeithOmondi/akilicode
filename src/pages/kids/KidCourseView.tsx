@@ -55,10 +55,11 @@ const renderMarkdown = (text: string): string => {
 // ─── Simple Multiple‑Choice Quiz Component ──────────────────────────────────
 interface QuizProps {
   lessonId: string;
+  enrollmentId?: string;
   onComplete: () => void;
 }
 
-const Quiz = ({ lessonId, onComplete }: QuizProps) => {
+const Quiz = ({ lessonId, enrollmentId, onComplete }: QuizProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { currentKid } = useSelector((s: RootState) => s.kid);
   const { quizQuestions, quizSubmitting, quizResult } = useSelector(
@@ -89,7 +90,7 @@ const Quiz = ({ lessonId, onComplete }: QuizProps) => {
       await dispatch(
         submitLessonQuiz({
           lessonId,
-          studentId: currentKid.id,
+          enrollmentId,
           answers: answerArray,
         })
       ).unwrap();
@@ -124,7 +125,7 @@ const Quiz = ({ lessonId, onComplete }: QuizProps) => {
               {quizResult.percentage}%)
             </p>
             <p className="text-green-600 font-bold text-sm">
-              Lesson completed! 🎉
+              {quizResult.lessonCompleted ? `Lesson completed! 🎉${quizResult.pointsEarned ? ` +${quizResult.pointsEarned} stars` : ''}` : 'Well done! 🎉'}
             </p>
           </>
         ) : (
@@ -605,6 +606,7 @@ const KidCourseView = () => {
               {!currentLesson.completed && (
                 <Quiz
                   lessonId={currentLesson.id}
+                  enrollmentId={enrollmentId}
                   onComplete={handleQuizComplete}
                 />
               )}

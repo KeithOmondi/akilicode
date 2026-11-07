@@ -63,6 +63,8 @@ export interface QuizSubmissionResult {
   total: number;
   percentage: number;
   passed: boolean;              // e.g., ≥70%
+  lessonCompleted?: boolean;    // a passed quiz completes the lesson
+  pointsEarned?: number;
 }
 
 // ─── CURRICULUM (unchanged) ──────────────────────────────────────────────────

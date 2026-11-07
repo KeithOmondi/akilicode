@@ -30,7 +30,6 @@ const ParentCourses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [hoveredCourse, setHoveredCourse] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(getAllCourses());
@@ -177,8 +176,6 @@ const ParentCourses = () => {
                   key={course.id}
                   className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-purple-100 cursor-pointer"
                   onClick={() => setSelectedCourse(course)}
-                  onMouseEnter={() => setHoveredCourse(course.id)}
-                  onMouseLeave={() => setHoveredCourse(null)}
                 >
                   {/* Image Section */}
                   <div className="relative h-48 overflow-hidden bg-gradient-to-br from-purple-100 to-orange-100">
@@ -204,14 +201,6 @@ const ParentCourses = () => {
                       <Clock size={12} className="text-white" />
                       <span className="text-white text-xs font-semibold">{course.duration}</span>
                     </div>
-                    {/* Hover Overlay */}
-                    {hoveredCourse === course.id && (
-                      <div className="absolute inset-0 bg-purple-600/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button className="px-6 py-2 bg-white text-purple-600 rounded-full font-bold text-sm hover:scale-105 transition-transform">
-                          Quick View
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   {/* Content Section */}
@@ -246,9 +235,9 @@ const ParentCourses = () => {
                           KES {Number(course.price).toLocaleString()}
                         </p>
                       </div>
-                      <button className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all flex items-center justify-center">
+                      <span aria-hidden="true" className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all flex items-center justify-center">
                         <ChevronRight size={20} />
-                      </button>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -362,15 +351,10 @@ const ParentCourses = () => {
                     >
                       Enroll Your Child
                     </Link>
-                    <button className="px-6 py-3 border-2 border-purple-200 text-purple-600 rounded-xl font-bold text-sm hover:bg-purple-50 transition-all">
-                      View Syllabus
-                    </button>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
-                  <span>✓ 30-day money-back guarantee</span>
-                  <span>✓ Cancel anytime</span>
                 </div>
               </div>
             </div>

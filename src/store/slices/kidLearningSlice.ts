@@ -165,7 +165,7 @@ export const getLessonQuestions = createAsyncThunk<
   'kidLearning/getLessonQuestions',
   async (lessonId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/courses/${lessonId}/questions`);
+      const response = await api.get(`/courses/lessons/${lessonId}/questions`);
       return response.data.data.questions;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
@@ -176,14 +176,14 @@ export const getLessonQuestions = createAsyncThunk<
 // Submit quiz answers
 export const submitLessonQuiz = createAsyncThunk<
   QuizSubmissionResult,
-  { lessonId: string; studentId: string; answers: { questionId: string; selectedIndex: number }[] },
+  { lessonId: string; enrollmentId?: string; answers: { questionId: string; selectedIndex: number }[] },
   { rejectValue: string }
 >(
   'kidLearning/submitLessonQuiz',
-  async ({ lessonId, studentId, answers }, { rejectWithValue }) => {
+  async ({ lessonId, enrollmentId, answers }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/courses/${lessonId}/submit`, {
-        studentId,
+      const response = await api.post(`/courses/lessons/${lessonId}/submit`, {
+        enrollmentId,
         answers,
       });
       return response.data.data;

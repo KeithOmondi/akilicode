@@ -130,6 +130,8 @@ export interface QuizSubmissionResult {
   total: number;
   percentage: number;
   passed: boolean;
+  lessonCompleted?: boolean;
+  pointsEarned?: number;
 }
 
 // Also add to Lesson interface (optional, if backend embeds questions)

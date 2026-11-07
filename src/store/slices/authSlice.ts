@@ -138,6 +138,10 @@ const authSlice = createSlice({
       state.error = null;
       state.message = null;
     },
+    /** After the parent edits their own details (name). */
+    userUpdated: (state, action: PayloadAction<Partial<NonNullable<typeof state.user>>>) => {
+      if (state.user) state.user = { ...state.user, ...action.payload };
+    },
     /** Used by the phone + SMS-code flow, which talks to the API directly. */
     sessionStarted: (state, action: PayloadAction<AuthResponse>) => {
       state.loading = false;
@@ -228,5 +232,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { resetAuthState, sessionStarted } = authSlice.actions;
+export const { resetAuthState, sessionStarted, userUpdated } = authSlice.actions;
 export default authSlice.reducer;

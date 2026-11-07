@@ -1,5 +1,5 @@
 // ParentHeader.tsx
-import { Bell, User as UserIcon, Menu, Search } from "lucide-react";
+import { User as UserIcon, Menu } from "lucide-react";
 import { useAppSelector } from "../../store/hooks";
 
 interface ParentHeaderProps {
@@ -35,22 +35,6 @@ const ParentHeader = ({ onMenuClick }: ParentHeaderProps) => {
 
       {/* Right Section: Actions & Profile */}
       <div className="flex items-center gap-3 sm:gap-6">
-        
-        {/* Search Bar - Subtle addition */}
-        <div className="hidden lg:flex items-center relative group">
-          <Search className="absolute left-3 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search courses..." 
-            className="bg-gray-50 border-none rounded-full pl-10 pr-4 py-2 text-sm w-48 focus:w-64 focus:ring-2 focus:ring-orange-100 transition-all outline-none"
-          />
-        </div>
-
-        {/* Notifications */}
-        <button className="p-2.5 rounded-xl text-gray-400 hover:text-purple-700 hover:bg-purple-50 transition-all relative group">
-          <Bell size={22} />
-          <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white ring-2 ring-orange-100 animate-pulse"></span>
-        </button>
 
         {/* User Profile Area */}
         <div className="flex items-center gap-4 pl-4 sm:pl-6 border-l border-purple-100">

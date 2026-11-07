@@ -8,7 +8,6 @@ import {
   BookOpen,
   Clock,
   Edit3,
-  Trash2,
   Eye,
   X,
   Upload,
@@ -510,12 +509,6 @@ const AdminCourses = () => {
                           title="View curriculum"
                         >
                           <Eye size={16} />
-                        </button>
-                        <button
-                          className="p-2 hover:bg-red-50 text-red-700 hover:text-red-700 rounded-lg transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
