@@ -14,10 +14,10 @@ import type { IPricingPlan, ICoupon, BillingCycle, DiscountType } from "../../in
 interface Course { id: string; title: string; price: string | number; is_active: boolean }
 
 const errMsg = (e: unknown) => (e as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Something went wrong";
-const input = "border-2 border-purple-100 rounded-xl px-3 py-2 outline-none focus:border-orange-400 bg-white w-full";
-const btnPrimary = "bg-purple-700 hover:bg-purple-800 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2 disabled:opacity-50";
-const card = "bg-white rounded-2xl border border-purple-100 p-5 mb-8 shadow-sm";
-const h2 = "text-lg font-black text-purple-900 flex items-center gap-2 mb-1";
+const input = "border-2 border-brand-100 rounded-xl px-3 py-2 outline-none focus:border-orange-400 bg-white w-full";
+const btnPrimary = "bg-brand-700 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2 disabled:opacity-50";
+const card = "bg-white rounded-2xl border border-brand-100 p-5 mb-8 shadow-sm";
+const h2 = "text-lg font-black text-ink-900 flex items-center gap-2 mb-1";
 
 const blankPlan = { name: "", billing_cycle: "monthly" as BillingCycle, price: "", original_price: "", duration_months: "1", badge: "", features: "", is_active: true, sort_order: "0" };
 const blankCoupon = { code: "", description: "", discount_type: "percentage" as DiscountType, discount_value: "", applies_to: "first_month", max_uses: "", valid_until: "", is_active: true };
@@ -114,11 +114,11 @@ const AdminPricing = () => {
     }, "Coupon added");
   };
 
-  if (loading) return <div className="flex justify-center py-20" role="status"><Loader2 className="animate-spin text-purple-500" size={32} /></div>;
+  if (loading) return <div className="flex justify-center py-20" role="status"><Loader2 className="animate-spin text-brand-600" size={32} /></div>;
 
   const PriceCell = ({ k, current, onSave }: { k: string; current: string | number; onSave: () => void }) => (
     <div className="flex items-center gap-2">
-      <span className="text-slate-400 text-sm">KES</span>
+      <span className="text-ink-500 text-sm">KES</span>
       <input
         aria-label="Price in KES" type="number" min={0} className={`${input} w-32`}
         value={edits[k] ?? String(Number(current))}
@@ -133,21 +133,21 @@ const AdminPricing = () => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8">
-      <h1 className="text-3xl font-black font-serif text-purple-900 mb-1">Prices &amp; <span className="text-orange-500">Coupons</span></h1>
-      <p className="text-slate-500 mb-8">Change what families pay. New prices apply to new payments straight away. Amounts are in KES.</p>
+    <div>
+      <h1 className="text-3xl font-black  text-ink-900 mb-1">Prices &amp; <span className="text-brand-600">Coupons</span></h1>
+      <p className="text-ink-500 mb-8">Change what families pay. New prices apply to new payments straight away. Amounts are in KES.</p>
 
       {/* ── Courses ── */}
       <section className={card} aria-labelledby="pc-courses">
         <h2 id="pc-courses" className={h2}><BookOpen size={20} /> Course prices</h2>
-        <p className="text-sm text-slate-500 mb-4">What a parent pays for one course per month (or once, for once-off courses).</p>
+        <p className="text-sm text-ink-500 mb-4">What a parent pays for one course per month (or once, for once-off courses).</p>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead><tr className="text-xs uppercase tracking-wider text-slate-400"><th className="py-2">Course</th><th>Price</th></tr></thead>
-            <tbody className="divide-y divide-purple-50">
+            <thead><tr className="text-xs uppercase tracking-wider text-ink-500"><th className="py-2">Course</th><th>Price</th></tr></thead>
+            <tbody className="divide-y divide-brand-50">
               {courses.map((c) => (
                 <tr key={c.id}>
-                  <td className="py-3 font-bold text-purple-900 pr-4">{c.title}{!c.is_active && <span className="ml-2 text-xs text-slate-400">(hidden)</span>}</td>
+                  <td className="py-3 font-bold text-ink-900 pr-4">{c.title}{!c.is_active && <span className="ml-2 text-xs text-ink-500">(hidden)</span>}</td>
                   <td><PriceCell k={`course-${c.id}`} current={c.price} onSave={() => saveCoursePrice(c)} /></td>
                 </tr>
               ))}
@@ -159,15 +159,15 @@ const AdminPricing = () => {
       {/* ── Plans ── */}
       <section className={card} aria-labelledby="pc-plans">
         <h2 id="pc-plans" className={h2}><Tag size={20} /> Plans</h2>
-        <p className="text-sm text-slate-500 mb-4">The packages shown on the pricing page.</p>
+        <p className="text-sm text-ink-500 mb-4">The packages shown on the pricing page.</p>
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-left">
-            <thead><tr className="text-xs uppercase tracking-wider text-slate-400"><th className="py-2">Plan</th><th>Billing</th><th>Price</th><th>Shown</th><th /></tr></thead>
-            <tbody className="divide-y divide-purple-50">
+            <thead><tr className="text-xs uppercase tracking-wider text-ink-500"><th className="py-2">Plan</th><th>Billing</th><th>Price</th><th>Shown</th><th /></tr></thead>
+            <tbody className="divide-y divide-brand-50">
               {plans.map((p) => (
                 <tr key={p.id}>
-                  <td className="py-3 font-bold text-purple-900 pr-4">{p.name}{p.badge && <span className="ml-2 text-xs bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">{p.badge}</span>}</td>
-                  <td className="pr-4 text-slate-600">{p.billing_cycle} · {p.duration_months} mo</td>
+                  <td className="py-3 font-bold text-ink-900 pr-4">{p.name}{p.badge && <span className="ml-2 text-xs bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">{p.badge}</span>}</td>
+                  <td className="pr-4 text-ink-700">{p.billing_cycle} · {p.duration_months} mo</td>
                   <td className="pr-4"><PriceCell k={`plan-${p.id}`} current={p.price} onSave={() => savePlanPrice(p)} /></td>
                   <td>
                     <label className="flex items-center gap-2 text-sm">
@@ -186,8 +186,8 @@ const AdminPricing = () => {
             </tbody>
           </table>
         </div>
-        <form onSubmit={addPlan} className="grid grid-cols-1 md:grid-cols-4 gap-3 border-t border-purple-50 pt-4">
-          <h3 className="md:col-span-4 font-black text-purple-900 text-sm uppercase tracking-wider">Add a plan</h3>
+        <form onSubmit={addPlan} className="grid grid-cols-1 md:grid-cols-4 gap-3 border-t border-brand-50 pt-4">
+          <h3 className="md:col-span-4 font-black text-ink-900 text-sm uppercase tracking-wider">Add a plan</h3>
           <label className="text-sm font-bold">Name<input required className={input} value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} /></label>
           <label className="text-sm font-bold">Billing
             <select className={input} value={planForm.billing_cycle} onChange={(e) => setPlanForm({ ...planForm, billing_cycle: e.target.value as BillingCycle })}>
@@ -207,14 +207,14 @@ const AdminPricing = () => {
         <h2 id="pc-coupons" className={h2}><Ticket size={20} /> Coupons</h2>
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-left">
-            <thead><tr className="text-xs uppercase tracking-wider text-slate-400"><th className="py-2">Code</th><th>Discount</th><th>Used</th><th>Active</th><th /></tr></thead>
-            <tbody className="divide-y divide-purple-50">
-              {coupons.length === 0 && <tr><td colSpan={5} className="py-4 text-slate-400 text-sm">No coupons yet.</td></tr>}
+            <thead><tr className="text-xs uppercase tracking-wider text-ink-500"><th className="py-2">Code</th><th>Discount</th><th>Used</th><th>Active</th><th /></tr></thead>
+            <tbody className="divide-y divide-brand-50">
+              {coupons.length === 0 && <tr><td colSpan={5} className="py-4 text-ink-500 text-sm">No coupons yet.</td></tr>}
               {coupons.map((c) => (
                 <tr key={c.id}>
-                  <td className="py-3 font-mono font-bold text-purple-900">{c.code}</td>
-                  <td className="pr-4 text-slate-600">{c.discount_type === "percentage" ? `${Number(c.discount_value)}%` : `KES ${Number(c.discount_value)}`} · {c.applies_to.replace("_", " ")}</td>
-                  <td className="pr-4 text-slate-600">{c.uses_count}{c.max_uses ? ` / ${c.max_uses}` : ""}</td>
+                  <td className="py-3 font-mono font-bold text-ink-900">{c.code}</td>
+                  <td className="pr-4 text-ink-700">{c.discount_type === "percentage" ? `${Number(c.discount_value)}%` : `KES ${Number(c.discount_value)}`} · {c.applies_to.replace("_", " ")}</td>
+                  <td className="pr-4 text-ink-700">{c.uses_count}{c.max_uses ? ` / ${c.max_uses}` : ""}</td>
                   <td><label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={c.is_active}
                     onChange={() => act(`tg-${c.id}`, () => api.post(`/pricing/admin/coupons/${c.id}/toggle`).then(() => undefined), "Saved")} />{c.is_active ? "On" : "Off"}</label></td>
                   <td className="text-right"><button aria-label={`Delete coupon ${c.code}`} className="text-red-500 hover:bg-red-50 p-2 rounded-lg"
@@ -224,8 +224,8 @@ const AdminPricing = () => {
             </tbody>
           </table>
         </div>
-        <form onSubmit={addCoupon} className="grid grid-cols-1 md:grid-cols-4 gap-3 border-t border-purple-50 pt-4">
-          <h3 className="md:col-span-4 font-black text-purple-900 text-sm uppercase tracking-wider">Add a coupon</h3>
+        <form onSubmit={addCoupon} className="grid grid-cols-1 md:grid-cols-4 gap-3 border-t border-brand-50 pt-4">
+          <h3 className="md:col-span-4 font-black text-ink-900 text-sm uppercase tracking-wider">Add a coupon</h3>
           <label className="text-sm font-bold">Code<input required minLength={3} maxLength={50} pattern="[A-Za-z0-9_\-]+" className={`${input} uppercase`} value={couponForm.code} onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })} /></label>
           <label className="text-sm font-bold">Type
             <select className={input} value={couponForm.discount_type} onChange={(e) => setCouponForm({ ...couponForm, discount_type: e.target.value as DiscountType })}>

@@ -1,87 +1,35 @@
-// AdminSidebar.tsx
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Users,
-  BarChart3,
-  Settings,
-  LogOut,
-  X,
-  LayoutDashboard,
-  BookOpen,
-  CreditCard,
-  ShieldCheck,
-  GraduationCap
-} from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LayoutDashboard, BookOpen, GraduationCap, CreditCard, Tag, Users, Newspaper, MessageSquareQuote, LogOut, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useAppDispatch } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
 import akiliLogo from "../../assets/akili.jpeg";
-import { FcRatings } from "react-icons/fc";
 
-interface AdminSidebarProps {
-  open: boolean;
-  onClose: () => void;
-}
+/** Only real pages are listed here. Add a link only when its route exists in App.tsx. */
+const ADMIN_NAV: { group: string; items: { name: string; path: string; icon: ReactNode }[] }[] = [
+  { group: "Overview", items: [{ name: "Dashboard", path: "/admin/dashboard", icon: <LayoutDashboard size={18} /> }] },
+  {
+    group: "Learning",
+    items: [
+      { name: "Courses", path: "/admin/courses", icon: <BookOpen size={18} /> },
+      { name: "Blog", path: "/admin/blog", icon: <Newspaper size={18} /> },
+      { name: "Testimonials", path: "/admin/testimonials", icon: <MessageSquareQuote size={18} /> },
+    ],
+  },
+  {
+    group: "People and money",
+    items: [
+      { name: "Users", path: "/admin/users", icon: <Users size={18} /> },
+      { name: "Enrollments", path: "/admin/enrollments", icon: <GraduationCap size={18} /> },
+      { name: "Payments", path: "/admin/payments", icon: <CreditCard size={18} /> },
+      { name: "Prices and coupons", path: "/admin/pricing", icon: <Tag size={18} /> },
+    ],
+  },
+];
 
-const AdminSidebar = ({ open, onClose }: AdminSidebarProps) => {
-  const location = useLocation();
+const AdminSidebar = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-
-  const menuItems = [
-    { 
-      name: "Dashboard", 
-      path: "/admin/dashboard",     
-      icon: <LayoutDashboard size={20} /> 
-    },
-    { 
-      name: "Course Manager", 
-      path: "/admin/courses",       
-      icon: <BookOpen size={20} /> 
-    },
-    { 
-      name: "Enrollments", 
-      path: "/admin/enrollments",   
-      icon: <GraduationCap size={20} /> 
-    },
-    { 
-      name: "Payment Records", 
-      path: "/admin/payments",      
-      icon: <CreditCard size={20} /> 
-    },
-    { name: "Prices & Coupons", path: "/admin/pricing", icon: <CreditCard size={20} /> },
-    { 
-      name: "User Directory", 
-      path: "/admin/users",          
-      icon: <Users size={20} /> 
-    },
-    { 
-      name: "Staff Access",  
-      path: "/admin/staff", 
-      icon: <ShieldCheck size={20} /> 
-    },
-    { 
-      name: "Blogs",  
-      path: "/admin/blog", 
-      icon: <ShieldCheck size={20} /> 
-    },
-    { 
-      name: "Testimonials",  
-      path: "/admin/testimonials", 
-      icon: <FcRatings size={20} /> 
-    },
-    { 
-      name: "Analytics",
-      path: "/admin/reports",        
-      icon: <BarChart3 size={20} /> 
-    },
-    { 
-      name: "System Config", 
-      path: "/admin/settings",       
-      icon: <Settings size={20} /> 
-    },
-  ];
-
-  const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -90,77 +38,47 @@ const AdminSidebar = ({ open, onClose }: AdminSidebarProps) => {
 
   return (
     <aside
-      className={`
-        fixed lg:sticky top-0 left-0 z-40
-        w-72 bg-[#0f041d] h-screen border-r border-purple-900/30
-        flex flex-col shadow-2xl
-        transition-transform duration-300 ease-in-out
-        ${open ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0
-      `}
+      aria-label="Admin navigation"
+      className={`fixed lg:sticky top-0 left-0 z-40 w-64 h-screen bg-white border-r border-ink-200 flex flex-col transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
     >
-      {/* Brand Section */}
-      <div className="px-6 py-8 flex items-center justify-between border-b border-purple-900/20">
+      <div className="h-16 px-5 flex items-center justify-between border-b border-ink-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-             <img src={akiliLogo} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
-          </div>
-          <div>
-            <h2 className="text-white font-black text-lg leading-none">AKILI</h2>
-            <p className="text-[10px] text-purple-400 font-bold tracking-[0.2em] uppercase">Super Admin</p>
+          <img src={akiliLogo} alt="" className="w-9 h-9 rounded-lg object-cover" />
+          <div className="leading-tight">
+            <p className="font-extrabold text-ink-900">AkiliCode</p>
+            <p className="text-xs font-semibold text-ink-500">Admin</p>
           </div>
         </div>
-
-        <button onClick={onClose} className="lg:hidden p-2 text-purple-300">
-          <X size={20} />
-        </button>
+        <button onClick={onClose} className="lg:hidden p-2 rounded-lg text-ink-500 hover:bg-ink-100" aria-label="Close menu"><X size={20} /></button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-1 mt-6 overflow-y-auto custom-scrollbar">
-        {menuItems.map((item) => {
-          const active = isActive(item.path);
-          return (
-            <Link
-              key={item.name}
-              to={item.path}
-              onClick={onClose}
-              className={`
-                flex items-center gap-3 px-5 py-3 rounded-xl transition-all group
-                ${active
-                  ? "bg-purple-600/20 text-white border border-purple-500/30 shadow-inner"
-                  : "text-purple-300/60 hover:bg-purple-800/20 hover:text-white"}
-              `}
-            >
-              <span className={`${active ? "text-orange-500" : "text-purple-500 group-hover:text-orange-400"} transition-colors`}>
-                {item.icon}
-              </span>
-              <span className="text-sm font-bold tracking-wide">{item.name}</span>
-              {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        {ADMIN_NAV.map((g) => (
+          <div key={g.group}>
+            <p className="px-3 mb-1.5 text-xs font-bold uppercase tracking-wider text-ink-500">{g.group}</p>
+            <ul className="space-y-0.5">
+              {g.items.map((item) => (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? "bg-brand-100 text-brand-700" : "text-ink-700 hover:bg-ink-100"}`
+                    }
+                  >
+                    {item.icon}
+                    {item.name}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      {/* System Health */}
-      <div className="px-6 py-4 mx-4 mb-4 bg-purple-950/20 rounded-2xl border border-purple-800/20">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[9px] font-black text-purple-500 uppercase tracking-widest">Server Status</span>
-          <span className="text-[9px] font-black text-green-400 uppercase">Live</span>
-        </div>
-        <div className="h-1 w-full bg-purple-900/50 rounded-full overflow-hidden">
-          <div className="h-full bg-green-400 w-[98%] shadow-[0_0_8px_#4ade80]" />
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-purple-900/30 bg-[#0a0214]">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-5 py-3.5 w-full text-purple-400 hover:text-rose-400 hover:bg-rose-500/5 rounded-xl transition-all font-bold group"
-        >
-          <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm">Terminate Session</span>
+      <div className="p-3 border-t border-ink-200">
+        <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[15px] font-semibold text-ink-700 hover:bg-red-50 hover:text-red-700">
+          <LogOut size={18} /> Sign out
         </button>
       </div>
     </aside>

@@ -41,16 +41,16 @@ const CATEGORY_OPTIONS = [
 
 const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
   <div className="flex flex-col gap-1.5">
-    <label className="text-[11px] font-black text-purple-400 uppercase tracking-widest">
+    <label className="text-[11px] font-black text-ink-500 uppercase tracking-widest">
       {label}
     </label>
     {children}
-    {error && <p className="text-[11px] text-rose-400 font-semibold">{error}</p>}
+    {error && <p className="text-[11px] text-red-700 font-semibold">{error}</p>}
   </div>
 );
 
 const inputClass =
-  "w-full bg-purple-950/20 border border-purple-800/30 rounded-xl py-3 px-4 text-white placeholder:text-purple-700 outline-none focus:border-orange-500/60 focus:bg-purple-950/30 transition-all text-sm";
+  "w-full bg-ink-100 border border-ink-200 rounded-xl py-3 px-4 text-ink-900 placeholder:text-ink-500 outline-none focus:border-brand-500 focus:bg-white transition-all text-sm";
 
 export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCourseModalProps) => {
   const [form, setForm] = useState<CourseFormData>(INITIAL_FORM);
@@ -115,20 +115,20 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
       style={{ backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0d0520] border border-purple-800/30 rounded-[32px] shadow-2xl scrollbar-hide">
-        <div className="sticky top-0 z-10 bg-[#0d0520] border-b border-purple-900/30 px-8 py-6 flex items-center justify-between rounded-t-[32px]">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-transparent border border-ink-200 rounded-[32px] shadow-2xl scrollbar-hide">
+        <div className="sticky top-0 z-10 bg-transparent border-b border-ink-200 px-8 py-6 flex items-center justify-between rounded-t-[32px]">
           <div>
-            <h2 className="text-2xl font-black text-white tracking-tight">
-              New <span className="text-orange-500">Course</span>
+            <h2 className="text-2xl font-black text-ink-900 tracking-tight">
+              New <span className="text-brand-700">Course</span>
             </h2>
-            <p className="text-purple-500 text-xs font-semibold mt-0.5">
+            <p className="text-brand-600 text-xs font-semibold mt-0.5">
               Add a new class to the 2026 curriculum
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-purple-950/40 hover:bg-rose-500/20 text-purple-500 hover:text-rose-400 transition-all border border-purple-800/30"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-ink-100 hover:bg-red-50 text-brand-600 hover:text-red-700 transition-all border border-ink-200"
           >
             <X size={18} />
           </button>
@@ -163,16 +163,16 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
                   onClick={() => setCategoryOpen((v) => !v)}
                   className={`${inputClass} flex items-center justify-between`}
                 >
-                  <span className={form.category ? "text-white" : "text-purple-700"}>
+                  <span className={form.category ? "text-ink-900" : "text-ink-500"}>
                     {form.category || "Select a category"}
                   </span>
                   <ChevronDown
                     size={16}
-                    className={`text-purple-500 transition-transform ${categoryOpen ? "rotate-180" : ""}`}
+                    className={`text-brand-600 transition-transform ${categoryOpen ? "rotate-180" : ""}`}
                   />
                 </button>
                 {categoryOpen && (
-                  <div className="absolute z-20 top-full mt-2 w-full bg-[#130830] border border-purple-800/40 rounded-2xl overflow-hidden shadow-xl">
+                  <div className="absolute z-20 top-full mt-2 w-full bg-[#130830] border border-ink-200 rounded-2xl overflow-hidden shadow-xl">
                     {CATEGORY_OPTIONS.map((opt) => (
                       <button
                         key={opt}
@@ -184,8 +184,8 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${
                           form.category === opt
-                            ? "bg-orange-500/15 text-orange-400"
-                            : "text-purple-300 hover:bg-purple-900/30"
+                            ? "bg-brand-600/15 text-brand-700"
+                            : "text-ink-500 hover:bg-ink-100"
                         }`}
                       >
                         {opt}
@@ -198,7 +198,7 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
 
             <Field label="Price (Ksh)" error={errors.price}>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-orange-500">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-brand-700">
                   KSH
                 </span>
                 <input
@@ -215,7 +215,7 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Duration" error={errors.duration}>
               <div className="relative">
-                <Clock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500" />
+                <Clock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-600" />
                 <input
                   type="text"
                   placeholder="e.g. 12 Weeks"
@@ -227,17 +227,17 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
             </Field>
 
             <Field label="Status">
-              <div className="flex items-center gap-3 h-[46px] px-4 bg-purple-950/20 border border-purple-800/30 rounded-xl">
+              <div className="flex items-center gap-3 h-[46px] px-4 bg-ink-100 border border-ink-200 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setForm((prev) => ({ ...prev, is_active: !prev.is_active }))}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${form.is_active ? "bg-orange-500" : "bg-purple-900"}`}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${form.is_active ? "bg-brand-600" : "bg-ink-200"}`}
                 >
                   <span
                     className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.is_active ? "translate-x-5" : "translate-x-0"}`}
                   />
                 </button>
-                <span className={`text-sm font-bold ${form.is_active ? "text-orange-400" : "text-purple-600"}`}>
+                <span className={`text-sm font-bold ${form.is_active ? "text-brand-700" : "text-ink-500"}`}>
                   {form.is_active ? "Active" : "Draft"}
                 </span>
               </div>
@@ -246,7 +246,7 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
 
           <Field label="Thumbnail URL">
             <div className="relative">
-              <Upload size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500" />
+              <Upload size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-600" />
               <input
                 type="url"
                 placeholder="https://..."
@@ -261,7 +261,7 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 rounded-2xl border border-purple-800/40 text-purple-400 font-black text-sm uppercase tracking-wider hover:bg-purple-900/20 transition-all"
+              className="flex-1 py-4 rounded-2xl border border-ink-200 text-ink-500 font-black text-sm uppercase tracking-wider hover:bg-ink-100 transition-all"
             >
               Cancel
             </button>
@@ -271,7 +271,7 @@ export const AddCourseModal = ({ open, onClose, onSubmit, submitting }: AddCours
               className={`flex-1 py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                 success
                   ? "bg-green-500 text-white"
-                  : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg active:scale-95 disabled:opacity-60"
+                  : "bg-brand-600 hover:bg-brand-700 text-white shadow-lg active:scale-95 disabled:opacity-60"
               }`}
             >
               {success ? (

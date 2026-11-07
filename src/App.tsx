@@ -28,6 +28,7 @@ import KidLogin from "./components/auth/KidLogin";
 
 // --- ADMIN PAGES ---
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
 import AdminEnrollments from "./pages/admin/AdminEnrollments";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminCourses from "./pages/admin/AdminCourses";
@@ -143,6 +144,7 @@ const App = () => {
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/enrollments" element={<AdminEnrollments />} />
             <Route path="/admin/payments" element={<AdminPayments />} />
             <Route path="/admin/courses" element={<AdminCourses />} />

@@ -31,7 +31,7 @@ import type {
 // ─── Shared Styles (gray theme, high contrast) ───────────────────────────────
 
 const inputClass =
-  "w-full bg-gray-900/60 border border-gray-700 rounded-xl py-3 px-4 text-white placeholder:text-gray-500 outline-none focus:border-orange-500 focus:bg-gray-900 transition-all text-sm";
+  "w-full bg-white border border-ink-200 rounded-xl py-3 px-4 text-ink-900 placeholder:text-ink-500 outline-none focus:border-brand-500 focus:bg-white transition-all text-sm";
 
 const Field = ({
   label,
@@ -43,12 +43,12 @@ const Field = ({
   children: React.ReactNode;
 }) => (
   <div className="flex flex-col gap-1.5">
-    <label className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">
+    <label className="text-[11px] font-bold text-brand-700 uppercase tracking-wider">
       {label}
     </label>
     {children}
     {error && (
-      <p className="text-[11px] text-rose-400 font-semibold">{error}</p>
+      <p className="text-[11px] text-red-700 font-semibold">{error}</p>
     )}
   </div>
 );
@@ -58,32 +58,32 @@ const Field = ({
 const LANGUAGE_STYLES: Record<string, { label: string; color: string }> = {
   javascript: {
     label: "JS",
-    color: "bg-yellow-500/10 border-yellow-500/20 text-yellow-400",
+    color: "bg-yellow-500/10 border-yellow-500/20 text-amber-600",
   },
   python: {
     label: "PY",
-    color: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+    color: "bg-blue-500/10 border-blue-500/20 text-sky-700",
   },
   html: {
     label: "HTML",
-    color: "bg-orange-500/10 border-orange-500/20 text-orange-400",
+    color: "bg-brand-50 border-brand-200 text-brand-700",
   },
   scratch: {
     label: "Scratch",
-    color: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+    color: "bg-purple-500/10 border-ink-200 text-ink-500",
   },
 };
 
 const LanguageBadge = ({ language }: { language?: LessonLanguage }) => {
   if (!language)
     return (
-      <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border border-gray-700 bg-gray-800 text-gray-400 uppercase tracking-wider">
+      <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border border-ink-200 bg-ink-100 text-ink-500 uppercase tracking-wider">
         Notes Only
       </span>
     );
   const style = LANGUAGE_STYLES[language] ?? {
     label: language,
-    color: "bg-gray-800 border-gray-700 text-gray-400",
+    color: "bg-ink-100 border-ink-200 text-ink-500",
   };
   return (
     <span
@@ -175,20 +175,20 @@ const AddLessonModalContent = ({
         if (e.currentTarget === e.target) onClose();
       }}
     >
-      <div className="relative w-full max-w-lg bg-gray-900 border border-gray-700 rounded-3xl shadow-2xl">
+      <div className="relative w-full max-w-lg bg-white border border-ink-200 rounded-3xl shadow-2xl">
         {/* Header */}
-        <div className="border-b border-gray-800 px-8 py-6 flex items-center justify-between">
+        <div className="border-b border-ink-200 px-8 py-6 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              New <span className="text-orange-500">Lesson</span>
+            <h2 className="text-xl font-bold text-ink-900 tracking-tight">
+              New <span className="text-brand-700">Lesson</span>
             </h2>
-            <p className="text-gray-400 text-xs font-medium mt-0.5">
+            <p className="text-ink-500 text-xs font-medium mt-0.5">
               Notes, starter code, and assignment are added after creation
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-800 hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 transition-all border border-gray-700"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-ink-100 hover:bg-red-50 text-ink-500 hover:text-red-700 transition-all border border-ink-200"
           >
             <X size={18} />
           </button>
@@ -224,8 +224,8 @@ const AddLessonModalContent = ({
                   }
                   className={`py-3 px-4 rounded-xl border font-bold text-sm transition-all ${
                     form.language === opt.value
-                      ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
-                      : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
+                      ? "bg-brand-100 border-brand-500/40 text-brand-700"
+                      : "bg-ink-100 border-ink-200 text-ink-500 hover:border-ink-500"
                   }`}
                 >
                   {opt.label}
@@ -236,8 +236,8 @@ const AddLessonModalContent = ({
                 onClick={() => setForm((p) => ({ ...p, language: "" }))}
                 className={`py-3 px-4 rounded-xl border font-bold text-sm transition-all col-span-2 ${
                   form.language === ""
-                    ? "bg-gray-700 border-gray-500 text-gray-200"
-                    : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-500"
+                    ? "bg-ink-200 border-ink-200 text-ink-700"
+                    : "bg-ink-100 border-ink-200 text-ink-500 hover:border-ink-500"
                 }`}
               >
                 Notes Only (No Code Editor)
@@ -253,7 +253,7 @@ const AddLessonModalContent = ({
               rows={3}
               className={inputClass}
             />
-            <p className="text-[10px] text-gray-500 font-mono -mt-1">
+            <p className="text-[10px] text-ink-500 font-mono -mt-1">
               This can be left empty and filled later in the lesson editor.
             </p>
           </Field>
@@ -275,7 +275,7 @@ const AddLessonModalContent = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 rounded-2xl border border-gray-700 text-gray-400 font-bold text-sm uppercase tracking-wider hover:bg-gray-800 transition-all"
+              className="flex-1 py-4 rounded-2xl border border-ink-200 text-ink-500 font-bold text-sm uppercase tracking-wider hover:bg-ink-100 transition-all"
             >
               Cancel
             </button>
@@ -285,7 +285,7 @@ const AddLessonModalContent = ({
               className={`flex-1 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                 success
                   ? "bg-green-600 text-white"
-                  : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg active:scale-95 disabled:opacity-60"
+                  : "bg-brand-600 hover:bg-brand-700 text-white shadow-lg active:scale-95 disabled:opacity-60"
               }`}
             >
               {success ? (
@@ -398,8 +398,8 @@ const AdminModuleDetail = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400 font-bold text-[10px] uppercase tracking-wider">
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-ink-500 font-bold text-[10px] uppercase tracking-wider">
             Loading module...
           </span>
         </div>
@@ -410,24 +410,24 @@ const AdminModuleDetail = () => {
   if (!currentModule) return null;
 
   return (
-    <div className="p-6 lg:p-10 bg-gray-950 min-h-screen">
+    <div className="">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-8">
         <button
           onClick={() => navigate("/admin/courses")}
-          className="text-gray-400 hover:text-orange-400 font-bold text-sm transition-colors"
+          className="text-ink-500 hover:text-brand-700 font-bold text-sm transition-colors"
         >
           Courses
         </button>
-        <ChevronRight size={14} className="text-gray-600" />
+        <ChevronRight size={14} className="text-ink-500" />
         <button
           onClick={() => navigate(`/admin/courses/${courseId}`)}
-          className="text-gray-400 hover:text-orange-400 font-bold text-sm transition-colors truncate max-w-[160px]"
+          className="text-ink-500 hover:text-brand-700 font-bold text-sm transition-colors truncate max-w-[160px]"
         >
           {currentCurriculum?.title}
         </button>
-        <ChevronRight size={14} className="text-gray-600" />
-        <span className="text-white font-bold text-sm truncate max-w-[160px]">
+        <ChevronRight size={14} className="text-ink-500" />
+        <span className="text-ink-900 font-bold text-sm truncate max-w-[160px]">
           {currentModule.title}
         </span>
       </div>
@@ -435,7 +435,7 @@ const AdminModuleDetail = () => {
       {/* Back */}
       <button
         onClick={() => navigate(`/admin/courses/${courseId}`)}
-        className="flex items-center gap-2 text-gray-400 hover:text-orange-400 font-bold text-sm mb-6 transition-colors group"
+        className="flex items-center gap-2 text-ink-500 hover:text-brand-700 font-bold text-sm mb-6 transition-colors group"
       >
         <ArrowLeft
           size={16}
@@ -447,14 +447,14 @@ const AdminModuleDetail = () => {
       {/* Module Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
         <div>
-          <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-2">
+          <p className="text-[11px] font-bold text-brand-700 uppercase tracking-wider mb-2">
             Module
           </p>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-ink-900 tracking-tight">
             {currentModule.title}
           </h1>
           {currentModule.description && (
-            <p className="text-gray-400 text-sm mt-1 max-w-xl">
+            <p className="text-ink-500 text-sm mt-1 max-w-xl">
               {currentModule.description}
             </p>
           )}
@@ -462,7 +462,7 @@ const AdminModuleDetail = () => {
 
         <button
           onClick={() => setModalOpen(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+          className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
         >
           <Plus size={18} strokeWidth={3} />
           <span>ADD LESSON</span>
@@ -471,17 +471,17 @@ const AdminModuleDetail = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-10">
-        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5">
-          <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-1">
+        <div className="bg-white border border-ink-200 rounded-2xl p-5">
+          <p className="text-[11px] font-bold text-brand-700 uppercase tracking-wider mb-1">
             Lessons
           </p>
-          <p className="text-2xl font-bold text-white">{lessons.length}</p>
+          <p className="text-2xl font-bold text-ink-900">{lessons.length}</p>
         </div>
-        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5">
-          <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-1">
+        <div className="bg-white border border-ink-200 rounded-2xl p-5">
+          <p className="text-[11px] font-bold text-brand-700 uppercase tracking-wider mb-1">
             With Code Editor
           </p>
-          <p className="text-2xl font-bold text-white">
+          <p className="text-2xl font-bold text-ink-900">
             {lessons.filter((l) => l.language).length}
           </p>
         </div>
@@ -490,12 +490,12 @@ const AdminModuleDetail = () => {
       {/* Lessons List */}
       <div className="flex flex-col gap-3">
         {lessons.length === 0 ? (
-          <div className="bg-gray-900/30 border border-gray-800 rounded-2xl py-20 text-center">
-            <BookOpen size={40} className="mx-auto text-gray-600 mb-3" />
-            <p className="text-gray-400 font-bold text-xs uppercase tracking-wider">
+          <div className="bg-white border border-ink-200 rounded-2xl py-20 text-center">
+            <BookOpen size={40} className="mx-auto text-ink-500 mb-3" />
+            <p className="text-ink-500 font-bold text-xs uppercase tracking-wider">
               No lessons yet
             </p>
-            <p className="text-gray-500 text-xs mt-1">
+            <p className="text-ink-500 text-xs mt-1">
               Add your first lesson to this module
             </p>
           </div>
@@ -503,31 +503,31 @@ const AdminModuleDetail = () => {
           lessons.map((lesson: Lesson, idx) => (
             <div
               key={lesson.id}
-              className="group bg-gray-900/30 border border-gray-800 hover:border-gray-600 rounded-2xl p-5 transition-all"
+              className="group bg-white border border-ink-200 hover:border-ink-500 rounded-2xl p-5 transition-all"
             >
               <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
                 <GripVertical
                   size={16}
-                  className="text-gray-600 flex-shrink-0"
+                  className="text-ink-500 flex-shrink-0"
                 />
-                <div className="w-8 h-8 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0">
-                  <span className="text-gray-400 font-bold text-xs">
+                <div className="w-8 h-8 rounded-xl bg-ink-100 border border-ink-200 flex items-center justify-center flex-shrink-0">
+                  <span className="text-ink-500 font-bold text-xs">
                     {idx + 1}
                   </span>
                 </div>
                 <div className="flex-shrink-0">
                   {lesson.language ? (
-                    <Code2 size={16} className="text-orange-400" />
+                    <Code2 size={16} className="text-brand-700" />
                   ) : (
-                    <FileText size={16} className="text-gray-500" />
+                    <FileText size={16} className="text-ink-500" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-bold text-sm truncate group-hover:text-orange-400 transition-colors">
+                  <p className="text-ink-900 font-bold text-sm truncate group-hover:text-brand-700 transition-colors">
                     {lesson.title}
                   </p>
                   {lesson.notes && (
-                    <p className="text-gray-500 text-xs mt-0.5 truncate">
+                    <p className="text-ink-500 text-xs mt-0.5 truncate">
                       {lesson.notes.slice(0, 80)}...
                     </p>
                   )}
@@ -535,7 +535,7 @@ const AdminModuleDetail = () => {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <LanguageBadge language={lesson.language} />
                   {lesson.assignment && (
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 uppercase tracking-wider">
                       Assignment
                     </span>
                   )}
@@ -547,7 +547,7 @@ const AdminModuleDetail = () => {
                         `/admin/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`
                       )
                     }
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-bold text-xs transition-all"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-ink-100 hover:bg-ink-200 text-ink-700 hover:text-ink-900 font-bold text-xs transition-all"
                   >
                     <span>Edit</span>
                     <ChevronRight size={14} />
@@ -555,7 +555,7 @@ const AdminModuleDetail = () => {
                   <button
                     onClick={() => handleDeleteLesson(lesson.id)}
                     disabled={deletingId === lesson.id}
-                    className="p-2 rounded-xl hover:bg-rose-500/10 text-rose-500/50 hover:text-rose-400 transition-all disabled:opacity-40"
+                    className="p-2 rounded-xl hover:bg-red-50 text-red-700 hover:text-red-700 transition-all disabled:opacity-40"
                   >
                     {deletingId === lesson.id ? (
                       <Loader2 size={15} className="animate-spin" />

@@ -1,220 +1,136 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { 
-  Search, 
-  Download, 
-  CreditCard, 
-  User, 
-  BookOpen, 
-  Filter,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  TrendingUp,
-  Mail
-} from "lucide-react";
+import { Download, Receipt as ReceiptIcon, Wallet, Clock, CreditCard, X } from "lucide-react";
 import type { AppDispatch, RootState } from "../../store/store";
-import { getAllPayments, resetPaymentState } from "../../store/slices/paymentSlice";
+import { getAllPayments, getReceipt, clearReceipt, resetPaymentState } from "../../store/slices/paymentSlice";
 import type { Payment } from "../../interfaces/payment.interface";
+import { PageHeader, StatCard, StatusBadge, SearchBox, TableSkeleton, EmptyState } from "../../components/admin/ui";
+import { money, dateShort } from "../../components/admin/format";
 
 const AdminPayments = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { payments, loading, error } = useSelector((s: RootState) => s.payment);
-  
-  const [searchTerm, setSearchTerm] = useState("");
-  const [methodFilter, setMethodFilter] = useState("all");
+  const { payments, receipt, loading, error } = useSelector((s: RootState) => s.payment);
+
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [method, setMethod] = useState("all");
 
   useEffect(() => {
     dispatch(getAllPayments());
-    return () => { dispatch(resetPaymentState()); };
+    return () => {
+      dispatch(resetPaymentState());
+      dispatch(clearReceipt());
+    };
   }, [dispatch]);
 
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
 
-  const filteredPayments = payments.filter((p: Payment) => {
-    const matchesSearch = 
-      p.parent_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      p.receipt_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.kid_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMethod = methodFilter === "all" || p.method === methodFilter;
-    return matchesSearch && matchesMethod;
+  const methods = useMemo(() => Array.from(new Set(payments.map((p: Payment) => p.method))).filter(Boolean), [payments]);
+
+  const rows = payments.filter((p: Payment) => {
+    const q = search.trim().toLowerCase();
+    const hit = !q || [p.parent_name, p.kid_name, p.receipt_number, p.course_name].some((v) => v?.toLowerCase().includes(q));
+    return hit && (status === "all" || p.status === status) && (method === "all" || p.method === method);
   });
 
-  const totalRevenue = payments
-    .filter(p => p.status === 'completed')
-    .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const completed = payments.filter((p: Payment) => p.status === "completed");
+  const pending = payments.filter((p: Payment) => p.status === "pending");
+  const revenue = completed.reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
+
+  const exportCsv = () => {
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Receipt", "Date", "Parent", "Child", "Course", "Amount", "Method", "Status"];
+    const lines = rows.map((p: Payment) => [p.receipt_number, p.date, p.parent_name, p.kid_name, p.course_name, p.amount, p.method, p.status].map(esc).join(","));
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0214] p-6 lg:p-10">
-      {/* Header & Stats Dashboard */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">
-            Revenue <span className="text-orange-500">Analytics</span>
-          </h1>
-          <p className="text-purple-400/60 text-sm font-medium mt-1">
-            Global payment ledger and financial status monitoring.
-          </p>
-        </div>
+    <>
+      <PageHeader
+        title="Payments"
+        subtitle="Every payment received, with its receipt."
+        actions={<button className="ds-btn ds-btn-secondary ds-btn-sm" onClick={exportCsv} disabled={rows.length === 0}><Download size={16} /> Export CSV</button>}
+      />
 
-        <div className="flex flex-wrap gap-4">
-          <div className="bg-purple-900/20 border border-purple-800/30 p-4 rounded-2xl min-w-[180px]">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp size={14} className="text-green-400" />
-              <span className="text-[10px] font-black text-purple-500 uppercase">Total Revenue</span>
-            </div>
-            <p className="text-2xl font-black text-white">
-              <span className="text-sm text-purple-400 mr-1">KES</span>
-              {totalRevenue.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-purple-900/20 border border-purple-800/30 p-4 rounded-2xl min-w-[150px]">
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard size={14} className="text-orange-400" />
-              <span className="text-[10px] font-black text-purple-500 uppercase">Transactions</span>
-            </div>
-            <p className="text-2xl font-black text-white">{payments.length}</p>
-          </div>
-        </div>
+      <div className="grid sm:grid-cols-3 gap-4 mb-6">
+        <StatCard label="Revenue (completed)" value={money(revenue)} icon={<Wallet size={20} />} tone="ok" hint={`${completed.length} payments`} />
+        <StatCard label="Waiting for payment" value={pending.length} icon={<Clock size={20} />} tone="warn" hint="Started but not yet confirmed" />
+        <StatCard label="All transactions" value={payments.length} icon={<CreditCard size={20} />} />
       </div>
 
-      {/* Control Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-        <div className="lg:col-span-7 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by Parent, Student, or Receipt #..."
-            value={searchTerm}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-            className="w-full bg-purple-950/10 border border-purple-800/30 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-purple-700 outline-none focus:border-orange-500/50 transition-all"
-          />
+      <div className="adm-card">
+        <div className="p-4 flex flex-col lg:flex-row gap-3 border-b border-ink-200">
+          <SearchBox value={search} onChange={setSearch} placeholder="Search parent, child, receipt…" />
+          <select className="adm-input" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+          </select>
+          <select className="adm-input" value={method} onChange={(e) => setMethod(e.target.value)} aria-label="Filter by method">
+            <option value="all">All methods</option>
+            {methods.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
-        <div className="lg:col-span-3">
-          <div className="relative h-full">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500" size={18} />
-            <select 
-              value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-              className="w-full h-full bg-purple-950/10 border border-purple-800/30 rounded-2xl pl-12 pr-4 text-purple-300 outline-none focus:border-orange-500/50 appearance-none cursor-pointer"
-            >
-              <option value="all">All Methods</option>
-              <option value="M-Pesa">M-Pesa</option>
-              <option value="Cash">Cash</option>
-              <option value="Bank Transfer">Bank Transfer</option>
-            </select>
-          </div>
-        </div>
-        <button className="lg:col-span-2 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-all py-4">
-          <Download size={20} />
-          <span>EXPORT</span>
-        </button>
-      </div>
 
-      {/* Data Table */}
-      <div className="bg-purple-950/5 border border-purple-900/20 rounded-[32px] overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="adm-table-wrap">
+          <table className="adm-table">
             <thead>
-              <tr className="border-b border-purple-900/30 bg-purple-900/10">
-                <th className="px-6 py-5 text-[11px] font-black text-purple-500 uppercase tracking-widest">Transaction Info</th>
-                <th className="px-6 py-5 text-[11px] font-black text-purple-500 uppercase tracking-widest">Parent Details</th>
-                <th className="px-6 py-5 text-[11px] font-black text-purple-500 uppercase tracking-widest">Amount</th>
-                <th className="px-6 py-5 text-[11px] font-black text-purple-500 uppercase tracking-widest">Method</th>
-                <th className="px-6 py-5 text-[11px] font-black text-purple-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-5 text-[11px] font-black text-purple-500 uppercase tracking-widest text-right">Actions</th>
-              </tr>
+              <tr><th>Receipt</th><th>Parent</th><th>Child and course</th><th>Amount</th><th>Method</th><th>Status</th><th><span className="sr-only-text">Actions</span></th></tr>
             </thead>
-            <tbody className="divide-y divide-purple-900/10">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-20 text-center text-purple-500 font-bold animate-pulse uppercase tracking-widest text-xs">
-                    Decrypting Ledger Records...
-                  </td>
-                </tr>
-              ) : filteredPayments.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-20 text-center text-purple-700 font-bold">
-                    No payment records found matching your filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredPayments.map((payment: Payment) => (
-                  <tr key={payment.id} className="hover:bg-purple-800/5 transition-colors group">
-                    <td className="px-6 py-5">
-                      <p className="text-[10px] font-black text-orange-500 tracking-tighter mb-1 uppercase">
-                        {payment.receipt_number}
-                      </p>
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <p className="text-sm font-bold text-white">{payment.kid_name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5 text-purple-500">
-                            <BookOpen size={12} />
-                            <p className="text-[11px] font-medium">{payment.course_name}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <User size={14} className="text-purple-600" />
-                        <p className="text-sm font-bold text-purple-200">{payment.parent_name}</p>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Mail size={12} className="text-purple-800" />
-                        <p className="text-xs text-purple-600 italic">Global Record</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm font-black text-white">
-                        KES {Number(payment.amount).toLocaleString()}
-                      </p>
-                      <p className="text-[10px] text-purple-500 font-bold uppercase mt-0.5 tracking-tighter">
-                        {new Date(payment.date).toLocaleDateString()}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2 text-purple-300">
-                        <div className="w-8 h-8 rounded-lg bg-purple-900/30 flex items-center justify-center border border-purple-800/30">
-                          <CreditCard size={14} className="text-orange-500" />
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-wide">
-                          {payment.method}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        payment.status === 'completed' 
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                        : payment.status === 'pending'
-                        ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}>
-                        {payment.status === 'completed' ? <CheckCircle2 size={10} /> : 
-                         payment.status === 'pending' ? <Clock size={10} /> : <XCircle size={10} />}
-                        {payment.status}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <button 
-                        className="p-2 text-purple-500 hover:text-white hover:bg-purple-800/30 rounded-lg transition-all"
-                        title="View Full Receipt"
-                      >
-                        <Download size={18} />
-                      </button>
+            {loading && payments.length === 0 ? (
+              <TableSkeleton cols={7} />
+            ) : (
+              <tbody>
+                {rows.map((p: Payment) => (
+                  <tr key={p.id}>
+                    <td><p className="font-semibold">{p.receipt_number}</p><p className="text-xs text-ink-500">{dateShort(p.date)}</p></td>
+                    <td>{p.parent_name ?? "—"}</td>
+                    <td><p className="font-semibold">{p.kid_name ?? "—"}</p><p className="text-xs text-ink-500">{p.course_name}</p></td>
+                    <td className="font-semibold whitespace-nowrap">{money(p.amount)}</td>
+                    <td>{p.method}</td>
+                    <td><StatusBadge status={p.status} /></td>
+                    <td className="text-right">
+                      <button className="ds-btn ds-btn-ghost ds-btn-sm" onClick={() => dispatch(getReceipt(p.id))}><ReceiptIcon size={15} /> Receipt</button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
+                ))}
+              </tbody>
+            )}
           </table>
+          {!loading && rows.length === 0 && <EmptyState icon={<CreditCard size={22} />} title="No payments found" text={payments.length ? "Try a different search or filter." : "Payments will appear here as soon as parents pay."} />}
         </div>
       </div>
-    </div>
+
+      {receipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/50" role="dialog" aria-modal="true" aria-label="Receipt" onClick={() => dispatch(clearReceipt())}>
+          <div className="adm-card adm-card-pad w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div><p className="text-xs font-bold uppercase tracking-wider text-ink-500">Receipt</p><p className="text-xl font-extrabold">{receipt.receipt_number}</p></div>
+              <button className="p-1.5 rounded-lg hover:bg-ink-100" onClick={() => dispatch(clearReceipt())} aria-label="Close"><X size={18} /></button>
+            </div>
+            <dl className="mt-4 divide-y divide-ink-100 text-sm">
+              {[["Date", dateShort(receipt.date)], ["Parent", receipt.parent_name], ["Child", receipt.kid_name], ["Course", receipt.course_name], ["Method", receipt.method], ["Reference", receipt.reference ?? "—"]].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-4 py-2"><dt className="text-ink-500">{k}</dt><dd className="font-semibold text-right">{v}</dd></div>
+              ))}
+              <div className="flex justify-between gap-4 py-3"><dt className="font-bold">Amount</dt><dd className="text-lg font-extrabold">{money(receipt.amount)}</dd></div>
+            </dl>
+            <div className="mt-2 flex items-center justify-between">
+              <StatusBadge status={receipt.status} />
+              <button className="ds-btn ds-btn-secondary ds-btn-sm" onClick={() => window.print()}>Print</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

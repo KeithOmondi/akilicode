@@ -59,8 +59,8 @@ const TabButton = ({
     onClick={onClick}
     className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all border ${
       active
-        ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
-        : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
+        ? "bg-brand-100 border-brand-500/40 text-brand-700"
+        : "bg-ink-100 border-ink-200 text-ink-500 hover:border-ink-500 hover:text-ink-700"
     }`}
   >
     <Icon size={14} />
@@ -86,23 +86,23 @@ const renderMarkdown = (text: string): string => {
 };
 
 const PREVIEW_CLASSES = `
-  flex-1 min-h-[400px] bg-gray-900/50 border border-gray-700 rounded-2xl p-6 overflow-y-auto
+  flex-1 min-h-[400px] bg-white border border-ink-200 rounded-2xl p-6 overflow-y-auto
   prose prose-invert prose-sm max-w-none
-  [&_h1]:text-white [&_h1]:font-bold [&_h1]:text-xl [&_h1]:mb-3
-  [&_h2]:text-white [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mb-2
-  [&_h3]:text-orange-400 [&_h3]:font-bold [&_h3]:text-base [&_h3]:mb-2
-  [&_p]:text-gray-300 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-3
-  [&_strong]:text-white [&_strong]:font-bold
-  [&_em]:text-gray-300 [&_em]:italic
-  [&_code]:bg-gray-800 [&_code]:text-orange-300 [&_code]:px-1.5 [&_code]:py-0.5
+  [&_h1]:text-ink-900 [&_h1]:font-bold [&_h1]:text-xl [&_h1]:mb-3
+  [&_h2]:text-ink-900 [&_h2]:font-bold [&_h2]:text-lg [&_h2]:mb-2
+  [&_h3]:text-brand-700 [&_h3]:font-bold [&_h3]:text-base [&_h3]:mb-2
+  [&_p]:text-ink-700 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-3
+  [&_strong]:text-ink-900 [&_strong]:font-bold
+  [&_em]:text-ink-700 [&_em]:italic
+  [&_code]:bg-ink-100 [&_code]:text-orange-300 [&_code]:px-1.5 [&_code]:py-0.5
   [&_code]:rounded [&_code]:text-xs [&_code]:font-mono
-  [&_ul]:text-gray-300 [&_ul]:text-sm [&_ul]:pl-4 [&_ul]:mb-3
+  [&_ul]:text-ink-700 [&_ul]:text-sm [&_ul]:pl-4 [&_ul]:mb-3
   [&_li]:mb-1
 `.trim();
 
 const TEXTAREA_CLASSES = `
-  flex-1 min-h-[400px] bg-gray-900/50 border border-gray-700 rounded-2xl p-6
-  text-gray-200 placeholder:text-gray-600 outline-none focus:border-orange-500
+  flex-1 min-h-[400px] bg-white border border-ink-200 rounded-2xl p-6
+  text-ink-700 placeholder:text-ink-500 outline-none focus:border-brand-500
   transition-all text-sm font-mono leading-relaxed resize-none
 `.trim();
 
@@ -115,7 +115,7 @@ const PreviewToggle = ({
 }) => (
   <button
     onClick={onToggle}
-    className="flex items-center gap-1.5 text-gray-400 hover:text-orange-400 font-bold text-xs transition-colors flex-shrink-0"
+    className="flex items-center gap-1.5 text-ink-500 hover:text-brand-700 font-bold text-xs transition-colors flex-shrink-0"
   >
     {previewing ? <EyeOff size={13} /> : <Eye size={13} />}
     {previewing ? "Edit" : "Preview"}
@@ -192,34 +192,34 @@ const QuestionModal = ({ open, onClose, onSubmit, initialData, submitting, nextO
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative w-full max-w-2xl bg-gray-900 border border-gray-700 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-8 py-5 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-white">{initialData ? "Edit Question" : "New Question"}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={20} /></button>
+      <div className="relative w-full max-w-2xl bg-white border border-ink-200 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-ink-200 px-8 py-5 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-ink-900">{initialData ? "Edit Question" : "New Question"}</h2>
+          <button onClick={onClose} className="text-ink-500 hover:text-ink-900"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-8 space-y-5">
           <div>
-            <label className="text-orange-400 text-xs font-bold uppercase">Question</label>
+            <label className="text-brand-700 text-xs font-bold uppercase">Question</label>
             <textarea
               value={form.question}
               onChange={(e) => setForm({ ...form, question: e.target.value })}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white"
+              className="w-full bg-ink-100 border border-ink-200 rounded-xl p-3 text-ink-900"
               rows={3}
               required
             />
-            {errors.question && <p className="text-rose-400 text-xs mt-1">{errors.question}</p>}
+            {errors.question && <p className="text-red-700 text-xs mt-1">{errors.question}</p>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(["A", "B", "C", "D"] as const).map((letter) => {
               const field = `option${letter}` as keyof typeof form;
               return (
                 <div key={letter}>
-                  <label className="text-gray-400 text-xs font-bold">Option {letter}</label>
+                  <label className="text-ink-500 text-xs font-bold">Option {letter}</label>
                   <input
                     type="text"
                     value={form[field] as string}
                     onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl p-2 text-white"
+                    className="w-full bg-ink-100 border border-ink-200 rounded-xl p-2 text-ink-900"
                     required={letter === "A" || letter === "B"}
                   />
                 </div>
@@ -227,11 +227,11 @@ const QuestionModal = ({ open, onClose, onSubmit, initialData, submitting, nextO
             })}
           </div>
           <div>
-            <label className="text-gray-400 text-xs font-bold">Correct Answer</label>
+            <label className="text-ink-500 text-xs font-bold">Correct Answer</label>
             <select
               value={form.answer}
               onChange={(e) => setForm({ ...form, answer: Number(e.target.value) })}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl p-2 text-white"
+              className="w-full bg-ink-100 border border-ink-200 rounded-xl p-2 text-ink-900"
             >
               {["A", "B", "C", "D"].map((letter, idx) => (
                 <option key={idx} value={idx}>Option {letter}</option>
@@ -239,17 +239,17 @@ const QuestionModal = ({ open, onClose, onSubmit, initialData, submitting, nextO
             </select>
           </div>
           <div>
-            <label className="text-gray-400 text-xs font-bold">Order</label>
+            <label className="text-ink-500 text-xs font-bold">Order</label>
             <input
               type="number"
               value={form.order_index}
               onChange={(e) => setForm({ ...form, order_index: Number(e.target.value) })}
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl p-2 text-white"
+              className="w-full bg-ink-100 border border-ink-200 rounded-xl p-2 text-ink-900"
             />
           </div>
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-700 rounded-xl text-gray-400">Cancel</button>
-            <button type="submit" disabled={submitting || success} className="flex-1 py-3 bg-orange-500 rounded-xl text-white font-bold disabled:opacity-60">
+            <button type="button" onClick={onClose} className="flex-1 py-3 border border-ink-200 rounded-xl text-ink-500">Cancel</button>
+            <button type="submit" disabled={submitting || success} className="flex-1 py-3 bg-brand-600 rounded-xl text-white font-bold disabled:opacity-60">
               {success
                 ? <><CheckCircle2 size={18} className="inline mr-2" />Saved!</>
                 : submitting
@@ -411,10 +411,10 @@ const AdminLessonEditor = () => {
 
   if (loading && !currentLesson) {
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-950">
+      <div className="flex items-center justify-center h-64 bg-transparent">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400 font-bold text-[10px] uppercase tracking-wider">Loading lesson...</span>
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-ink-500 font-bold text-[10px] uppercase tracking-wider">Loading lesson...</span>
         </div>
       </div>
     );
@@ -422,21 +422,21 @@ const AdminLessonEditor = () => {
   if (!lesson) return null;
 
   return (
-    <div className="flex flex-col h-full bg-gray-950">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-6 lg:px-10 py-5 border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
+      <div className="flex items-center justify-between px-6 lg:px-10 py-5 border-b border-ink-200 bg-white sticky top-0 z-10">
         <div className="flex items-center gap-2 min-w-0">
-          <button onClick={() => navigate("/admin/courses")} className="text-gray-400 hover:text-orange-400 font-bold text-xs hidden sm:block">Courses</button>
+          <button onClick={() => navigate("/admin/courses")} className="text-ink-500 hover:text-brand-700 font-bold text-xs hidden sm:block">Courses</button>
           <ChevronRight size={12} className="text-gray-700 hidden sm:block" />
-          <button onClick={() => navigate(`/admin/courses/${safeCourseId}`)} className="text-gray-400 hover:text-orange-400 font-bold text-xs hidden sm:block truncate max-w-[100px]">{currentCurriculum?.title ?? "Course"}</button>
+          <button onClick={() => navigate(`/admin/courses/${safeCourseId}`)} className="text-ink-500 hover:text-brand-700 font-bold text-xs hidden sm:block truncate max-w-[100px]">{currentCurriculum?.title ?? "Course"}</button>
           <ChevronRight size={12} className="text-gray-700 hidden sm:block" />
-          <button onClick={() => navigate(`/admin/courses/${safeCourseId}/modules/${safeModuleId}`)} className="text-gray-400 hover:text-orange-400 font-bold text-xs truncate max-w-[100px]">{currentModule?.title ?? "Module"}</button>
+          <button onClick={() => navigate(`/admin/courses/${safeCourseId}/modules/${safeModuleId}`)} className="text-ink-500 hover:text-brand-700 font-bold text-xs truncate max-w-[100px]">{currentModule?.title ?? "Module"}</button>
           <ChevronRight size={12} className="text-gray-700" />
-          <span className="text-white font-bold text-xs truncate max-w-[140px]">{lesson.title}</span>
+          <span className="text-ink-900 font-bold text-xs truncate max-w-[140px]">{lesson.title}</span>
         </div>
         <div className="flex items-center gap-2">
           {dirty && (
-            <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-gray-200 font-bold text-xs">
+            <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-ink-200 text-ink-500 hover:text-ink-700 font-bold text-xs">
               <RotateCcw size={13} /><span className="hidden sm:inline">Reset</span>
             </button>
           )}
@@ -444,7 +444,7 @@ const AdminLessonEditor = () => {
             onClick={handleSave}
             disabled={saving || !dirty}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider ${
-              dirty ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg" : "bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed"
+              dirty ? "bg-brand-600 hover:bg-brand-700 text-white shadow-lg" : "bg-ink-100 border border-ink-200 text-ink-500 cursor-not-allowed"
             }`}
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -457,17 +457,17 @@ const AdminLessonEditor = () => {
         {/* Lesson Meta */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <button onClick={() => navigate(`/admin/courses/${safeCourseId}/modules/${safeModuleId}`)} className="flex items-center gap-2 text-gray-400 hover:text-orange-400 font-bold text-sm mb-3 group">
+            <button onClick={() => navigate(`/admin/courses/${safeCourseId}/modules/${safeModuleId}`)} className="flex items-center gap-2 text-ink-500 hover:text-brand-700 font-bold text-sm mb-3 group">
               <ArrowLeft size={15} className="group-hover:-translate-x-1 transition-transform" /> Back to Module
             </button>
-            <h1 className="text-2xl font-bold text-white">{lesson.title}</h1>
+            <h1 className="text-2xl font-bold text-ink-900">{lesson.title}</h1>
             <div className="flex items-center gap-2 mt-2">
               {lesson.language ? (
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border bg-orange-500/10 border-orange-500/20 text-orange-400 uppercase tracking-wider">{langConfig?.label}</span>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border bg-brand-50 border-brand-200 text-brand-700 uppercase tracking-wider">{langConfig?.label}</span>
               ) : (
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border bg-gray-800 border-gray-700 text-gray-400 uppercase tracking-wider">Notes Only</span>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg border bg-ink-100 border-ink-200 text-ink-500 uppercase tracking-wider">Notes Only</span>
               )}
-              <span className="text-gray-600 text-[10px] font-bold">· Ctrl+S to save</span>
+              <span className="text-ink-500 text-[10px] font-bold">· Ctrl+S to save</span>
             </div>
           </div>
         </div>
@@ -483,11 +483,11 @@ const AdminLessonEditor = () => {
         {activeTab === "notes" && (
           <div className="flex flex-col gap-3 flex-1">
             <div className="flex justify-between items-center">
-              <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">Lesson Notes (Markdown)</p>
+              <p className="text-[11px] font-bold text-brand-700 uppercase tracking-wider">Lesson Notes (Markdown)</p>
               <PreviewToggle previewing={previewNotes} onToggle={() => setPreviewNotes((v) => !v)} />
             </div>
             {previewNotes ? (
-              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(notes) || "<p class='text-gray-600'>Nothing to preview yet.</p>") }} />
+              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(notes) || "<p class='text-ink-500'>Nothing to preview yet.</p>") }} />
             ) : (
               <textarea
                 value={notes}
@@ -504,13 +504,13 @@ const AdminLessonEditor = () => {
           <div className="flex flex-col gap-3 flex-1">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">Assignment (Markdown)</p>
-                <p className="text-[10px] text-gray-500">Optional task description for students</p>
+                <p className="text-[11px] font-bold text-brand-700 uppercase tracking-wider">Assignment (Markdown)</p>
+                <p className="text-[10px] text-ink-500">Optional task description for students</p>
               </div>
               <PreviewToggle previewing={previewAssignment} onToggle={() => setPreviewAssignment((v) => !v)} />
             </div>
             {previewAssignment ? (
-              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(assignment) || "<p class='text-gray-600'>No assignment yet.</p>") }} />
+              <div className={PREVIEW_CLASSES} dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdown(assignment) || "<p class='text-ink-500'>No assignment yet.</p>") }} />
             ) : (
               <textarea
                 value={assignment}
@@ -527,49 +527,49 @@ const AdminLessonEditor = () => {
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-[11px] font-bold text-orange-400 uppercase tracking-wider">Quiz Questions</p>
-                <p className="text-[10px] text-gray-500">Multiple‑choice questions for this lesson</p>
+                <p className="text-[11px] font-bold text-brand-700 uppercase tracking-wider">Quiz Questions</p>
+                <p className="text-[10px] text-ink-500">Multiple‑choice questions for this lesson</p>
               </div>
               <button
                 onClick={() => { setEditingQuestion(null); setQuestionModalOpen(true); }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold"
+                className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-bold"
               >
                 <Plus size={14} /> Add Question
               </button>
             </div>
 
             {!currentLessonQuestions || currentLessonQuestions.length === 0 ? (
-              <div className="bg-gray-900/30 border border-gray-800 rounded-2xl py-16 text-center">
-                <HelpCircle size={40} className="mx-auto text-gray-600 mb-3" />
-                <p className="text-gray-400 font-bold text-xs">No questions yet</p>
-                <p className="text-gray-500 text-xs mt-1">Click "Add Question" to create a quiz</p>
+              <div className="bg-white border border-ink-200 rounded-2xl py-16 text-center">
+                <HelpCircle size={40} className="mx-auto text-ink-500 mb-3" />
+                <p className="text-ink-500 font-bold text-xs">No questions yet</p>
+                <p className="text-ink-500 text-xs mt-1">Click "Add Question" to create a quiz</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {currentLessonQuestions.map((q, idx) => (
-                  <div key={q.id} className="bg-gray-900/30 border border-gray-800 rounded-2xl p-4 group hover:border-gray-600 transition-all">
+                  <div key={q.id} className="bg-white border border-ink-200 rounded-2xl p-4 group hover:border-ink-500 transition-all">
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-orange-400 font-bold text-xs bg-orange-500/10 px-2 py-0.5 rounded">Q{idx + 1}</span>
-                          <span className="text-gray-500 text-[10px]">Order: {q.order_index}</span>
+                          <span className="text-brand-700 font-bold text-xs bg-brand-50 px-2 py-0.5 rounded">Q{idx + 1}</span>
+                          <span className="text-ink-500 text-[10px]">Order: {q.order_index}</span>
                         </div>
-                        <p className="text-white text-sm font-medium mb-2">{q.question}</p>
+                        <p className="text-ink-900 text-sm font-medium mb-2">{q.question}</p>
                         <div className="space-y-1 ml-3">
                           {q.options.map((opt, optIdx) => (
                             <div key={optIdx} className="flex items-center gap-2">
-                              <span className={`text-xs font-bold ${optIdx === q.answer ? "text-emerald-400" : "text-gray-500"}`}>{String.fromCharCode(65 + optIdx)}.</span>
-                              <span className={`text-xs ${optIdx === q.answer ? "text-emerald-300" : "text-gray-400"}`}>{opt}</span>
-                              {optIdx === q.answer && <span className="text-[10px] text-emerald-400 ml-2">✓ Correct</span>}
+                              <span className={`text-xs font-bold ${optIdx === q.answer ? "text-emerald-700" : "text-ink-500"}`}>{String.fromCharCode(65 + optIdx)}.</span>
+                              <span className={`text-xs ${optIdx === q.answer ? "text-emerald-300" : "text-ink-500"}`}>{opt}</span>
+                              {optIdx === q.answer && <span className="text-[10px] text-emerald-700 ml-2">✓ Correct</span>}
                             </div>
                           ))}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingQuestion(q); setQuestionModalOpen(true); }} className="p-1.5 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white">
+                        <button onClick={() => { setEditingQuestion(q); setQuestionModalOpen(true); }} className="p-1.5 hover:bg-ink-200 rounded-lg text-ink-500 hover:text-ink-900">
                           <Edit3 size={14} />
                         </button>
-                        <button onClick={() => handleDeleteQuestion(q.id)} className="p-1.5 hover:bg-rose-500/10 rounded-lg text-rose-500/60 hover:text-rose-400">
+                        <button onClick={() => handleDeleteQuestion(q.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-700 hover:text-red-700">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -582,7 +582,7 @@ const AdminLessonEditor = () => {
         )}
 
         {dirty && (
-          <div className="flex items-center gap-2 text-orange-400/80 text-xs font-bold">
+          <div className="flex items-center gap-2 text-brand-700/80 text-xs font-bold">
             <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
             Unsaved changes — press Ctrl+S or click Save
           </div>

@@ -169,3 +169,28 @@ body { font-family: var(--ds-font); color: var(--color-ink-900); background: var
   @keyframes kid-pop { 0% { transform: scale(.85); opacity: 0 } 70% { transform: scale(1.06) } 100% { transform: scale(1); opacity: 1 } }
   .kid-pop { animation: kid-pop .35s ease-out both; }
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   ADMIN MOOD — compact, calm, one light style for every admin screen.
+   Put data-mood="admin" on the admin layout wrapper.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-mood="admin"] {
+  --ds-control-h: 2.5rem;
+  --ds-radius: 0.625rem;
+  --ds-text: 0.9375rem;
+  --color-canvas: #f6f5fb;
+  font-size: 15px;
+}
+@layer components {
+  .adm-card { background: #fff; border: 1px solid var(--color-ink-200); border-radius: 0.875rem; }
+  .adm-card-pad { padding: 1.25rem; }
+  .adm-table-wrap { overflow-x: auto; }
+  .adm-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .adm-table th { text-align: left; padding: .75rem 1rem; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--color-ink-500); background: #faf9fd; border-bottom: 1px solid var(--color-ink-200); white-space: nowrap; }
+  .adm-table td { padding: .85rem 1rem; border-bottom: 1px solid var(--color-ink-100); color: var(--color-ink-900); vertical-align: middle; }
+  .adm-table tbody tr:hover { background: #faf9fd; }
+  .adm-table tbody tr:last-child td { border-bottom: 0; }
+  .adm-input { min-height: 2.5rem; padding: 0 .75rem; border: 1px solid var(--color-ink-200); border-radius: .625rem; background: #fff; font-size: .9375rem; color: var(--color-ink-900); }
+  .adm-input:focus { border-color: var(--color-brand-500); outline: 3px solid var(--color-brand-100); }
+  .ds-btn-sm { min-height: 2.25rem; padding: 0 .9rem; font-size: .875rem; border-radius: .5rem; border-width: 1px; }
+}

@@ -153,7 +153,7 @@ const AdminBlog = () => {
         );
       case "archived":
         return (
-          <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+          <span className="flex items-center gap-1 text-xs bg-ink-100 text-ink-700 px-2 py-1 rounded-full">
             <XCircle size={12} /> Archived
           </span>
         );
@@ -174,20 +174,20 @@ const AdminBlog = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Blog Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your blog posts and categories</p>
+          <h1 className="text-2xl font-bold text-ink-900">Blog Management</h1>
+          <p className="text-sm text-ink-500 mt-1">Manage your blog posts and categories</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setShowCategoryModal(true)}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition flex items-center gap-2"
+            className="px-4 py-2 bg-ink-100 text-ink-700 rounded-xl font-semibold text-sm hover:bg-ink-200 transition flex items-center gap-2"
           >
             <Tag size={16} />
             Add Category
           </button>
           <Link
             to="/admin/blog/new"
-            className="px-4 py-2 bg-purple-600 text-white rounded-xl font-semibold text-sm hover:bg-purple-700 transition flex items-center gap-2"
+            className="px-4 py-2 bg-brand-600 text-white rounded-xl font-semibold text-sm hover:bg-brand-700 transition flex items-center gap-2"
           >
             <Plus size={16} />
             New Post
@@ -196,24 +196,24 @@ const AdminBlog = () => {
       </div>
 
       {/* Search & Filter */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-ink-100 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-500" size={18} />
             <input
               type="text"
               placeholder="Search posts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-ink-200 rounded-lg focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 outline-none"
             />
           </div>
           <div className="flex gap-2">
-            <Filter size={18} className="text-gray-400 self-center" />
+            <Filter size={18} className="text-ink-500 self-center" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none"
+              className="px-4 py-2 border border-ink-200 rounded-lg focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 outline-none"
             >
               <option value="all">All Status</option>
               <option value="published">Published</option>
@@ -225,83 +225,83 @@ const AdminBlog = () => {
       </div>
 
       {/* Posts Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-ink-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-ink-100 border-b border-ink-100">
               <tr>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Author</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Views</th>
-                <th className="text-right px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Title</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Author</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Category</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Date</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Views</th>
+                <th className="text-right px-6 py-4 text-xs font-semibold text-ink-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-ink-100">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12">
-                    <Loader2 className="animate-spin mx-auto text-purple-600" size={32} />
+                    <Loader2 className="animate-spin mx-auto text-brand-600" size={32} />
                   </td>
                 </tr>
               ) : filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-500">
+                  <td colSpan={7} className="text-center py-12 text-ink-500">
                     No posts found
                   </td>
                 </tr>
               ) : (
                 filteredPosts.map((post) => (
-                  <tr key={post.id} className="hover:bg-gray-50 transition">
+                  <tr key={post.id} className="hover:bg-ink-100 transition">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-800">{post.title}</p>
+                      <p className="font-medium text-ink-900">{post.title}</p>
                       {post.excerpt && (
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-1">{post.excerpt}</p>
+                        <p className="text-xs text-ink-500 mt-1 line-clamp-1">{post.excerpt}</p>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <User size={14} className="text-gray-400" />
+                      <div className="flex items-center gap-2 text-sm text-ink-700">
+                        <User size={14} className="text-ink-500" />
                         {post.author_name}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       {post.category_name ? (
-                        <span className="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-brand-50 text-brand-600 px-2 py-1 rounded-full">
                           {post.category_name}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">Uncategorized</span>
+                        <span className="text-xs text-ink-500">Uncategorized</span>
                       )}
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(post.status)}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <div className="flex items-center gap-1 text-sm text-ink-500">
                         <Calendar size={14} />
                         {formatDate(post.published_at || post.created_at)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{post.view_count}</td>
+                    <td className="px-6 py-4 text-sm text-ink-700">{post.view_count}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           to={`/blog/${post.slug}`}
                           target="_blank"
-                          className="p-2 text-gray-400 hover:text-blue-600 transition hover:bg-blue-50 rounded-lg"
+                          className="p-2 text-ink-500 hover:text-blue-600 transition hover:bg-blue-50 rounded-lg"
                         >
                           <Eye size={16} />
                         </Link>
                         <Link
                           to={`/admin/blog/edit/${post.id}`}
-                          className="p-2 text-gray-400 hover:text-green-600 transition hover:bg-green-50 rounded-lg"
+                          className="p-2 text-ink-500 hover:text-green-600 transition hover:bg-green-50 rounded-lg"
                         >
                           <Edit size={16} />
                         </Link>
                         <button
                           onClick={() => setShowDeleteModal(post.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 transition hover:bg-red-50 rounded-lg"
+                          className="p-2 text-ink-500 hover:text-red-600 transition hover:bg-red-50 rounded-lg"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -319,14 +319,14 @@ const AdminBlog = () => {
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Post</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-xl font-bold text-ink-900 mb-2">Delete Post</h3>
+            <p className="text-ink-700 mb-6">
               Are you sure you want to delete this post? This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDeleteModal(null)}
-                className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition"
+                className="px-4 py-2 border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-100 transition"
               >
                 Cancel
               </button>
@@ -345,10 +345,10 @@ const AdminBlog = () => {
       {showCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Add New Category</h3>
+            <h3 className="text-xl font-bold text-ink-900 mb-4">Add New Category</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-700 mb-1">
                   Category Name *
                 </label>
                 <input
@@ -356,11 +356,11 @@ const AdminBlog = () => {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="e.g., Coding Tips"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  className="w-full px-4 py-2 border border-ink-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-700 mb-1">
                   Description (Optional)
                 </label>
                 <textarea
@@ -368,20 +368,20 @@ const AdminBlog = () => {
                   onChange={(e) => setNewCategoryDesc(e.target.value)}
                   placeholder="Brief description..."
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none"
+                  className="w-full px-4 py-2 border border-ink-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 resize-none"
                 />
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button
                 onClick={() => setShowCategoryModal(false)}
-                className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition"
+                className="px-4 py-2 border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-100 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateCategory}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
               >
                 Create Category
               </button>
