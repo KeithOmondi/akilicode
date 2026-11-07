@@ -10,7 +10,7 @@ import {
 import { getMyEnrollments, enrollKid } from "../../store/slices/enrollmentSlice";
 import { getMyKids } from "../../store/slices/kidSlice";
 import { getAllCourses } from "../../store/slices/courseSlice";
-import { initiateStkPush } from "../../store/slices/paymentSlice";
+import { initiateStkPush, clearCheckoutRequest } from "../../store/slices/paymentSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import api from "../../api/api";
 
@@ -288,51 +288,81 @@ const ParentEnrollments = () => {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const startPolling = (enrollmentId: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    let attempts = 0;
-    const maxAttempts = 15;
+  /**
+   * Ask the server for the real state of a payment. The server checks with Safaricom itself, so this is
+   * what flips an enrollment to "paid" the moment the money has arrived. Returns true when we can stop asking.
+   */
+  const checkPayment = async (enrollmentId: string): Promise<boolean> => {
+    try {
+      const res = await api.get(`/mpesa/status/${enrollmentId}`);
+      const { payment_status, enrollment_status, reason } = res.data.data;
 
+      if (payment_status === "completed" && (enrollment_status === "active" || enrollment_status === "completed")) {
+        toast.dismiss("stk-push");
+        toast.success("Payment received. Enrollment is now active.");
+        dispatch(clearCheckoutRequest());
+        dispatch(getMyEnrollments());
+        return true;
+      }
+      if (payment_status === "review") {
+        toast.dismiss("stk-push");
+        toast("We received your payment and are checking it. This usually takes a short while.", { icon: "🔎", duration: 8000 });
+        dispatch(clearCheckoutRequest());
+        dispatch(getMyEnrollments());
+        return true;
+      }
+      if (payment_status === "failed" || payment_status === "expired") {
+        toast.dismiss("stk-push");
+        toast.error(reason || "The payment did not go through. Please try again.", { duration: 7000 });
+        dispatch(clearCheckoutRequest());
+        dispatch(getMyEnrollments());
+        return true;
+      }
+    } catch {
+      /* network hiccup: the next check will try again */
+    }
+    return false;
+  };
+
+  const stopPolling = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  };
+
+  // Right after the prompt is sent: check every 3 seconds for up to 2 minutes.
+  const startPolling = (enrollmentId: string) => {
+    stopPolling();
+    let attempts = 0;
     pollRef.current = setInterval(async () => {
       attempts++;
-      try {
-        const res = await api.get(`/mpesa/status/${enrollmentId}`);
-        const { payment_status, enrollment_status, reason } = res.data.data;
-
-        if (payment_status === "completed" && (enrollment_status === "active" || enrollment_status === "completed")) {
-          clearInterval(pollRef.current!);
-          pollRef.current = null;
+      const done = await checkPayment(enrollmentId);
+      if (done || attempts >= 40) {
+        stopPolling();
+        if (!done) {
           toast.dismiss("stk-push");
-          toast.success("🎉 Payment confirmed! Enrollment is now active.");
-          dispatch(getMyEnrollments());
-        } else if (payment_status === "review") {
-          clearInterval(pollRef.current!);
-          pollRef.current = null;
-          toast.dismiss("stk-push");
-          toast("We received your payment and are checking it. This usually takes a short while.", {
-            icon: "🔎", duration: 8000,
-          });
-          dispatch(getMyEnrollments());
-        } else if (payment_status === "failed" || payment_status === "expired") {
-          clearInterval(pollRef.current!);
-          pollRef.current = null;
-          toast.dismiss("stk-push");
-          toast.error(reason || "The payment did not go through. Please try again.", { duration: 7000 });
-          dispatch(getMyEnrollments());
-        } else if (attempts >= maxAttempts) {
-          clearInterval(pollRef.current!);
-          pollRef.current = null;
-          toast.dismiss("stk-push");
-          toast("Payment not confirmed yet. It will update automatically once M-Pesa confirms.", {
-            icon: "⏳", duration: 6000,
-          });
+          dispatch(clearCheckoutRequest());
+          toast("Not confirmed yet. If you have paid, press “Check payment” on the card.", { icon: "⏳", duration: 8000 });
         }
-      } catch {
-        clearInterval(pollRef.current!);
-        pollRef.current = null;
       }
-    }, 4000);
+    }, 3000);
   };
+
+  const [checking, setChecking] = useState<string | null>(null);
+  const checkNow = async (enrollmentId: string) => {
+    setChecking(enrollmentId);
+    const done = await checkPayment(enrollmentId);
+    setChecking(null);
+    if (!done) toast("Still waiting for M-Pesa. Finish the prompt on your phone, then check again.", { icon: "⏳" });
+  };
+
+  // When the page opens, quietly settle any enrollment that was paid while we were away.
+  const settledOnce = useRef(false);
+  useEffect(() => {
+    if (settledOnce.current || enrollments.length === 0) return;
+    settledOnce.current = true;
+    enrollments.filter((en) => en.status === "pending").forEach((en) => { void checkPayment(en.id); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrollments]);
 
   const handleEnroll = async (payload: EnrollWithPaymentPayload) => {
     try {
@@ -447,6 +477,13 @@ const ParentEnrollments = () => {
                   {e.status === "pending" && (
                     <div className="mt-3 p-3 bg-amber-50 rounded-xl flex items-center gap-2 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
                       <CheckCircle2 size={14} /> Not paid yet
+                      <button
+                        onClick={() => checkNow(e.id)}
+                        disabled={checking === e.id}
+                        className="ml-auto px-3 py-1.5 rounded-lg bg-white border border-amber-200 text-amber-800 normal-case tracking-normal text-xs font-bold disabled:opacity-60"
+                      >
+                        {checking === e.id ? "Checking…" : "Check payment"}
+                      </button>
                     </div>
                   )}
 
