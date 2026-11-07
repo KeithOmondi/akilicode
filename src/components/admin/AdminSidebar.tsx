@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, GraduationCap, CreditCard, Tag, Users, Newspaper, MessageSquareQuote, LogOut, X } from "lucide-react";
+import { LayoutDashboard, BookOpen, GraduationCap, CreditCard, Tag, Users, Code2, Newspaper, MessageSquareQuote, LogOut, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAppDispatch } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
@@ -12,6 +12,7 @@ const ADMIN_NAV: { group: string; items: { name: string; path: string; icon: Rea
     group: "Learning",
     items: [
       { name: "Courses", path: "/admin/courses", icon: <BookOpen size={18} /> },
+      { name: "Handed-in work", path: "/admin/projects", icon: <Code2 size={18} /> },
       { name: "Blog", path: "/admin/blog", icon: <Newspaper size={18} /> },
       { name: "Testimonials", path: "/admin/testimonials", icon: <MessageSquareQuote size={18} /> },
     ],

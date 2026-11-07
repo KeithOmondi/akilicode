@@ -39,6 +39,7 @@ const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminBlogEditor = lazy(() => import("./pages/admin/AdminBlogEditor"));
 const AdminTestimonials = lazy(() => import("./pages/admin/AdminTestimonials"));
 const AdminPricing = lazy(() => import("./pages/admin/AdminPricing"));
+const AdminProjects = lazy(() => import("./pages/admin/AdminProjects"));
 
 // --- PARENT PAGES ---
 const ParentDashboard = lazy(() => import("./pages/parent/ParentDashboard"));
@@ -60,6 +61,9 @@ const KidMyCourses = lazy(() => import("./pages/kids/KidMyCourses"));
 const KidLeaderboard = lazy(() => import("./pages/kids/Kidleaderboard"));
 const KidBadges = lazy(() => import("./pages/kids/KidBadges"));
 const KidCalendar = lazy(() => import("./pages/kids/KidCalendar"));
+const KidMake = lazy(() => import("./pages/kids/KidMake"));
+const KidEditor = lazy(() => import("./pages/kids/KidEditor"));
+const KidAssignments = lazy(() => import("./pages/kids/KidAssignments"));
 const ParentGuide = lazy(() => import("./pages/ParentGuide"));
 import ParentGateDialog from "./components/shared/ParentGateDialog";
 import NotFound from "./pages/NotFound";
@@ -169,6 +173,7 @@ const App = () => {
               element={<AdminLessonEditor />}
             />
             <Route path="/admin/pricing" element={<AdminPricing />} />
+            <Route path="/admin/projects" element={<AdminProjects />} />
             <Route path="/admin/blog" element={<AdminBlog />} />
             <Route path="/admin/blog/new" element={<AdminBlogEditor />} />
             <Route
@@ -212,6 +217,9 @@ const App = () => {
             <Route path="/kid/leaderboard" element={<KidLeaderboard />} />
             <Route path="/kid/badges" element={<KidBadges />} />
             <Route path="/kid/calendar" element={<KidCalendar />} />
+            <Route path="/kid/assignments" element={<KidAssignments />} />
+            <Route path="/kid/make" element={<KidMake />} />
+            <Route path="/kid/make/:id" element={<KidEditor />} />
           </Route>
         </Route>
 

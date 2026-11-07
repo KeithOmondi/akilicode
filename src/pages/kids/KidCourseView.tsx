@@ -612,6 +612,7 @@ const KidCourseView = () => {
                   </div>
                   <p className="text-gray-800 text-[15px] leading-relaxed">{currentLesson.assignment}</p>
                   <p className="mt-3 text-xs text-amber-800 font-semibold">Show it to a grown-up when you are done. 🎉</p>
+                  <Link to="/kid/assignments" className="ds-btn ds-btn-primary mt-4 !min-h-[3rem]">Open my assignments</Link>
                 </div>
               )}
 

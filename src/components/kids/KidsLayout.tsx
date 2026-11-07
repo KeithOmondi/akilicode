@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Award, BookOpen, CalendarDays, Flame, Home, LogOut, Star, Trophy } from "lucide-react";
+import { Award, BookOpen, CalendarDays, ClipboardList, Code2, Flame, Home, LogOut, Star, Trophy } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logoutKid } from "../../store/slices/kidSlice";
 import { getDashboardStats } from "../../store/slices/kidLearningSlice";
@@ -12,12 +12,18 @@ import ScreenTimeGuard from "./ScreenTimeGuard";
  *  - phone:   slim top bar + big bottom tab bar (thumb-friendly, like a game)
  *  - desktop: the same tabs as a slim rail on the left
  *  - lessons: no chrome at all (the lesson page is full-screen so nothing distracts)
- * Only 5 places to go, each with a big icon and one word.
+ * Only 5 places to go on a phone, each with a big icon and one word.
  */
 const NAV = [
   { to: "/kid/dashboard", label: "Home", icon: Home },
   { to: "/kid/my-courses", label: "Learn", icon: BookOpen },
+  { to: "/kid/assignments", label: "Tasks", icon: ClipboardList },
+  { to: "/kid/make", label: "Make", icon: Code2 },
   { to: "/kid/badges", label: "Badges", icon: Award },
+] as const;
+
+/** Reached from the desktop rail and from the links at the bottom of Home. */
+const NAV_MORE = [
   { to: "/kid/leaderboard", label: "My Best", icon: Trophy },
   { to: "/kid/calendar", label: "Calendar", icon: CalendarDays },
 ] as const;
@@ -102,7 +108,7 @@ const KidsLayout = ({ children }: { children?: React.ReactNode }) => {
 
       {/* desktop rail */}
       <nav aria-label="Main" className="hidden lg:flex fixed left-0 top-0 bottom-0 w-24 flex-col items-center gap-2 pt-24 bg-white border-r-2 border-brand-100 z-20">
-        {NAV.map(({ to, label, icon: Icon }) => (
+        {[...NAV, ...NAV_MORE].map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

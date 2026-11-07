@@ -194,6 +194,11 @@ const KidDashboard = () => {
           </ul>
         )}
       </section>
+
+      <nav aria-label="More" className="mt-8 flex flex-wrap gap-3">
+        <Link to="/kid/leaderboard" className="ds-btn ds-btn-secondary">🏆 My Best</Link>
+        <Link to="/kid/calendar" className="ds-btn ds-btn-secondary">📅 Calendar</Link>
+      </nav>
     </div>
   );
 };
