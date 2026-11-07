@@ -281,7 +281,7 @@ const ParentEnrollments = () => {
   const { loading: payLoading, checkoutRequestId } = useSelector((s: RootState) => s.payment);
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     dispatch(getMyEnrollments());
@@ -298,7 +298,7 @@ const ParentEnrollments = () => {
   }, [checkoutRequestId]);
 
   useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
   }, []);
 
   /**
@@ -338,26 +338,32 @@ const ParentEnrollments = () => {
   };
 
   const stopPolling = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (pollRef.current) clearTimeout(pollRef.current);
     pollRef.current = null;
   };
 
-  // Right after the prompt is sent: check every 3 seconds for up to 2 minutes.
+  // Right after the prompt is sent: ask every 4 seconds for a minute, then every 10 seconds for two more minutes.
+  // (Each question makes the server ask Safaricom, which limits how often that is allowed.)
   const startPolling = (enrollmentId: string) => {
     stopPolling();
     let attempts = 0;
-    pollRef.current = setInterval(async () => {
-      attempts++;
-      const done = await checkPayment(enrollmentId);
-      if (done || attempts >= 40) {
-        stopPolling();
-        if (!done) {
+    const MAX_ATTEMPTS = 15 + 12;
+    const next = () => {
+      pollRef.current = setTimeout(async () => {
+        attempts++;
+        const done = await checkPayment(enrollmentId);
+        if (done) return stopPolling();
+        if (attempts >= MAX_ATTEMPTS) {
+          stopPolling();
           toast.dismiss("stk-push");
           dispatch(clearCheckoutRequest());
           toast("Not confirmed yet. If you have paid, press “Check payment” on the card.", { icon: "⏳", duration: 8000 });
+          return;
         }
-      }
-    }, 3000);
+        next();
+      }, attempts < 15 ? 4000 : 10000);
+    };
+    next();
   };
 
   const [checking, setChecking] = useState<string | null>(null);
