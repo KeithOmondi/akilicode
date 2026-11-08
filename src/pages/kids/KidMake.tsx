@@ -14,7 +14,20 @@ const KidMake = () => {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState<"web" | "blocks" | null>(null);
   const group = useAppSelector((st) => st.kid.currentKid?.age_group);
-  // Younger groups start with blocks, older ones with web pages. Both are always there.
+  // What the parent enrolled the child in decides what they can make: a Scratch course means blocks, a web course means web pages.
+  // Until we know (or if the courses do not say), offer both.
+  const [kinds, setKinds] = useState<("web" | "blocks")[]>(["blocks", "web"]);
+  useEffect(() => {
+    let alive = true;
+    projectsApi.kinds().then((k) => alive && k.length && setKinds(k)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const showBlocks = kinds.includes("blocks");
+  const showWeb = kinds.includes("web");
+  const both = showBlocks && showWeb;
+  // With both on offer, younger groups start with blocks and older ones with web pages.
   const blocksFirst = group === "4-6" || group === "7-9" || group === "10-12" || !group;
 
   const load = () => {
@@ -58,15 +71,15 @@ const KidMake = () => {
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-black text-brand-900">Make</h1>
-          <p className="text-slate-600 font-bold mt-1">Snap blocks together, or build web pages with HTML, CSS and JavaScript.</p>
+          <p className="text-slate-600 font-bold mt-1">{both ? "Snap blocks together, or build web pages with HTML, CSS and JavaScript." : showBlocks ? "Snap blocks together and bring your sprites to life." : "Build web pages with HTML, CSS and JavaScript."}</p>
         </div>
         <div className={`flex gap-2 flex-wrap ${blocksFirst ? "" : "flex-row-reverse"}`}>
-          <button onClick={() => create("blocks")} disabled={creating !== null} className="ds-btn ds-btn-next !min-h-[3.5rem] !text-lg !px-6">
+          {showBlocks && <button onClick={() => create("blocks")} disabled={creating !== null} className="ds-btn ds-btn-next !min-h-[3.5rem] !text-lg !px-6">
             {creating === "blocks" ? <Loader2 className="animate-spin" size={20} /> : <Blocks size={22} aria-hidden="true" />} New blocks project
-          </button>
-          <button onClick={() => create("web")} disabled={creating !== null} className="ds-btn ds-btn-secondary !min-h-[3.5rem] !text-lg !px-6">
+          </button>}
+          {showWeb && <button onClick={() => create("web")} disabled={creating !== null} className={`ds-btn ${both ? "ds-btn-secondary" : "ds-btn-next"} !min-h-[3.5rem] !text-lg !px-6`}>
             {creating === "web" ? <Loader2 className="animate-spin" size={20} /> : <Globe size={22} aria-hidden="true" />} New web page
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -83,7 +96,7 @@ const KidMake = () => {
         <div className="kid-card p-10 text-center mt-6">
           <p className="text-6xl" aria-hidden="true">🧑‍💻</p>
           <p className="mt-3 text-xl font-black text-brand-900">Make your first page!</p>
-          <p className="text-slate-600 font-bold mt-1">Pick “New blocks project” or “New web page” to start. We give you something to play with.</p>
+          <p className="text-slate-600 font-bold mt-1">{both ? "Pick “New blocks project” or “New web page” to start." : showBlocks ? "Press “New blocks project” to start." : "Press “New web page” to start."} We give you something to play with.</p>
         </div>
       ) : (
         <>

@@ -64,6 +64,7 @@ export const errorText = (e: unknown, fallback = "Something went wrong. Please t
 
 export const projectsApi = {
   assignments: async () => (await api.get<{ data: { assignments: AssignmentItem[] } }>("/kid/projects/assignments")).data.data.assignments,
+  kinds: async () => (await api.get<{ data: { kinds: ("web" | "blocks")[] } }>("/kid/projects/kinds")).data.data.kinds,
   list: async () => (await api.get<{ data: { projects: ProjectSummary[] } }>("/kid/projects")).data.data.projects,
   get: async (id: string) => (await api.get<{ data: { project: Project } }>(`/kid/projects/${id}`)).data.data.project,
   create: async (kind: "web" | "blocks" = "web", title?: string) => (await api.post<{ data: { project: Project } }>("/kid/projects", { kind, ...(title ? { title } : {}) })).data.data.project,
