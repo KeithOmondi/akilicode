@@ -1,7 +1,26 @@
 import api from "../api/api";
 
+export interface OutlineLesson {
+  title: string;
+  type: "notes" | "coding" | "scratch";
+  has_assignment: boolean;
+  done: boolean;
+  completed_at: string | null;
+  points: number;
+  quiz: { score: number; total: number } | null;
+}
+
 export interface ProgressCourse {
   enrollment_id: string;
+  course_id: string | null;
+  fee_amount: string | number;
+  billing_cycle: string | null;
+  next_payment_date: string | null;
+  total_paid: string | number | null;
+  last_payment_date: string | null;
+  start_date: string | null;
+  pay_ref: string | null;
+  modules: { module: string; lessons: OutlineLesson[] }[];
   course_name: string;
   status: string;
   payment_status: string;
@@ -27,11 +46,16 @@ export interface KidProgress {
     last_login: string | null;
     last_activity_date: string | null;
     leaderboard_opt_in: boolean;
+    username: string | null;
+    has_pin: boolean;
+    consent_ok: boolean;
   };
+  time_spent: { total_seconds: number; last_30_days_seconds: number; learning_days: number };
   level: { level: number; points: number; points_in_level: number; points_per_level: number; points_to_next: number; streak_days: number };
   totals: {
     lessons_completed: number;
     lessons_this_week: number;
+    lessons_last_week: number;
     projects_made: number;
     projects_handed_in: number;
     average_mark: number | null;

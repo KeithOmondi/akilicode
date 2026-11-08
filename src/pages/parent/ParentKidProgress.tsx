@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, Clock, Flame, Loader2, Star, Trophy, Award, MessageSquare, Hourglass } from "lucide-react";
+import { ArrowLeft, BookOpen, ShieldCheck, CheckCircle2, Circle, ArrowRightCircle, Clock, Flame, Loader2, Star, Trophy, Award, MessageSquare, Hourglass } from "lucide-react";
 import { fetchKidProgress, type KidProgress } from "../../lib/kidProgressApi";
 import { avatarOf } from "../../lib/avatars";
 import { groupLabel } from "../../lib/ageGroups";
@@ -13,6 +13,9 @@ const ago = (d: string | null | undefined) => {
   return days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`;
 };
 const minutes = (s: number) => (s < 60 ? `${s}s` : `${Math.round(s / 60)} min`);
+const hours = (s: number) => (s < 3600 ? minutes(s) : `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`);
+const money = (n: string | number | null | undefined) => `KES ${Number(n ?? 0).toLocaleString("en-KE")}`;
+const kindName = { notes: "Reading", coding: "Web coding", scratch: "Blocks" } as const;
 
 const Card = ({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) => (
   <section className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6">
@@ -90,7 +93,7 @@ const ParentKidProgress = () => {
     );
   }
 
-  const { kid, level, totals, courses, recent, quizzes, projects, hand_ins, badges, calendar, screen_time } = data;
+  const { kid, level, totals, time_spent, courses, recent, quizzes, projects, hand_ins, badges, calendar, screen_time } = data;
   const activeDays = new Map(calendar.map((c) => [c.day, c]));
   const last30 = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(now - (29 - i) * 86400000);
@@ -139,6 +142,13 @@ const ParentKidProgress = () => {
         <Tile label="Average mark" value={totals.average_mark === null ? "—" : `${totals.average_mark}/100`} hint={totals.average_quiz_percent === null ? "no quizzes yet" : `quizzes ${totals.average_quiz_percent}%`} />
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Tile label="This week" value={`${totals.lessons_this_week} lessons`} hint={`last week: ${totals.lessons_last_week}${totals.lessons_this_week > totals.lessons_last_week ? " (more!)" : ""}`} />
+        <Tile label="Time learning" value={hours(time_spent.total_seconds)} hint={`${hours(time_spent.last_30_days_seconds)} in the last 30 days`} />
+        <Tile label="Learning days" value={time_spent.learning_days} hint={time_spent.learning_days ? `about ${minutes(Math.round(time_spent.total_seconds / time_spent.learning_days))} a day` : "none yet"} />
+        <Tile label="Quizzes" value={totals.average_quiz_percent === null ? "—" : `${totals.average_quiz_percent}%`} hint="average score" />
+      </div>
+
       {/* Courses */}
       <Card title="Courses" icon={<BookOpen size={20} aria-hidden="true" />}>
         {courses.length === 0 ? (
@@ -160,6 +170,43 @@ const ParentKidProgress = () => {
                     {c.progress >= 100 ? " · all lessons done 🎉" : ""}
                     {c.last_activity ? ` · last lesson ${ago(c.last_activity)}` : " · not started yet"}
                   </p>
+                  <p className="text-xs font-medium text-gray-500 mt-1">
+                    {money(c.fee_amount)} {c.billing_cycle === "once-off" ? "once-off" : c.billing_cycle ?? ""}
+                    {Number(c.total_paid) > 0 ? ` · paid so far ${money(c.total_paid)}` : ""}
+                    {c.next_payment_date && c.payment_status !== "trial" ? ` · next payment ${day(c.next_payment_date)}` : ""}
+                    {c.last_payment_date ? ` · last paid ${day(c.last_payment_date)}` : ""}
+                    {c.pay_ref ? ` · reference ${c.pay_ref}` : ""}
+                  </p>
+                  {c.modules.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs font-black text-purple-700 select-none">Lesson by lesson ({c.completed_lessons}/{c.total_lessons})</summary>
+                      <div className="mt-2 space-y-3">
+                        {c.modules.map((m, mi) => {
+                          let nextShown = false;
+                          return (
+                            <div key={mi}>
+                              <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mb-1">{m.module}</p>
+                              <ul className="space-y-1">
+                                {m.lessons.map((l, li) => {
+                                  const isNext = !l.done && !nextShown;
+                                  if (isNext) nextShown = true;
+                                  return (
+                                    <li key={li} className={`flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 ${isNext ? "bg-orange-50" : ""}`}>
+                                      {l.done ? <CheckCircle2 size={16} className="text-green-600 shrink-0" aria-label="Done" /> : isNext ? <ArrowRightCircle size={16} className="text-orange-500 shrink-0" aria-label="Up next" /> : <Circle size={16} className="text-gray-300 shrink-0" aria-label="Not done yet" />}
+                                      <span className={`flex-1 min-w-0 truncate ${l.done ? "text-gray-800 font-semibold" : "text-gray-600"}`}>{l.title}</span>
+                                      <span className="text-[10px] font-bold text-gray-400 shrink-0">{kindName[l.type] ?? ""}{l.has_assignment ? " · assignment" : ""}</span>
+                                      {l.quiz && <span className="text-[10px] font-black text-purple-700 shrink-0">quiz {l.quiz.score}/{l.quiz.total}</span>}
+                                      {l.done && <span className="text-[10px] font-medium text-gray-400 shrink-0 hidden sm:inline">{day(l.completed_at)}</span>}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  )}
                   {c.trial_ends_at && c.learning_now && <p className="text-xs font-bold text-purple-700 mt-1 flex items-center gap-1"><Hourglass size={12} aria-hidden="true" /> Free trial ends {day(c.trial_ends_at)}</p>}
                   {!c.learning_now && c.status !== "completed" && <Link to="/parent/programs" className="inline-block mt-1.5 text-xs font-black text-orange-700 underline">Go to payments</Link>}
                 </li>
@@ -277,6 +324,17 @@ const ParentKidProgress = () => {
         <p className="text-xs font-medium text-gray-500 mt-3">
           {calendar.length === 0 ? "No learning days in the last 30 days." : `${calendar.length} learning day${calendar.length === 1 ? "" : "s"} in the last 30. Darker means more lessons that day.`}
         </p>
+      </Card>
+
+      {/* Account and safety */}
+      <Card title="Account and safety" icon={<ShieldCheck size={20} aria-hidden="true" />}>
+        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div className="flex justify-between gap-3"><dt className="text-gray-500 font-medium">Sign-in name</dt><dd className="font-bold text-gray-800">{kid.username ?? "not set up yet"}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-gray-500 font-medium">PIN</dt><dd className="font-bold text-gray-800">{kid.has_pin ? "set" : "not set"}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-gray-500 font-medium">Your consent</dt><dd className={`font-bold ${kid.consent_ok ? "text-green-700" : "text-red-700"}`}>{kid.consent_ok ? "confirmed" : "needs your confirmation"}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-gray-500 font-medium">Shown on leaderboard</dt><dd className="font-bold text-gray-800">{kid.leaderboard_opt_in ? "yes" : "no"}</dd></div>
+        </dl>
+        <p className="text-xs font-medium text-gray-500 mt-3">Change any of these from the “…” menu next to {kid.name} on the <Link to="/parent/kids" className="font-bold text-purple-700 underline">My Kids</Link> page.</p>
       </Card>
 
       {/* Screen time */}
