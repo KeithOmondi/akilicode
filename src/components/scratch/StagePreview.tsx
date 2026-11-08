@@ -93,7 +93,12 @@ const StagePreview = ({ code, runId, costumes, autostart = true, handle }: Props
           </button>
         </div>
       )}
-      <div className={`relative rounded-2xl border-2 border-brand-100 bg-white overflow-hidden ${full ? "flex-1 min-h-0" : "aspect-[4/3] w-full"}`}>
+      <div className={full ? "flex-1 min-h-0 flex items-center justify-center" : "contents"}>
+      <div
+        className="relative rounded-2xl border-2 border-brand-100 bg-white overflow-hidden aspect-[4/3] w-full"
+        // Full screen: as big as fits, but always 4:3 so the picture is never stretched (the header takes about 5rem).
+        style={full ? { width: "min(100%, calc((100vh - 6.5rem) * 4 / 3))" } : undefined}
+      >
         {runId ? (
           <iframe ref={frame} key={runId} title="The stage" sandbox="allow-scripts" allow="autoplay" srcDoc={doc} className="w-full h-full bg-white" />
         ) : (
@@ -106,6 +111,7 @@ const StagePreview = ({ code, runId, costumes, autostart = true, handle }: Props
             <Maximize2 size={14} aria-hidden="true" /> Full screen
           </button>
         )}
+      </div>
       </div>
       {error && <p role="alert" className="rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm font-semibold px-3 py-2">⚠️ {error}</p>}
     </div>
