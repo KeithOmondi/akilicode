@@ -29,7 +29,7 @@ const PricingSection = () => {
   return (
     <section id="pricing" aria-labelledby="pricing-title" className="bg-canvas py-16 sm:py-24 scroll-mt-16">
       <div className="ds-page">
-        <SectionHead id="pricing-title" label="Pricing" title="Simple prices in Kenya shillings" lead="Start free. Choose a plan when you are ready." />
+        <SectionHead id="pricing-title" label="Pricing" title="Simple prices in Kenya shillings" lead="Every child gets a 7-day free trial. No payment needed to start. Choose a plan when you are ready." />
 
         {plans === null && !failed ? (
           <div className="grid md:grid-cols-3 gap-6" role="status" aria-label="Loading prices">
@@ -38,8 +38,8 @@ const PricingSection = () => {
         ) : failed || !plans || plans.length === 0 ? (
           <div className="max-w-xl mx-auto text-center rounded-3xl bg-white border border-ink-200 p-10">
             <p className="text-xl font-extrabold text-ink-900">{failed ? "We could not load the prices just now." : "Plans are coming soon."}</p>
-            <p className="mt-2 text-ink-700">You can create your free account today and see the prices inside.</p>
-            <Link to="/register" className="ds-btn ds-btn-primary mt-6">Start free</Link>
+            <p className="mt-2 text-ink-700">You can create your free account today, and your child can start their 7-day free trial.</p>
+            <Link to="/register" className="ds-btn ds-btn-primary mt-6">Start 7-day free trial</Link>
           </div>
         ) : (
           <ul className={`grid gap-6 ${plans.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2 max-w-3xl mx-auto"}`}>
@@ -60,12 +60,12 @@ const PricingSection = () => {
                     <li key={f} className="flex gap-2 text-ink-700 text-[15px]"><Check size={18} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />{f}</li>
                   ))}
                 </ul>
-                <Link to="/register" className={`ds-btn mt-7 w-full ${p.badge ? "ds-btn-primary" : "ds-btn-secondary"}`}>Start free</Link>
+                <Link to="/register" className={`ds-btn mt-7 w-full ${p.badge ? "ds-btn-primary" : "ds-btn-secondary"}`}>Start 7-day free trial</Link>
               </li>
             ))}
           </ul>
         )}
-        <p className="mt-8 text-center text-sm text-ink-500">Pay with M-Pesa. You will always see the amount before you approve.</p>
+        <p className="mt-8 text-center text-sm text-ink-500">The trial needs no payment. After it, pay with M-Pesa or card. You will always see the amount before you approve.</p>
       </div>
     </section>
   );

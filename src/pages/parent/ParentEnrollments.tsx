@@ -16,6 +16,7 @@ import type { AppDispatch, RootState } from "../../store/store";
 import api from "../../api/api";
 import { errorMessage, fetchPaystackEnabled, startPaystack, verifyPaystack } from "../../lib/paystackApi";
 import { paystackReferenceFromSearch } from "../../lib/paystackUrl";
+import { fetchTrialEligibility, startTrial, type TrialEligibility } from "../../lib/trialApi";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type BillingCycle = "monthly" | "termly" | "once-off";
@@ -31,6 +32,8 @@ interface EnrollWithPaymentPayload {
   phone?:        string;
   /** How the parent pays: an M-Pesa prompt on their phone, or a card payment page from Paystack. */
   method?:       PayMethod;
+  /** start the free trial instead of paying now */
+  trial?:        boolean;
 }
 
 interface BackendError {
@@ -100,7 +103,7 @@ const PaymentStatusBanner = ({
 };
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
-const StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({ status, trial }: { status: string; trial?: boolean }) => {
   const map: Record<string, string> = {
     completed: "bg-green-50 text-green-700 border-green-200",
     active:    "bg-green-50 text-green-700 border-green-200",
@@ -108,8 +111,8 @@ const StatusBadge = ({ status }: { status: string }) => {
     cancelled: "bg-red-50 text-red-700 border-red-200",
   };
   return (
-    <span className={`inline-block px-3 py-1 rounded-lg text-[10px] font-black border uppercase tracking-widest ${map[status] ?? map.pending}`}>
-      {status === "pending" ? "Unpaid" : status}
+    <span className={`inline-block px-3 py-1 rounded-lg text-[10px] font-black border uppercase tracking-widest ${trial ? "bg-purple-50 text-purple-700 border-purple-200" : map[status] ?? map.pending}`}>
+      {trial ? "Free trial" : status === "pending" ? "Unpaid" : status}
     </span>
   );
 };
@@ -154,11 +157,14 @@ interface PayDialogProps {
   amount: number;
   paystackOn: boolean;
   busy: boolean;
+  /** set when this child can still start the free trial */
+  trialDays?: number;
   onClose: () => void;
   onMpesa: (phone: string) => void;
   onCard: () => void;
+  onTrial?: () => void;
 }
-const PayDialog = ({ course, kid, amount, paystackOn, busy, onClose, onMpesa, onCard }: PayDialogProps) => {
+const PayDialog = ({ course, kid, amount, paystackOn, busy, trialDays, onClose, onMpesa, onCard, onTrial }: PayDialogProps) => {
   const [method, setMethod] = useState<PayMethod>("mpesa");
   const [phone, setPhone] = useState("");
   const submit = (e: React.FormEvent) => {
@@ -179,6 +185,16 @@ const PayDialog = ({ course, kid, amount, paystackOn, busy, onClose, onMpesa, on
         </button>
       </div>
       <form onSubmit={submit} className="px-6 py-6 space-y-4">
+        {trialDays && onTrial && (
+          <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-4">
+            <p className="text-sm font-black text-purple-900">New here? Try it free for {trialDays} days</p>
+            <p className="text-xs text-purple-700/80 mt-1">{kid} can start learning right now. No payment needed.</p>
+            <button type="button" onClick={onTrial} disabled={busy} className="mt-3 w-full bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white font-black py-3 rounded-xl transition-all">
+              Start {trialDays}-day free trial
+            </button>
+            <p className="text-[11px] text-gray-500 mt-3 text-center">Or pay now:</p>
+          </div>
+        )}
         {paystackOn && <MethodSwitch value={method} onChange={setMethod} />}
         {method === "mpesa" ? (
           <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
@@ -216,12 +232,14 @@ interface EnrollModalProps {
   courses:  RootState["course"]["courses"];
   loading:  boolean;
   paystackOn: boolean;
+  /** null until we know */
+  trial: TrialEligibility | null;
   onSubmit: (payload: EnrollWithPaymentPayload) => Promise<void>;
 }
 
 import { groupLabel, isForGroup } from "../../lib/ageGroups";
 
-const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: EnrollModalProps) => {
+const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, trial, onSubmit }: EnrollModalProps) => {
   const kidGroup = (kidIdValue: string) => kids.find((k) => k.id === kidIdValue)?.age_group ?? null;
   const [kidId,        setKidId]        = useState("");
   const [courseId,     setCourseId]     = useState("");
@@ -229,6 +247,10 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [phone,        setPhone]        = useState("");
   const [method,       setMethod]       = useState<PayMethod>("mpesa");
+  const [wantTrial,    setWantTrial]    = useState(true);
+  // a child gets one free trial; once they have used it, only paying is offered
+  const trialOffer = !!trial && !!kidId && !trial.usedKidIds.has(kidId);
+  const trialOn = trialOffer && wantTrial;
 
   const inputCls = "w-full bg-purple-50/50 border-2 border-transparent rounded-xl pl-11 pr-4 py-3 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none appearance-none transition-all text-sm font-medium text-gray-800 placeholder:text-gray-400";
   const labelCls = "block text-[11px] font-black text-purple-900 uppercase tracking-wider mb-1.5";
@@ -243,7 +265,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
     e.preventDefault();
     if (!kidId) { toast.error("Please select a student"); return; }
     if (!courseId) { toast.error("Please select a course"); return; }
-    if (method === "mpesa" && (!phone || !/^254\d{9}$/.test(phone))) {
+    if (!trialOn && method === "mpesa" && (!phone || !/^254\d{9}$/.test(phone))) {
       toast.error("Enter a valid M-Pesa number (254...)");
       return;
     }
@@ -252,9 +274,10 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
       course_id:     courseId,
       fee_amount:    Number(feeAmount),
       billing_cycle: billingCycle, // already BillingCycle — no cast needed
-      payNow:        true,
-      phone:         method === "mpesa" ? phone : undefined,
+      payNow:        !trialOn,
+      phone:         !trialOn && method === "mpesa" ? phone : undefined,
       method,
+      trial:         trialOn,
     });
   };
 
@@ -263,7 +286,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
       <div className="px-6 py-5 border-b border-purple-50 flex items-center justify-between bg-gradient-to-r from-purple-700 to-purple-800">
         <div>
           <h2 className="text-lg font-black text-white">New Enrollment</h2>
-          <p className="text-xs text-purple-200 mt-0.5">Activation requires payment</p>
+          <p className="text-xs text-purple-200 mt-0.5">{trial ? `Try free for ${trial.trialDays} days, or pay to start` : "Activation requires payment"}</p>
         </div>
         <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
           <X size={18} />
@@ -332,9 +355,30 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
             </div>
           </div>
 
+          {/* Free trial, once per child */}
+          {trialOffer && (
+            <div className="flex gap-3" role="group" aria-label="Free trial or pay now">
+              {([[true, `Free trial: ${trial!.trialDays} days`, "No payment needed"], [false, "Pay now", "M-Pesa or card"]] as const).map(([val, title, hint]) => (
+                <button
+                  key={String(val)} type="button" onClick={() => setWantTrial(val)} aria-pressed={wantTrial === val}
+                  className={`flex-1 text-left rounded-2xl border-2 px-4 py-3 transition-all ${wantTrial === val ? "border-purple-600 bg-purple-50" : "border-purple-100 bg-white hover:border-purple-200"}`}
+                >
+                  <span className="block text-sm font-black text-purple-900">{title}</span>
+                  <span className="block text-[11px] text-gray-500 mt-0.5">{hint}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {trialOn && (
+            <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 text-sm text-purple-900">
+              <p className="font-bold">Start learning today</p>
+              <p className="text-xs text-purple-700/80 mt-1">Your child gets {trial!.trialDays} days of full access. We will not charge you. After {trial!.trialDays} days, pay to keep learning.</p>
+            </div>
+          )}
+
           {/* How to pay */}
-          {paystackOn && <MethodSwitch value={method} onChange={setMethod} />}
-          {method === "mpesa" ? (
+          {!trialOn && paystackOn && <MethodSwitch value={method} onChange={setMethod} />}
+          {trialOn ? null : method === "mpesa" ? (
             <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
               <div className="flex items-center gap-3 mb-3">
                 <Wallet className="text-orange-500" size={20} />
@@ -368,7 +412,7 @@ const EnrollModal = ({ onClose, kids, courses, loading, paystackOn, onSubmit }: 
           disabled={loading}
           className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl shadow-xl shadow-orange-200 transition-all flex items-center justify-center gap-2"
         >
-          {loading ? "Processing..." : method === "card" ? "Enroll & Continue to Payment" : "Enroll & Pay Now"}
+          {loading ? "Processing..." : trialOn ? `Start ${trial!.trialDays}-day free trial` : method === "card" ? "Enroll & Continue to Payment" : "Enroll & Pay Now"}
         </button>
       </form>
     </ModalOverlay>
@@ -385,6 +429,7 @@ const ParentEnrollments = () => {
 
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [paystackOn, setPaystackOn] = useState(false);
+  const [trial, setTrial] = useState<TrialEligibility | null>(null);
   const [payFor, setPayFor] = useState<null | { id: string; course: string; kid: string; amount: number }>(null);
   const [payBusy, setPayBusy] = useState(false);
   const location = useLocation();
@@ -396,6 +441,7 @@ const ParentEnrollments = () => {
     dispatch(getMyKids());
     dispatch(getAllCourses());
     void fetchPaystackEnabled().then(setPaystackOn);
+    void fetchTrialEligibility().then(setTrial);
   }, [dispatch]);
 
   useEffect(() => {
@@ -547,6 +593,20 @@ const ParentEnrollments = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enrollments]);
 
+  const beginTrial = async (enrollmentId: string): Promise<boolean> => {
+    try {
+      const t = await startTrial(enrollmentId);
+      toast.success(`Free trial started! ${t.duration_days} days of learning, no payment needed.`, { duration: 6000 });
+      dispatch(getMyEnrollments());
+      void fetchTrialEligibility().then(setTrial);
+      return true;
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not start the free trial. You can pay to start instead."), { duration: 7000 });
+      dispatch(getMyEnrollments());
+      return false;
+    }
+  };
+
   const payExistingMpesa = async (enrollmentId: string, phone: string, amount: number) => {
     setPayBusy(true);
     try {
@@ -575,6 +635,12 @@ const ParentEnrollments = () => {
       })).unwrap();
 
       dispatch(getMyEnrollments());
+
+      if (payload.trial) {
+        setShowEnrollModal(false);
+        await beginTrial(enrollment.id);
+        return;
+      }
 
       if (payload.method === "card") {
         setShowEnrollModal(false);
@@ -623,7 +689,7 @@ const ParentEnrollments = () => {
               My <span className="text-orange-500">Enrollments</span>
             </h1>
             <p className="text-gray-500 mt-1 font-serif">
-              Enrollments become active upon payment confirmation.
+              Enrollments become active after payment, or when you start a free trial.
             </p>
           </div>
           <button
@@ -655,7 +721,7 @@ const ParentEnrollments = () => {
                   <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 font-black text-lg">
                     {(e.kid_name ?? "U")[0]}
                   </div>
-                  <StatusBadge status={e.status} />
+                  <StatusBadge status={e.status} trial={e.payment_status === "trial"} />
                 </div>
 
                 <h3 className="text-lg font-black text-purple-900 mb-1">{e.course_name}</h3>
@@ -680,9 +746,22 @@ const ParentEnrollments = () => {
                     </div>
                   )}
 
+                  {e.payment_status === "trial" && (
+                    <div className={`mt-3 p-3 rounded-xl flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-tighter border ${(e.trial_days_left ?? 7) <= 2 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-purple-50 text-purple-700 border-purple-100"}`}>
+                      <Clock size={14} />
+                      Free trial · {e.trial_days_left ?? ""} day{e.trial_days_left === 1 ? "" : "s"} left
+                      <button
+                        onClick={() => setPayFor({ id: e.id, course: e.course_name, kid: e.kid_name ?? "", amount: Number(e.fee_amount) })}
+                        className="ml-auto px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white normal-case tracking-normal text-xs font-black whitespace-nowrap"
+                      >
+                        Pay to keep learning
+                      </button>
+                    </div>
+                  )}
+
                   {e.status === "pending" && (
                     <div className="mt-3 p-3 bg-amber-50 rounded-xl flex flex-wrap items-center gap-2 text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
-                      <CheckCircle2 size={14} /> Not paid yet
+                      <CheckCircle2 size={14} /> {e.trial_ended ? "Free trial ended. Pay to keep learning" : "Not paid yet"}
                       <div className="ml-auto flex gap-2">
                         <button
                           onClick={() => setPayFor({ id: e.id, course: e.course_name, kid: e.kid_name ?? "", amount: Number(e.fee_amount) })}
@@ -701,7 +780,7 @@ const ParentEnrollments = () => {
                     </div>
                   )}
 
-                  {e.status !== "pending" && e.status !== "cancelled" && (
+                  {e.status !== "pending" && e.status !== "cancelled" && e.payment_status !== "trial" && (
                     <PaymentStatusBanner
                       payment_status={e.payment_status}
                       next_payment_date={e.next_payment_date}
@@ -722,6 +801,7 @@ const ParentEnrollments = () => {
           courses={courses}
           loading={isLoading}
           paystackOn={paystackOn}
+          trial={trial}
           onSubmit={handleEnroll}
         />
       )}
@@ -733,6 +813,8 @@ const ParentEnrollments = () => {
           amount={payFor.amount}
           paystackOn={paystackOn}
           busy={payBusy}
+          trialDays={(() => { const kidId = enrollments.find((en) => en.id === payFor.id)?.kid_id; return trial && kidId && !trial.usedKidIds.has(kidId) && enrollments.find((en) => en.id === payFor.id)?.status === "pending" ? trial.trialDays : undefined; })()}
+          onTrial={() => { setPayBusy(true); void beginTrial(payFor.id).then((ok) => { setPayBusy(false); if (ok) setPayFor(null); }); }}
           onClose={() => setPayFor(null)}
           onMpesa={(phone) => void payExistingMpesa(payFor.id, phone, payFor.amount)}
           onCard={() => { setPayBusy(true); void goToPaystack(payFor.id); }}

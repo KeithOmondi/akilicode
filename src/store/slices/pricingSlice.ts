@@ -21,7 +21,7 @@ interface PricingState {
 
 const initialState: PricingState = {
   plans:         [],
-  trialDays:     5,
+  trialDays:     7,
   hasTrial:      true,
   couponResult:  null,
   selectedPlan:  null,

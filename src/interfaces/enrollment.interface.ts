@@ -1,6 +1,6 @@
 // Matches the enrollments table columns returned by RETURNING *
 // Update this in your interfaces section
-export type PaymentStatus = 'unpaid' | 'paid' | 'due_soon' | 'overdue' | 'once-off' | 'cancelled';
+export type PaymentStatus = 'unpaid' | 'paid' | 'due_soon' | 'overdue' | 'once-off' | 'cancelled' | 'trial';
 
 export interface Enrollment {
   id: string;
@@ -17,6 +17,10 @@ export interface Enrollment {
   next_payment_date?: string | null;
   total_payments?: number;
   payment_status?: PaymentStatus;
+  /** free trial: when it ends, how many days are left, and whether it has already ended (the enrollment is unpaid again) */
+  trial_ends_at?: string | null;
+  trial_days_left?: number | null;
+  trial_ended?: boolean;
 }
 
 export interface EnrollmentState {
