@@ -44,6 +44,7 @@ const AdminProjects = lazy(() => import("./pages/admin/AdminProjects"));
 // --- PARENT PAGES ---
 const ParentDashboard = lazy(() => import("./pages/parent/ParentDashboard"));
 const MyKids = lazy(() => import("./pages/parent/MyKids"));
+const ParentKidProgress = lazy(() => import("./pages/parent/ParentKidProgress"));
 const ParentSettings = lazy(() => import("./pages/parent/ParentSettings"));
 const ParentProgramsAndPayments = lazy(() => import("./pages/parent/ParentProgramsAndPayments"));
 const ParentCourses = lazy(() => import("./pages/parent/ParentCourses"));
@@ -202,6 +203,7 @@ const App = () => {
           <Route element={<ParentLayout />}>
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/parent/kids" element={<MyKids />} />
+            <Route path="/parent/kids/:kidId" element={<ParentKidProgress />} />
             <Route path="/parent/settings" element={<ParentSettings />} />
             <Route
               path="/parent/programs"

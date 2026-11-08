@@ -12,6 +12,7 @@ import {
   Lock,
   KeyRound
 } from "lucide-react"; 
+import { Link } from "react-router-dom";
 import { getMyKids, registerKid, setKidLogin } from "../../store/slices/kidSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import type { IKid } from "../../interfaces/kid.interface";
@@ -306,7 +307,7 @@ const MyKids = () => {
                           <div className="w-10 h-10 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center font-black text-lg group-hover:bg-purple-700 group-hover:text-white transition-all shadow-sm">
                             {kid.name[0]}
                           </div>
-                          <span className="font-bold text-purple-900 text-base">{kid.name}</span>
+                          <Link to={`/parent/kids/${kid.id}`} className="font-bold text-purple-900 text-base hover:underline">{kid.name}</Link>
                         </div>
                        </td>
                       <td className="px-6 py-5">
@@ -339,6 +340,7 @@ const MyKids = () => {
                        </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Link to={`/parent/kids/${kid.id}`} className="px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 text-xs font-black hover:bg-purple-200 whitespace-nowrap">View progress</Link>
                           <KidActionsMenu
                             childName={kid.name}
                             hasLogin={!!kid.username}

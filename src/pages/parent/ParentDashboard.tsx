@@ -18,6 +18,7 @@ import { SITE } from "../../config/site";
 import type { AppDispatch, RootState } from "../../store/store";
 import { getMyEnrollments } from "../../store/slices/enrollmentSlice";
 import { getMyKids } from "../../store/slices/kidSlice";
+import ChildrenProgress from "../../components/parent/ChildrenProgress";
 import type { Enrollment } from "../../interfaces/enrollment.interface";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -334,6 +335,8 @@ const ParentDashboard = () => {
             </div>
           ))}
         </div>
+
+        <ChildrenProgress kids={kids} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
